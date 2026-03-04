@@ -23,7 +23,7 @@ export default function AdminReservationsPage() {
 
     useEffect(() => {
         getReservations().then((list) => {
-            setReservations(list.map((r) => ({
+            setReservations(list.map((r: { id: string; guestName: string; tourId: string; tour?: { titleEn: string } | null; date: Date; pax: number; totalPrice: number; status: string; depositPaid?: number }) => ({
                 id: r.id,
                 customer: r.guestName,
                 tour: r.tour?.titleEn ?? r.tourId,

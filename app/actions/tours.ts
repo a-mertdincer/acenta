@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 
@@ -293,7 +294,6 @@ export async function setTourTransferTiers(tourId: string, tiers: TransferTier[]
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
-    const { Prisma } = await import('@prisma/client');
     await prisma.tour.update({
       where: { id: tourId },
       data: { transferTiers: tiers.length ? tiers : Prisma.DbNull },

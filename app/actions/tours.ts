@@ -55,7 +55,7 @@ export async function getTours(): Promise<TourWithOptions[]> {
       basePrice: t.basePrice,
       capacity: t.capacity,
       transferTiers: parseTransferTiers(t.transferTiers),
-      options: t.options.map((o) => ({
+      options: t.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
         titleEn: o.titleEn,
@@ -70,7 +70,7 @@ export async function getTours(): Promise<TourWithOptions[]> {
 
 function parseTransferTiers(json: unknown): TransferTier[] | null {
   if (!json || !Array.isArray(json)) return null;
-  const tiers = json.map((item) => {
+  const tiers = (json as unknown[]).map((item: unknown) => {
     if (item && typeof item === 'object' && 'minPax' in item && 'maxPax' in item && 'price' in item)
       return { minPax: Number((item as TransferTier).minPax), maxPax: Number((item as TransferTier).maxPax), price: Number((item as TransferTier).price) };
     return null;
@@ -97,7 +97,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       basePrice: tour.basePrice,
       capacity: tour.capacity,
       transferTiers: parseTransferTiers(tour.transferTiers),
-      options: tour.options.map((o) => ({
+      options: tour.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
         titleEn: o.titleEn,
@@ -218,7 +218,7 @@ export async function getTourDatePricesInRange(
       where: { tourId, date: { gte: from, lte: to } },
       orderBy: { date: 'asc' },
     });
-    const entries: DatePriceEntry[] = rows.map((r) => ({
+    const entries: DatePriceEntry[] = rows.map((r: { date: Date; price: number; capacityOverride: number | null; isClosed: boolean }) => ({
       date: r.date.toISOString().split('T')[0],
       price: r.price,
       capacityOverride: r.capacityOverride,

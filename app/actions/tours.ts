@@ -43,7 +43,7 @@ export async function getTours(): Promise<TourWithOptions[]> {
       include: { options: true },
       orderBy: { createdAt: 'asc' },
     });
-    return tours.map((t) => ({
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => ({
       id: t.id,
       type: t.type,
       titleTr: t.titleTr,

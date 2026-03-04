@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { login } from '../../actions/auth';
@@ -11,6 +11,8 @@ export default function LoginPage(props: { params: Promise<{ lang: string }> }) 
     const params = use(props.params);
     const { lang } = params;
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const fromAdmin = searchParams.get('from') === 'admin';
 
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +29,7 @@ export default function LoginPage(props: { params: Promise<{ lang: string }> }) 
         setError('');
         const result = await login(formData.email, formData.password);
         setIsSubmitting(false);
-        if (result.ok) router.push(`/${lang}`);
+        if (result.ok) router.push(fromAdmin ? `/${lang}/admin` : `/${lang}`);
         else setError(result.error ?? 'Login failed');
     };
 

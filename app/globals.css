@@ -687,7 +687,7 @@ main {
 }
 .site-logo-img {
   display: block;
-  height: 56px;
+  height: 72px;
   width: auto;
   max-height: 100%;
   object-fit: contain;
@@ -1094,7 +1094,7 @@ main {
     min-height: 64px;
   }
   .site-logo-img {
-    height: 48px;
+    height: 56px;
   }
   .site-top-bar-inner {
     flex-wrap: wrap;

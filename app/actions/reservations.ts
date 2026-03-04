@@ -197,7 +197,7 @@ export async function getRecentActivities(limit = 10): Promise<RecentActivity[]>
       take: limit,
       include: { tour: true },
     });
-    return list.map((r) => ({
+    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date }) => ({
       id: r.id,
       guestName: r.guestName,
       tourTitle: r.tour?.titleTr ?? r.tour?.titleEn ?? 'Tur',

@@ -28,7 +28,7 @@ export default async function UserAccountPage(props: { params: Promise<{ lang: s
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                            {reservations.map((res) => (
+                            {reservations.map((res: { id: string; tourId: string; date: Date; pax: number; totalPrice: number; status: string; tour?: { titleEn: string } | null }) => (
                                 <div key={res.id} className="card" style={{ padding: 'var(--space-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <h3 style={{ marginBottom: 'var(--space-xs)' }}>{res.tour?.titleEn ?? res.tourId}</h3>

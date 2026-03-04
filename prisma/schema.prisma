@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         String        @default("CUSTOMER") // ADMIN or CUSTOMER
+  reservations Reservation[]
+  coupons      Coupon[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Tour {
+  id           String          @id @default(uuid())
+  titleTr      String
+  titleEn      String
+  titleZh      String
+  descTr       String
+  descEn       String
+  descZh       String
+  basePrice    Float // Default price if not overridden by date
+  type         String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
+  capacity       Int             @default(0) // Default capacity
+  transferTiers  Json?           // For type=TRANSFER: [{ minPax, maxPax, price }]
+  options        TourOption[]
+  prices         TourDatePrice[]
+  reservations   Reservation[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model TourOption {
+  id        String   @id @default(uuid())
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  titleTr   String
+  titleEn   String
+  titleZh   String
+  priceAdd  Float // Amount added to base price
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TourDatePrice {
+  id               String   @id @default(uuid())
+  tourId           String
+  tour             Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  date             DateTime // Map to specific day
+  price            Float // Override base price
+  capacityOverride Int? // Override default capacity for this day
+  isClosed         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tourId, date])
+}
+
+model Reservation {
+  id          String   @id @default(uuid())
+  userId      String?
+  guestName   String
+  guestEmail  String
+  guestPhone  String
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tourId      String
+  tour        Tour     @relation(fields: [tourId], references: [id])
+  date        DateTime
+  pax         Int      @default(1)
+  totalPrice  Float
+  depositPaid Float    @default(0)
+  status      String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  notes       String?
+  options     String // Stored as JSON string or comma separated for simplicity
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Coupon {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  discountPct Float? // Percentage discount
+  discountAbs Float? // Absolute discount amount
+  userId      String? // If tied to a specific user
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  validUntil  DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

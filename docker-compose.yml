@@ -1,0 +1,20 @@
+# Yerel geliştirme için PostgreSQL. Kullanım: docker-compose up -d
+# Sonra: .env içinde DATABASE_URL=postgresql://acenta:acenta@localhost:5432/acenta
+#        npx prisma migrate deploy  (veya migrate dev)
+#        npm run seed
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: acenta-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: acenta
+      POSTGRES_PASSWORD: acenta
+      POSTGRES_DB: acenta
+    ports:
+      - "5432:5432"
+    volumes:
+      - acenta_pgdata:/var/lib/postgresql/data
+
+volumes:
+  acenta_pgdata:

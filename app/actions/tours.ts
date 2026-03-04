@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 
@@ -296,7 +295,7 @@ export async function setTourTransferTiers(tourId: string, tiers: TransferTier[]
   try {
     await prisma.tour.update({
       where: { id: tourId },
-      data: { transferTiers: tiers.length ? tiers : Prisma.DbNull },
+      data: { transferTiers: tiers },
     });
     revalidateTours();
     return { ok: true };

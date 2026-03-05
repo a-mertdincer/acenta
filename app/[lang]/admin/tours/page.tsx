@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferTiers, seedDemoTours, createTour, updateTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
+import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
 
 export default function AdminToursPage() {
     const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number }[]>([]);
@@ -25,7 +25,8 @@ export default function AdminToursPage() {
     const [editTitleEn, setEditTitleEn] = useState('');
     const [editPriceAdd, setEditPriceAdd] = useState('');
 
-    const [transferTiers, setTransferTiers] = useState<TransferTier[]>([]);
+    const [transferTiersASR, setTransferTiersASR] = useState<TransferTier[]>([]);
+    const [transferTiersNAV, setTransferTiersNAV] = useState<TransferTier[]>([]);
     const [transferSaving, setTransferSaving] = useState(false);
     const [seedLoading, setSeedLoading] = useState(false);
 
@@ -67,7 +68,8 @@ export default function AdminToursPage() {
         if (!dailyTourId) return;
         getTourById(dailyTourId).then((t) => {
             setOptions(t?.options ?? []);
-            setTransferTiers(t?.transferTiers ?? []);
+            setTransferTiersASR(t?.transferAirportTiers?.ASR ?? t?.transferTiers ?? []);
+            setTransferTiersNAV(t?.transferAirportTiers?.NAV ?? []);
         });
     }, [dailyTourId]);
 
@@ -143,17 +145,24 @@ export default function AdminToursPage() {
         } else alert(result.error);
     };
 
-    const addTransferTier = () => setTransferTiers((prev) => [...prev, { minPax: 1, maxPax: 4, price: 50 }]);
-    const updateTransferTier = (i: number, field: keyof TransferTier, value: number) => {
-        setTransferTiers((prev) => prev.map((t, j) => (j === i ? { ...t, [field]: value } : t)));
+    const addTransferTier = (airport: 'ASR' | 'NAV') => {
+        if (airport === 'ASR') setTransferTiersASR((prev) => [...prev, { minPax: 1, maxPax: 4, price: 50 }]);
+        else setTransferTiersNAV((prev) => [...prev, { minPax: 1, maxPax: 4, price: 50 }]);
     };
-    const removeTransferTier = (i: number) => setTransferTiers((prev) => prev.filter((_, j) => j !== i));
+    const updateTransferTier = (airport: 'ASR' | 'NAV', i: number, field: keyof TransferTier, value: number) => {
+        if (airport === 'ASR') setTransferTiersASR((prev) => prev.map((t, j) => (j === i ? { ...t, [field]: value } : t)));
+        else setTransferTiersNAV((prev) => prev.map((t, j) => (j === i ? { ...t, [field]: value } : t)));
+    };
+    const removeTransferTier = (airport: 'ASR' | 'NAV', i: number) => {
+        if (airport === 'ASR') setTransferTiersASR((prev) => prev.filter((_, j) => j !== i));
+        else setTransferTiersNAV((prev) => prev.filter((_, j) => j !== i));
+    };
     const handleSaveTransferTiers = async () => {
         if (!dailyTourId) return;
         setTransferSaving(true);
-        const result = await setTourTransferTiers(dailyTourId, transferTiers);
+        const result = await setTourTransferAirportTiers(dailyTourId, { ASR: transferTiersASR, NAV: transferTiersNAV });
         setTransferSaving(false);
-        if (result.ok) alert('Transfer tiers saved.');
+        if (result.ok) alert('ASR ve NAV transfer fiyatları kaydedildi.');
         else alert(result.error);
     };
 
@@ -458,41 +467,78 @@ export default function AdminToursPage() {
 
             {selectedTourType === 'TRANSFER' && (
                 <div className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
-                    <h2 style={{ marginBottom: 'var(--space-lg)' }}>Kişi sayısına göre transfer fiyatı</h2>
-                    <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-md)', fontSize: '0.95rem' }}>
-                        Yolcu sayısına göre fiyat kademeleri girin (örn. 1–4 kişi: €50, 5–8 kişi: €80). Müşteri kişi sayısı seçince sitede bu fiyat gösterilir.
+                    <h2 style={{ marginBottom: 'var(--space-lg)' }}>Havalimanına göre transfer fiyatı (ASR / NAV)</h2>
+                    <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)', fontSize: '0.95rem' }}>
+                        ASR (Kayseri) ve NAV (Nevşehir) için ayrı ayrı kişi sayısı kademeleri girin. Müşteri ürün sayfasında havalimanı seçince ilgili fiyat gösterilir.
                     </p>
-                    <table style={{ width: '100%', maxWidth: 400, borderCollapse: 'collapse', marginBottom: 'var(--space-md)' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                                <th style={{ padding: 'var(--space-sm)' }}>Min kişi</th>
-                                <th style={{ padding: 'var(--space-sm)' }}>Max kişi</th>
-                                <th style={{ padding: 'var(--space-sm)' }}>Fiyat (€)</th>
-                                <th style={{ padding: 'var(--space-sm)' }}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {transferTiers.map((tier, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                    <td style={{ padding: 'var(--space-sm)' }}>
-                                        <input type="number" min={1} value={tier.minPax} onChange={(e) => updateTransferTier(i, 'minPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
-                                    </td>
-                                    <td style={{ padding: 'var(--space-sm)' }}>
-                                        <input type="number" min={1} value={tier.maxPax} onChange={(e) => updateTransferTier(i, 'maxPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
-                                    </td>
-                                    <td style={{ padding: 'var(--space-sm)' }}>
-                                        <input type="number" min={0} step={0.01} value={tier.price} onChange={(e) => updateTransferTier(i, 'price', parseFloat(e.target.value) || 0)} style={{ width: '70px', padding: '4px' }} />
-                                    </td>
-                                    <td style={{ padding: 'var(--space-sm)' }}>
-                                        <button type="button" onClick={() => removeTransferTier(i)} style={{ padding: '2px 6px', fontSize: '0.8rem' }}>Kaldır</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2xl)' }}>
+                        <div>
+                            <h3 style={{ marginBottom: 'var(--space-md)' }}>ASR (Kayseri Havalimanı)</h3>
+                            <table style={{ width: '100%', maxWidth: 360, borderCollapse: 'collapse', marginBottom: 'var(--space-md)' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Min kişi</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Max kişi</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Fiyat (€)</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transferTiersASR.map((tier, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={1} value={tier.minPax} onChange={(e) => updateTransferTier('ASR', i, 'minPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={1} value={tier.maxPax} onChange={(e) => updateTransferTier('ASR', i, 'maxPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={0} step={0.01} value={tier.price} onChange={(e) => updateTransferTier('ASR', i, 'price', parseFloat(e.target.value) || 0)} style={{ width: '70px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <button type="button" onClick={() => removeTransferTier('ASR', i)} style={{ padding: '2px 6px', fontSize: '0.8rem' }}>Kaldır</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <Button type="button" variant="secondary" style={{ marginBottom: 'var(--space-lg)' }} onClick={() => addTransferTier('ASR')}>ASR kademe ekle</Button>
+                        </div>
+                        <div>
+                            <h3 style={{ marginBottom: 'var(--space-md)' }}>NAV (Nevşehir Havalimanı)</h3>
+                            <table style={{ width: '100%', maxWidth: 360, borderCollapse: 'collapse', marginBottom: 'var(--space-md)' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Min kişi</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Max kişi</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}>Fiyat (€)</th>
+                                        <th style={{ padding: 'var(--space-sm)' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transferTiersNAV.map((tier, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={1} value={tier.minPax} onChange={(e) => updateTransferTier('NAV', i, 'minPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={1} value={tier.maxPax} onChange={(e) => updateTransferTier('NAV', i, 'maxPax', parseInt(e.target.value, 10) || 1)} style={{ width: '60px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <input type="number" min={0} step={0.01} value={tier.price} onChange={(e) => updateTransferTier('NAV', i, 'price', parseFloat(e.target.value) || 0)} style={{ width: '70px', padding: '4px' }} />
+                                            </td>
+                                            <td style={{ padding: 'var(--space-sm)' }}>
+                                                <button type="button" onClick={() => removeTransferTier('NAV', i)} style={{ padding: '2px 6px', fontSize: '0.8rem' }}>Kaldır</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <Button type="button" variant="secondary" style={{ marginBottom: 'var(--space-lg)' }} onClick={() => addTransferTier('NAV')}>NAV kademe ekle</Button>
+                        </div>
+                    </div>
                     <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                        <Button type="button" variant="secondary" onClick={addTransferTier}>Kademe ekle</Button>
-                        <Button type="button" onClick={handleSaveTransferTiers} disabled={transferSaving}>{transferSaving ? 'Kaydediliyor...' : 'Transfer kademelerini kaydet'}</Button>
+                        <Button type="button" onClick={handleSaveTransferTiers} disabled={transferSaving}>{transferSaving ? 'Kaydediliyor...' : 'ASR ve NAV fiyatlarını kaydet'}</Button>
                     </div>
                 </div>
             )}

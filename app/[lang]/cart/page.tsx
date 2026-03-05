@@ -56,6 +56,9 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
                                     </div>
                                     <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: 'var(--space-xs)' }}>
                                         Date: {item.date} | Pax: {item.pax}
+                                        {item.transferAirport && (
+                                            <span> | {item.transferAirport === 'ASR' ? 'Kayseri (ASR)' : 'Nevşehir (NAV)'}</span>
+                                        )}
                                     </p>
                                     {item.options.length > 0 && (
                                         <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>

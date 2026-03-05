@@ -16,6 +16,8 @@ function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: n
   return basePrice;
 }
 
+type TransferAirport = 'ASR' | 'NAV';
+
 function TourDetailHeroImage({ type, title }: { type: string; title: string }) {
   const [src, setSrc] = useState(() => getTourImagePath(type));
   const fallback = getTourImageFallback(type);
@@ -51,6 +53,9 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   addToCart: string;
   dateClosed: string;
   transferPrice: string;
+  airport: string;
+  airportASR: string;
+  airportNAV: string;
 }> = {
   en: {
     description: 'Description',
@@ -70,6 +75,9 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     addToCart: 'Add to cart',
     dateClosed: 'This date is closed for booking.',
     transferPrice: 'Price for {pax} passenger(s)',
+    airport: 'Airport',
+    airportASR: 'Kayseri (ASR)',
+    airportNAV: 'Nevşehir (NAV)',
   },
   tr: {
     description: 'Açıklama',
@@ -89,6 +97,9 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     addToCart: 'Sepete ekle',
     dateClosed: 'Bu tarih için rezervasyon alınmamaktadır.',
     transferPrice: '{pax} kişi fiyatı',
+    airport: 'Havalimanı',
+    airportASR: 'Kayseri (ASR)',
+    airportNAV: 'Nevşehir (NAV)',
   },
   zh: {
     description: '描述',
@@ -108,12 +119,16 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     addToCart: '加入购物车',
     dateClosed: '该日期不接受预订。',
     transferPrice: '{pax} 人价格',
+    airport: '机场',
+    airportASR: '开塞利 (ASR)',
+    airportNAV: '内夫谢希尔 (NAV)',
   },
 };
 
 function mapDbTourToState(db: {
   id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
   transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
+  transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
 }, _lang: Lang) {
   const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
@@ -128,6 +143,7 @@ function mapDbTourToState(db: {
     descZh: db.descZh,
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
+    transferAirportTiers: db.transferAirportTiers ?? null,
     options: db.options.map((o, i) => ({
       id: i + 1,
       title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
@@ -177,6 +193,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [pax, setPax] = useState(1);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
+    const [selectedAirport, setSelectedAirport] = useState<TransferAirport>('ASR');
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
 
     useEffect(() => {
@@ -217,11 +234,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
 
-    const isTransferWithTiers = tour.type === 'TRANSFER' && tour.transferTiers?.length;
+    const transferTiersForAirport =
+        tour.type === 'TRANSFER' && tour.transferAirportTiers
+            ? (tour.transferAirportTiers[selectedAirport] ?? tour.transferAirportTiers.ASR ?? tour.transferTiers)
+            : null;
+    const isTransferWithTiers = tour.type === 'TRANSFER' && (transferTiersForAirport?.length ?? tour.transferTiers?.length);
     const basePrice = datePrice?.price ?? tour.basePrice;
     const isClosed = datePrice?.isClosed ?? false;
     const unitPrice = isTransferWithTiers
-        ? getTransferPriceForPaxClient(tour.transferTiers, pax, basePrice)
+        ? getTransferPriceForPaxClient(transferTiersForAirport ?? tour.transferTiers, pax, basePrice)
         : basePrice;
     let total = isTransferWithTiers ? unitPrice : basePrice * pax;
     selectedOptions.forEach(optId => {
@@ -293,6 +314,20 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         </div>
                     )}
 
+                    {tour.type === 'TRANSFER' && (tour.transferAirportTiers || tour.transferTiers) && (
+                        <div style={{ marginBottom: 'var(--space-md)' }}>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>{t.airport}</label>
+                            <select
+                                value={selectedAirport}
+                                onChange={(e) => setSelectedAirport(e.target.value as TransferAirport)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                <option value="ASR">{t.airportASR}</option>
+                                <option value="NAV">{t.airportNAV}</option>
+                            </select>
+                        </div>
+                    )}
+
                     <div style={{ marginBottom: 'var(--space-xl)' }}>
                         <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>{t.passengers}</label>
                         <select value={pax} onChange={(e) => setPax(Number(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
@@ -348,7 +383,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 const o = tour.options.find((opt: any) => opt.id === optId);
                                 return { id: o.id, title: o.title, price: o.price };
                             }),
-                            totalPrice: total
+                            totalPrice: total,
+                            ...(tour.type === 'TRANSFER' && { transferAirport: selectedAirport }),
                         });
                         router.push(`/${lang}/cart`);
                     }}>{t.addToCart}</Button>

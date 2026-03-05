@@ -31,9 +31,10 @@ model Tour {
   descZh       String
   basePrice    Float // Default price if not overridden by date
   type         String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
-  capacity       Int             @default(0) // Default capacity
-  transferTiers  Json?           // For type=TRANSFER: [{ minPax, maxPax, price }]
-  options        TourOption[]
+  capacity             Int             @default(0) // Default capacity
+  transferTiers        Json?           // Legacy: ASR tiers. Prefer transferAirportTiers.
+  transferAirportTiers Json?           // For type=TRANSFER: { ASR: [{ minPax, maxPax, price }], NAV: [...] }
+  options              TourOption[]
   prices         TourDatePrice[]
   reservations   Reservation[]
   createdAt      DateTime        @default(now())
@@ -79,11 +80,12 @@ model Reservation {
   pax         Int      @default(1)
   totalPrice  Float
   depositPaid Float    @default(0)
-  status      String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
-  notes       String?
-  options     String // Stored as JSON string or comma separated for simplicity
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status         String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  notes          String?
+  options        String   // Stored as JSON string or comma separated for simplicity
+  transferAirport  String?  // For transfer reservations: ASR | NAV
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Coupon {

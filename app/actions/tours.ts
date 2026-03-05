@@ -16,6 +16,9 @@ export type TourType = 'BALLOON' | 'TOUR' | 'TRANSFER' | 'CONCIERGE' | 'PACKAGE'
 
 export type TransferTier = { minPax: number; maxPax: number; price: number };
 
+/** Per-airport transfer tiers. ASR = Kayseri, NAV = Nevşehir. */
+export type TransferAirportTiers = { ASR?: TransferTier[]; NAV?: TransferTier[] };
+
 export interface TourWithOptions {
   id: string;
   type: string;
@@ -28,6 +31,8 @@ export interface TourWithOptions {
   basePrice: number;
   capacity: number;
   transferTiers: TransferTier[] | null;
+  /** When set, use this for transfer pricing by airport. Else fallback to transferTiers for ASR. */
+  transferAirportTiers: TransferAirportTiers | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
 }
 
@@ -43,26 +48,30 @@ export async function getTours(): Promise<TourWithOptions[]> {
       include: { options: true },
       orderBy: { createdAt: 'asc' },
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => ({
-      id: t.id,
-      type: t.type,
-      titleTr: t.titleTr,
-      titleEn: t.titleEn,
-      titleZh: t.titleZh,
-      descTr: t.descTr,
-      descEn: t.descEn,
-      descZh: t.descZh,
-      basePrice: t.basePrice,
-      capacity: t.capacity,
-      transferTiers: parseTransferTiers(t.transferTiers),
-      options: t.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
-        id: o.id,
-        titleTr: o.titleTr,
-        titleEn: o.titleEn,
-        titleZh: o.titleZh,
-        priceAdd: o.priceAdd,
-      })),
-    }));
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => {
+      const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
+      return {
+        id: t.id,
+        type: t.type,
+        titleTr: t.titleTr,
+        titleEn: t.titleEn,
+        titleZh: t.titleZh,
+        descTr: t.descTr,
+        descEn: t.descEn,
+        descZh: t.descZh,
+        basePrice: t.basePrice,
+        capacity: t.capacity,
+        transferTiers,
+        transferAirportTiers,
+        options: t.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
+          id: o.id,
+          titleTr: o.titleTr,
+          titleEn: o.titleEn,
+          titleZh: o.titleZh,
+          priceAdd: o.priceAdd,
+        })),
+      };
+    });
   } catch {
     return [];
   }
@@ -78,6 +87,32 @@ function parseTransferTiers(json: unknown): TransferTier[] | null {
   return tiers.length ? tiers : null;
 }
 
+function parseTransferAirportTiers(json: unknown): TransferAirportTiers | null {
+  if (!json || typeof json !== 'object') return null;
+  const o = json as Record<string, unknown>;
+  const ASR = Array.isArray(o.ASR) ? parseTransferTiers(o.ASR) : null;
+  const NAV = Array.isArray(o.NAV) ? parseTransferTiers(o.NAV) : null;
+  if ((ASR?.length ?? 0) > 0 || (NAV?.length ?? 0) > 0)
+    return { ASR: ASR ?? [], NAV: NAV ?? [] };
+  return null;
+}
+
+function buildTransferAirportTiers(
+  transferAirportTiersJson: unknown,
+  legacyTransferTiers: TransferTier[] | null
+): { transferTiers: TransferTier[] | null; transferAirportTiers: TransferAirportTiers | null } {
+  const byAirport = parseTransferAirportTiers(transferAirportTiersJson);
+  if (byAirport) {
+    const asr = byAirport.ASR ?? [];
+    return { transferTiers: asr.length ? asr : null, transferAirportTiers: byAirport };
+  }
+  const legacy = legacyTransferTiers ?? [];
+  return {
+    transferTiers: legacy.length ? legacy : null,
+    transferAirportTiers: legacy.length ? { ASR: legacy, NAV: [] } : null,
+  };
+}
+
 export async function getTourById(id: string): Promise<TourWithOptions | null> {
   try {
     const tour = await prisma.tour.findUnique({
@@ -85,6 +120,8 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       include: { options: true },
     });
     if (!tour) return null;
+    const raw = tour as { transferAirportTiers?: unknown };
+    const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
     return {
       id: tour.id,
       type: tour.type,
@@ -96,7 +133,8 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       descZh: tour.descZh,
       basePrice: tour.basePrice,
       capacity: tour.capacity,
-      transferTiers: parseTransferTiers(tour.transferTiers),
+      transferTiers,
+      transferAirportTiers,
       options: tour.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
@@ -110,10 +148,15 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
   }
 }
 
-/** Get transfer price for a given pax from tiers; falls back to basePrice if no tier matches. Use client-side getTransferPriceForPaxClient for UI. */
-function getTransferPriceForPax(tour: TourWithOptions, pax: number): number {
-  if (tour.transferTiers?.length) {
-    const tier = tour.transferTiers.find((t) => pax >= t.minPax && pax <= t.maxPax);
+/** Get transfer price for a given pax and optional airport (ASR | NAV). Uses transferAirportTiers when present. */
+export function getTransferPriceForPaxAndAirport(
+  tour: TourWithOptions,
+  pax: number,
+  airport: 'ASR' | 'NAV'
+): number {
+  const tiers = tour.transferAirportTiers?.[airport] ?? (airport === 'ASR' ? tour.transferTiers : null);
+  if (tiers?.length) {
+    const tier = tiers.find((t) => pax >= t.minPax && pax <= t.maxPax);
     if (tier) return tier.price;
   }
   return tour.basePrice;
@@ -360,6 +403,25 @@ export async function setTourTransferTiers(tourId: string, tiers: TransferTier[]
     await prisma.tour.update({
       where: { id: tourId },
       data: { transferTiers: tiers },
+    });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
+  }
+}
+
+/** Set transfer tiers per airport (ASR, NAV). Admin only. */
+export async function setTourTransferAirportTiers(
+  tourId: string,
+  payload: TransferAirportTiers
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
+  try {
+    await prisma.tour.update({
+      where: { id: tourId },
+      data: { transferAirportTiers: payload as object },
     });
     revalidateTours();
     return { ok: true };

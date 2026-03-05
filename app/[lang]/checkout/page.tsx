@@ -93,6 +93,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                 pax: item.pax,
                 totalPrice: item.totalPrice,
                 optionsJson: JSON.stringify(item.options),
+                ...(item.transferAirport && { transferAirport: item.transferAirport }),
             })),
         });
 

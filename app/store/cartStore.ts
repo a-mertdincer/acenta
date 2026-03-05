@@ -15,6 +15,8 @@ export interface CartItem {
         price: number;
     }[];
     totalPrice: number;
+    /** For transfer: ASR (Kayseri) | NAV (Nevşehir) */
+    transferAirport?: 'ASR' | 'NAV';
 }
 
 interface CartState {

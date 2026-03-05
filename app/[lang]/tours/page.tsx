@@ -19,9 +19,12 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
     const dbTours = await getTours();
     const tours = dbTours.length > 0
         ? dbTours.map((t) => {
-            const transferTiers = t.transferTiers ?? null;
-            const fromPrice = t.type === 'TRANSFER' && transferTiers?.length
-                ? Math.min(...transferTiers.map((tier) => tier.price))
+            const byAirport = t.transferAirportTiers;
+            const allTierPrices = byAirport
+                ? [...(byAirport.ASR ?? []), ...(byAirport.NAV ?? [])].map((tier) => tier.price)
+                : (t.transferTiers ?? []).map((tier) => tier.price);
+            const fromPrice = t.type === 'TRANSFER' && allTierPrices.length
+                ? Math.min(...allTierPrices)
                 : t.basePrice;
             return {
                 id: t.id,

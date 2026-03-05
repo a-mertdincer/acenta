@@ -10,6 +10,8 @@ export interface CreateReservationItem {
   pax: number;
   totalPrice: number;
   optionsJson: string;
+  /** For transfer reservations: ASR | NAV */
+  transferAirport?: string;
 }
 
 export interface CreateReservationInput {
@@ -42,6 +44,7 @@ export async function createReservations(input: CreateReservationInput): Promise
           totalPrice: item.totalPrice,
           options: item.optionsJson,
           notes: [input.hotelName, input.roomNumber].filter(Boolean).join(' | ') || input.notes || null,
+          transferAirport: item.transferAirport ?? null,
         },
       });
       ids.push(res.id);

@@ -34,6 +34,7 @@ interface ResRow {
     createdAt: string;
     notes: string | null;
     optionsRaw: string | null;
+    transferAirport: string | null;
 }
 
 export default function AdminReservationsPage() {
@@ -59,6 +60,7 @@ export default function AdminReservationsPage() {
                 createdAt: Date;
                 notes: string | null;
                 options: string;
+                transferAirport?: string | null;
             }) => ({
                 id: r.id,
                 customer: r.guestName,
@@ -74,6 +76,7 @@ export default function AdminReservationsPage() {
                 createdAt: r.createdAt.toISOString(),
                 notes: r.notes ?? null,
                 optionsRaw: r.options ?? null,
+                transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
             })));
             setLoading(false);
         });
@@ -226,6 +229,9 @@ export default function AdminReservationsPage() {
                                                         <div><strong>Konaklama / Oda:</strong> {res.notes || '—'}</div>
                                                         <div><strong>E-posta:</strong> <a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></div>
                                                         <div><strong>Telefon:</strong> <a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></div>
+                                                        {res.transferAirport && (
+                                                            <div><strong>Transfer havalimanı:</strong> {res.transferAirport === 'ASR' ? 'Kayseri (ASR)' : res.transferAirport === 'NAV' ? 'Nevşehir (NAV)' : res.transferAirport}</div>
+                                                        )}
                                                         <div style={{ gridColumn: optionsList.length ? '1 / -1' : undefined }}>
                                                             <strong>Seçilen opsiyonlar:</strong>{' '}
                                                             {optionsList.length ? optionsList.map((o, i) => <span key={i}>{o.title}{o.price ? ` (+€${o.price})` : ''}{i < optionsList.length - 1 ? ', ' : ''}</span>) : '—'}

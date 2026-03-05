@@ -148,20 +148,6 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
   }
 }
 
-/** Get transfer price for a given pax and optional airport (ASR | NAV). Uses transferAirportTiers when present. */
-export function getTransferPriceForPaxAndAirport(
-  tour: TourWithOptions,
-  pax: number,
-  airport: 'ASR' | 'NAV'
-): number {
-  const tiers = tour.transferAirportTiers?.[airport] ?? (airport === 'ASR' ? tour.transferTiers : null);
-  if (tiers?.length) {
-    const tier = tiers.find((t) => pax >= t.minPax && pax <= t.maxPax);
-    if (tier) return tier.price;
-  }
-  return tour.basePrice;
-}
-
 /** Get price/capacity/closed for a tour on a specific date. Uses same day-range logic as setTourDatePrice (UTC day). */
 export async function getTourDatePrice(
   tourId: string,

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../actions/auth';
 import { getReservationsByUserId } from '../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle } from '../../lib/reservationStatus';
+import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
 
 export default async function UserAccountPage(props: { params: Promise<{ lang: string }> }) {
     const params = await props.params;

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail, updateReservationDeposit } from '../../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '../../../lib/reservationStatus';
+import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '@/lib/reservationStatus';
 
 /** Seçilen opsiyon: sepette { id, title, price } olarak saklanıyor */
 function parseOptionsJson(optionsStr: string | null): { title: string; price: number }[] {

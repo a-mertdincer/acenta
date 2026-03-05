@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail } from '../../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '../../../lib/reservationStatus';
+import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '@/lib/reservationStatus';
 import { Button } from '../../../components/Button';
 
 interface Res {

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getAdminDashboardStats, getRecentActivities } from '../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle } from '../../lib/reservationStatus';
+import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
 
 export const dynamic = 'force-dynamic';
 

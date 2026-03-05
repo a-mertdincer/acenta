@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail } from '../../../actions/reservations';
+import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '../../../lib/reservationStatus';
 import { Button } from '../../../components/Button';
 
 interface Res {
@@ -46,8 +47,6 @@ function getDaysInMonth(year: number, month: number): { dateStr: string; day: nu
   }
   return cells;
 }
-
-const statusLabel: Record<string, string> = { PENDING: 'Beklemede', CONFIRMED: 'Onaylandı', CANCELLED: 'İptal', COMPLETED: 'Tamamlandı' };
 
 export default function AdminCalendarPage() {
   const pathname = usePathname();
@@ -201,11 +200,10 @@ export default function AdminCalendarPage() {
                         borderRadius: '12px',
                         fontSize: '0.8rem',
                         fontWeight: 'bold',
-                        backgroundColor: r.status === 'CONFIRMED' ? '#d1fae5' : r.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
-                        color: r.status === 'CONFIRMED' ? '#065f46' : r.status === 'PENDING' ? '#92400e' : '#374151',
+                        ...getReservationStatusStyle(r.status),
                       }}
                     >
-                      {statusLabel[r.status] ?? r.status}
+                      {getReservationStatusLabel(r.status)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', alignItems: 'center' }}>
@@ -214,10 +212,9 @@ export default function AdminCalendarPage() {
                       onChange={(e) => handleStatusChange(r.id, e.target.value)}
                       style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                     >
-                      <option value="PENDING">Beklemede</option>
-                      <option value="CONFIRMED">Onayla</option>
-                      <option value="CANCELLED">İptal</option>
-                      <option value="COMPLETED">Tamamlandı</option>
+                      {RESERVATION_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
                     </select>
                     <Button
                       variant="secondary"

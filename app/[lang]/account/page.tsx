@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../actions/auth';
 import { getReservationsByUserId } from '../../actions/reservations';
+import { getReservationStatusLabel, getReservationStatusStyle } from '../../lib/reservationStatus';
 
 export default async function UserAccountPage(props: { params: Promise<{ lang: string }> }) {
     const params = await props.params;
@@ -41,10 +42,9 @@ export default async function UserAccountPage(props: { params: Promise<{ lang: s
                                             padding: '2px 8px',
                                             borderRadius: '4px',
                                             fontSize: '0.8rem',
-                                            backgroundColor: res.status === 'CONFIRMED' ? '#d1fae5' : res.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
-                                            color: res.status === 'CONFIRMED' ? '#065f46' : res.status === 'PENDING' ? '#92400e' : '#374151'
+                                            ...getReservationStatusStyle(res.status),
                                         }}>
-                                            {res.status}
+                                            {getReservationStatusLabel(res.status)}
                                         </span>
                                     </div>
                                 </div>

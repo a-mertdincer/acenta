@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail, updateReservationDeposit } from '../../../actions/reservations';
+import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '../../../lib/reservationStatus';
 
 /** Seçilen opsiyon: sepette { id, title, price } olarak saklanıyor */
 function parseOptionsJson(optionsStr: string | null): { title: string; price: number }[] {
@@ -113,7 +114,6 @@ export default function AdminReservationsPage() {
 
     const [depositEditId, setDepositEditId] = useState<string | null>(null);
     const [depositValue, setDepositValue] = useState('');
-    const statusLabel: Record<string, string> = { PENDING: 'Beklemede', CONFIRMED: 'Onaylandı', CANCELLED: 'İptal', COMPLETED: 'Tamamlandı' };
 
     const handleSetDeposit = async (id: string) => {
         const amount = parseFloat(depositValue);
@@ -216,10 +216,9 @@ export default function AdminReservationsPage() {
                                                     borderRadius: '12px',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 'bold',
-                                                    backgroundColor: res.status === 'CONFIRMED' ? '#d1fae5' : res.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
-                                                    color: res.status === 'CONFIRMED' ? '#065f46' : res.status === 'PENDING' ? '#92400e' : '#374151'
+                                                    ...getReservationStatusStyle(res.status),
                                                 }}>
-                                                    {statusLabel[res.status] ?? res.status}
+                                                    {getReservationStatusLabel(res.status)}
                                                 </span>
                                             </td>
                                             <td style={{ padding: 'var(--space-md)' }}>
@@ -228,10 +227,9 @@ export default function AdminReservationsPage() {
                                                     onChange={(e) => handleStatusChange(res.id, e.target.value)}
                                                     style={{ padding: '4px', borderRadius: '4px', border: '1px solid var(--color-border)', marginRight: 'var(--space-sm)' }}
                                                 >
-                                                    <option value="PENDING">Beklemede</option>
-                                                    <option value="CONFIRMED">Onayla</option>
-                                                    <option value="CANCELLED">İptal</option>
-                                                    <option value="COMPLETED">Tamamlandı</option>
+                                                    {RESERVATION_STATUS_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                    ))}
                                                 </select>
                                                 <Button
                                                     variant="secondary"

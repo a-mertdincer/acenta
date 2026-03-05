@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { getAdminDashboardStats, getRecentActivities } from '../../actions/reservations';
+import { getReservationStatusLabel, getReservationStatusStyle } from '../../lib/reservationStatus';
 
 export const dynamic = 'force-dynamic';
-
-const statusLabel: Record<string, string> = { PENDING: 'Beklemede', CONFIRMED: 'Onaylandı', CANCELLED: 'İptal', COMPLETED: 'Tamamlandı' };
 
 export default async function AdminDashboardPage(props: { params: Promise<{ lang: string }> }) {
     const { lang } = await props.params;
@@ -71,11 +70,10 @@ export default async function AdminDashboardPage(props: { params: Promise<{ lang
                                             borderRadius: '12px',
                                             fontSize: '0.75rem',
                                             fontWeight: 'bold',
-                                            backgroundColor: a.status === 'CONFIRMED' ? '#d1fae5' : a.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
-                                            color: a.status === 'CONFIRMED' ? '#065f46' : a.status === 'PENDING' ? '#92400e' : '#374151',
+                                            ...getReservationStatusStyle(a.status),
                                         }}
                                     >
-                                        {statusLabel[a.status] ?? a.status}
+                                        {getReservationStatusLabel(a.status)}
                                     </span>
                                 </div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-xs)' }}>

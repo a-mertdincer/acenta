@@ -1,8 +1,12 @@
+import Link from 'next/link';
 import { getAdminDashboardStats, getRecentActivities } from '../../actions/reservations';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboardPage() {
+const statusLabel: Record<string, string> = { PENDING: 'Beklemede', CONFIRMED: 'Onaylandı', CANCELLED: 'İptal', COMPLETED: 'Tamamlandı' };
+
+export default async function AdminDashboardPage(props: { params: Promise<{ lang: string }> }) {
+    const { lang } = await props.params;
     const [stats, activities] = await Promise.all([
         getAdminDashboardStats(),
         getRecentActivities(10),
@@ -33,15 +37,53 @@ export default async function AdminDashboardPage() {
 
             <div className="card" style={{ padding: 'var(--space-xl)' }}>
                 <h2 style={{ marginBottom: 'var(--space-lg)' }}>Son Aktiviteler</h2>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: 'var(--space-lg)' }}>
+                    İsme veya satıra tıklayarak Rezervasyonlar sayfasında detayı açabilirsiniz.
+                </p>
                 {activities.length === 0 ? (
                     <p style={{ color: 'var(--color-text-muted)' }}>Henüz aktivite yok.</p>
                 ) : (
-                    activities.map((a) => (
-                        <div key={a.id} style={{ padding: 'var(--space-md) 0', borderBottom: '1px solid var(--color-border)' }}>
-                            <p><strong>{a.guestName}</strong> <strong>{a.tourTitle}</strong> için {a.description}</p>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{a.timeAgo}</span>
-                        </div>
-                    ))
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                        {activities.map((a) => (
+                            <Link
+                                key={a.id}
+                                href={`/${lang}/admin/reservations?highlight=${a.id}`}
+                                style={{
+                                    display: 'block',
+                                    padding: 'var(--space-md)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '8px',
+                                    textDecoration: 'none',
+                                    color: 'inherit',
+                                    transition: 'background 0.15s',
+                                }}
+                            >
+                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
+                                    <div>
+                                        <span style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>{a.guestName}</span>
+                                        <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--space-sm)' }}>
+                                            — {a.tourTitle} · {a.dateStr} · {a.pax} kişi · €{a.totalPrice}
+                                        </span>
+                                    </div>
+                                    <span
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 'bold',
+                                            backgroundColor: a.status === 'CONFIRMED' ? '#d1fae5' : a.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
+                                            color: a.status === 'CONFIRMED' ? '#065f46' : a.status === 'PENDING' ? '#92400e' : '#374151',
+                                        }}
+                                    >
+                                        {statusLabel[a.status] ?? a.status}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-xs)' }}>
+                                    {a.description} <span style={{ marginLeft: 'var(--space-sm)' }}>{a.timeAgo}</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

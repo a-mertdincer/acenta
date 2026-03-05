@@ -182,6 +182,10 @@ export type RecentActivity = {
   tourTitle: string;
   description: string;
   timeAgo: string;
+  dateStr: string;
+  pax: number;
+  totalPrice: number;
+  status: string;
 };
 
 function formatTimeAgo(date: Date): string {
@@ -200,12 +204,16 @@ export async function getRecentActivities(limit = 10): Promise<RecentActivity[]>
       take: limit,
       include: { tour: true },
     });
-    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date }) => ({
+    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date; date: Date; pax: number; totalPrice: number; status: string }) => ({
       id: r.id,
       guestName: r.guestName,
       tourTitle: r.tour?.titleTr ?? r.tour?.titleEn ?? 'Tur',
       description: r.depositPaid > 0 ? 'havale ile depozit ödedi.' : 'rezervasyon talebi gönderdi.',
       timeAgo: formatTimeAgo(r.createdAt),
+      dateStr: r.date.toISOString().split('T')[0],
+      pax: r.pax,
+      totalPrice: r.totalPrice,
+      status: r.status,
     }));
   } catch {
     return [];

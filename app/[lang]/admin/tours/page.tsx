@@ -44,15 +44,15 @@ export default function AdminToursPage() {
 
     const [editTourId, setEditTourId] = useState<string | null>(null);
     const [editSaving, setEditSaving] = useState(false);
-    const [editType, setEditType] = useState<TourType>('TOUR');
-    const [editTitleEn, setEditTitleEn] = useState('');
-    const [editTitleTr, setEditTitleTr] = useState('');
-    const [editTitleZh, setEditTitleZh] = useState('');
-    const [editDescEn, setEditDescEn] = useState('');
-    const [editDescTr, setEditDescTr] = useState('');
-    const [editDescZh, setEditDescZh] = useState('');
-    const [editBasePrice, setEditBasePrice] = useState('0');
-    const [editCapacity, setEditCapacity] = useState('10');
+    const [tourEditType, setTourEditType] = useState<TourType>('TOUR');
+    const [tourEditTitleEn, setTourEditTitleEn] = useState('');
+    const [tourEditTitleTr, setTourEditTitleTr] = useState('');
+    const [tourEditTitleZh, setTourEditTitleZh] = useState('');
+    const [tourEditDescEn, setTourEditDescEn] = useState('');
+    const [tourEditDescTr, setTourEditDescTr] = useState('');
+    const [tourEditDescZh, setTourEditDescZh] = useState('');
+    const [tourEditBasePrice, setTourEditBasePrice] = useState('0');
+    const [tourEditCapacity, setTourEditCapacity] = useState('10');
 
     const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
 
@@ -77,15 +77,15 @@ export default function AdminToursPage() {
         if (!editTourId) return;
         getTourById(editTourId).then((t) => {
             if (!t) return;
-            setEditType(t.type as TourType);
-            setEditTitleEn(t.titleEn);
-            setEditTitleTr(t.titleTr);
-            setEditTitleZh(t.titleZh);
-            setEditDescEn(t.descEn);
-            setEditDescTr(t.descTr);
-            setEditDescZh(t.descZh);
-            setEditBasePrice(String(t.basePrice));
-            setEditCapacity(String(t.capacity));
+            setTourEditType(t.type as TourType);
+            setTourEditTitleEn(t.titleEn);
+            setTourEditTitleTr(t.titleTr);
+            setTourEditTitleZh(t.titleZh);
+            setTourEditDescEn(t.descEn);
+            setTourEditDescTr(t.descTr);
+            setTourEditDescZh(t.descZh);
+            setTourEditBasePrice(String(t.basePrice));
+            setTourEditCapacity(String(t.capacity));
         });
     }, [editTourId]);
 
@@ -214,21 +214,21 @@ export default function AdminToursPage() {
 
     const handleUpdateTour = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editTourId || !editTitleEn.trim()) {
+        if (!editTourId || !tourEditTitleEn.trim()) {
             alert('Ürün adı (EN) zorunludur.');
             return;
         }
         setEditSaving(true);
         const result = await updateTour(editTourId, {
-            type: editType,
-            titleEn: editTitleEn.trim(),
-            titleTr: editTitleTr.trim() || editTitleEn.trim(),
-            titleZh: editTitleZh.trim() || editTitleEn.trim(),
-            descEn: editDescEn.trim() || '-',
-            descTr: editDescTr.trim() || '-',
-            descZh: editDescZh.trim() || '-',
-            basePrice: parseFloat(editBasePrice) || 0,
-            capacity: parseInt(editCapacity, 10) || 0,
+            type: tourEditType,
+            titleEn: tourEditTitleEn.trim(),
+            titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
+            titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
+            descEn: tourEditDescEn.trim() || '-',
+            descTr: tourEditDescTr.trim() || '-',
+            descZh: tourEditDescZh.trim() || '-',
+            basePrice: parseFloat(tourEditBasePrice) || 0,
+            capacity: parseInt(tourEditCapacity, 10) || 0,
         });
         setEditSaving(false);
         if (result.ok) {
@@ -316,8 +316,8 @@ export default function AdminToursPage() {
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Tip</label>
                             <select
-                                value={editType}
-                                onChange={(e) => setEditType(e.target.value as TourType)}
+                                value={tourEditType}
+                                onChange={(e) => setTourEditType(e.target.value as TourType)}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                             >
                                 <option value="BALLOON">BALLOON</option>
@@ -327,24 +327,24 @@ export default function AdminToursPage() {
                                 <option value="PACKAGE">PACKAGE</option>
                             </select>
                         </div>
-                        <Input label="Başlık (EN) *" value={editTitleEn} onChange={(e) => setEditTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
-                        <Input label="Başlık (TR)" value={editTitleTr} onChange={(e) => setEditTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
-                        <Input label="Başlık (ZH)" value={editTitleZh} onChange={(e) => setEditTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
+                        <Input label="Başlık (EN) *" value={tourEditTitleEn} onChange={(e) => setTourEditTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
+                        <Input label="Başlık (TR)" value={tourEditTitleTr} onChange={(e) => setTourEditTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
+                        <Input label="Başlık (ZH)" value={tourEditTitleZh} onChange={(e) => setTourEditTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>
-                            <textarea value={editDescEn} onChange={(e) => setEditDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />
+                            <textarea value={tourEditDescEn} onChange={(e) => setTourEditDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (TR)</label>
-                            <textarea value={editDescTr} onChange={(e) => setEditDescTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                            <textarea value={tourEditDescTr} onChange={(e) => setTourEditDescTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (ZH)</label>
-                            <textarea value={editDescZh} onChange={(e) => setEditDescZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                            <textarea value={tourEditDescZh} onChange={(e) => setTourEditDescZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
                         </div>
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={editBasePrice} onChange={(e) => setEditBasePrice(e.target.value)} />
-                            <Input label="Kapasite" type="number" min={1} value={editCapacity} onChange={(e) => setEditCapacity(e.target.value)} />
+                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} />
+                            <Input label="Kapasite" type="number" min={1} value={tourEditCapacity} onChange={(e) => setTourEditCapacity(e.target.value)} />
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>

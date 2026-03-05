@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail, updateReservationDeposit } from '../../../actions/reservations';
 
@@ -38,10 +39,25 @@ interface ResRow {
 }
 
 export default function AdminReservationsPage() {
+    const searchParams = useSearchParams();
+    const highlightId = searchParams.get('highlight');
+    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
     const [reservations, setReservations] = useState<ResRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (highlightId) setExpandedId(highlightId);
+    }, [highlightId]);
+
+    useEffect(() => {
+        if (highlightId && reservations.length > 0) {
+            const row = rowRefs.current[highlightId];
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [highlightId, reservations]);
 
     useEffect(() => {
         getReservations().then((list) => {
@@ -146,7 +162,14 @@ export default function AdminReservationsPage() {
                                 const createdAtShort = res.createdAt ? new Date(res.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
                                 return (
                                     <React.Fragment key={res.id}>
-                                        <tr style={{ borderBottom: '1px solid var(--color-border)', verticalAlign: 'middle' }}>
+                                        <tr
+                                            ref={(el) => { rowRefs.current[res.id] = el; }}
+                                            style={{
+                                                borderBottom: '1px solid var(--color-border)',
+                                                verticalAlign: 'middle',
+                                                backgroundColor: expandedId === res.id ? '#dbeafe' : undefined,
+                                            }}
+                                        >
                                             <td style={{ padding: 'var(--space-sm)' }}>
                                                 <button
                                                     type="button"

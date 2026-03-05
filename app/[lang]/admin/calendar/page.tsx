@@ -1,25 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getReservations } from '../../../actions/reservations';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { getReservations, updateReservationStatus, sendReservationConfirmationEmail } from '../../../actions/reservations';
+import { Button } from '../../../components/Button';
 
 interface Res {
   id: string;
   date: Date;
   guestName: string;
+  guestEmail: string;
   pax: number;
   totalPrice: number;
   status: string;
   tour?: { titleEn: string; type: string };
 }
 
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDaysInMonth(year: number, month: number): { dateStr: string; day: number; isCurrentMonth: boolean }[] {
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const firstWeekday = first.getDay();
+  const lastDay = last.getDate();
+  const cells: { dateStr: string; day: number; isCurrentMonth: boolean }[] = [];
+  const startPadding = firstWeekday;
+  for (let i = 0; i < startPadding; i++) {
+    const d = new Date(year, month - 1, -startPadding + i + 1);
+    cells.push({ dateStr: toLocalDateStr(d), day: d.getDate(), isCurrentMonth: false });
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    cells.push({ dateStr, day: d, isCurrentMonth: true });
+  }
+  const remaining = 42 - cells.length;
+  for (let i = 0; i < remaining; i++) {
+    const d = new Date(year, month, i + 1);
+    cells.push({ dateStr: toLocalDateStr(d), day: d.getDate(), isCurrentMonth: false });
+  }
+  return cells;
+}
+
+const statusLabel: Record<string, string> = { PENDING: 'Beklemede', CONFIRMED: 'Onaylandı', CANCELLED: 'İptal', COMPLETED: 'Tamamlandı' };
+
 export default function AdminCalendarPage() {
+  const pathname = usePathname();
+  const lang = (pathname?.split('/')[1] ?? 'tr') as string;
+
   const [reservations, setReservations] = useState<Res[]>([]);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -32,54 +73,168 @@ export default function AdminCalendarPage() {
     });
   }, [month]);
 
-  const byDate: Record<string, Res[]> = {};
-  reservations.forEach((r) => {
-    const key = r.date.toISOString().split('T')[0];
-    if (!byDate[key]) byDate[key] = [];
-    byDate[key].push(r);
-  });
-  const dates = Object.keys(byDate).sort();
+  const byDate = useMemo(() => {
+    const map: Record<string, Res[]> = {};
+    reservations.forEach((r) => {
+      const key = toLocalDateStr(new Date(r.date));
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    });
+    return map;
+  }, [reservations]);
+
+  const [year, monthNum] = month.split('-').map(Number);
+  const calendarCells = useMemo(() => getDaysInMonth(year, monthNum), [year, monthNum]);
+  const weekDays = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+
+  const selectedItems = selectedDate ? byDate[selectedDate] ?? [] : [];
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    const result = await updateReservationStatus(id, newStatus);
+    if (result.ok) setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    else alert(result.error);
+  };
+
+  const handleSendConfirmation = async (id: string) => {
+    setSendingEmailId(id);
+    const result = await sendReservationConfirmationEmail(id);
+    setSendingEmailId(null);
+    if (result.ok) alert('Onay e-postası gönderildi.');
+    else alert(result.error ?? 'Gönderilemedi');
+  };
+
+  if (loading && reservations.length === 0) return <div className="loading-block">Yükleniyor...</div>;
 
   return (
     <div>
       <h1 style={{ marginBottom: 'var(--space-xl)' }}>Rezervasyon Takvimi</h1>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+        Bir güne tıklayın; o günün rezervasyonları kartta listelenir. İsme tıklayarak Rezervasyonlar sayfasında tüm detayı açabilirsiniz.
+      </p>
+
       <div style={{ marginBottom: 'var(--space-lg)' }}>
         <label style={{ marginRight: 'var(--space-sm)' }}>Ay:</label>
         <input
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
         />
       </div>
-      {loading ? (
-        <p style={{ color: 'var(--color-text-muted)' }}>Yükleniyor...</p>
-      ) : (
-        <div className="card" style={{ padding: 'var(--space-xl)' }}>
-          {dates.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)' }}>Bu ayda rezervasyon yok.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-              {dates.map((dateStr) => {
-                const items = byDate[dateStr];
-                const totalPax = items.reduce((s, r) => s + r.pax, 0);
-                return (
-                  <div key={dateStr} style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-md)' }}>
-                    <h3 style={{ marginBottom: 'var(--space-sm)' }}>
-                      {dateStr} — {items.length} rezervasyon, {totalPax} kişi
-                    </h3>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {items.map((r) => (
-                        <li key={r.id} style={{ padding: 'var(--space-xs) 0', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
-                          {r.guestName} — {r.tour?.titleEn ?? r.tour?.type ?? 'Tur'} — {r.pax} pax — €{r.totalPrice} — {r.status}
-                        </li>
-                      ))}
-                    </ul>
+
+      <div className="card" style={{ padding: 'var(--space-md)', overflowX: 'auto', marginBottom: 'var(--space-xl)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', minWidth: '320px' }}>
+          {weekDays.map((w) => (
+            <div key={w} style={{ padding: 'var(--space-xs)', fontWeight: 'bold', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>{w}</div>
+          ))}
+          {calendarCells.map((cell, idx) => {
+            const items = byDate[cell.dateStr] ?? [];
+            const count = items.length;
+            const totalPax = items.reduce((s, r) => s + r.pax, 0);
+            const isSelected = selectedDate === cell.dateStr;
+            const isCurrentMonth = cell.isCurrentMonth;
+            return (
+              <button
+                key={`${cell.dateStr}-${idx}`}
+                type="button"
+                onClick={() => isCurrentMonth && setSelectedDate(cell.dateStr)}
+                disabled={!isCurrentMonth}
+                style={{
+                  padding: 'var(--space-sm)',
+                  border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  background: isSelected ? '#dbeafe' : isCurrentMonth ? 'var(--color-bg-card)' : 'var(--color-bg-light)',
+                  cursor: isCurrentMonth ? 'pointer' : 'default',
+                  textAlign: 'left',
+                  opacity: isCurrentMonth ? 1 : 0.6,
+                  minHeight: '64px',
+                }}
+              >
+                <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{cell.day}</span>
+                {isCurrentMonth && count > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', marginTop: '2px' }}>
+                    {count} rez. · {totalPax} kişi
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {selectedDate && (
+        <div className="card" style={{ padding: 'var(--space-xl)' }}>
+          <h2 style={{ marginBottom: 'var(--space-lg)' }}>{selectedDate} — Rezervasyonlar</h2>
+          {selectedItems.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)' }}>Bu günde rezervasyon yok.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              {selectedItems.map((r) => (
+                <li
+                  key={r.id}
+                  style={{
+                    padding: 'var(--space-md)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 'var(--space-md)',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ flex: '1 1 200px' }}>
+                    <div style={{ marginBottom: 'var(--space-xs)' }}>
+                      <Link
+                        href={`/${lang}/admin/reservations?highlight=${r.id}`}
+                        style={{ fontWeight: 'bold', color: 'var(--color-primary)', textDecoration: 'underline' }}
+                      >
+                        {r.guestName}
+                      </Link>
+                      <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--space-sm)' }}>
+                        {r.pax} kişi · {r.tour?.titleEn ?? r.tour?.type ?? 'Tur'} — €{r.totalPrice}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        backgroundColor: r.status === 'CONFIRMED' ? '#d1fae5' : r.status === 'PENDING' ? '#fef3c7' : '#e5e7eb',
+                        color: r.status === 'CONFIRMED' ? '#065f46' : r.status === 'PENDING' ? '#92400e' : '#374151',
+                      }}
+                    >
+                      {statusLabel[r.status] ?? r.status}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                    <select
+                      value={r.status}
+                      onChange={(e) => handleStatusChange(r.id, e.target.value)}
+                      style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                    >
+                      <option value="PENDING">Beklemede</option>
+                      <option value="CONFIRMED">Onayla</option>
+                      <option value="CANCELLED">İptal</option>
+                      <option value="COMPLETED">Tamamlandı</option>
+                    </select>
+                    <Button
+                      variant="secondary"
+                      style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                      onClick={() => handleSendConfirmation(r.id)}
+                      disabled={sendingEmailId === r.id}
+                    >
+                      {sendingEmailId === r.id ? 'Gönderiliyor…' : 'Onay mail'}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
+          <div style={{ marginTop: 'var(--space-lg)' }}>
+            <Button variant="secondary" onClick={() => setSelectedDate(null)}>Kartı kapat</Button>
+          </div>
         </div>
       )}
     </div>

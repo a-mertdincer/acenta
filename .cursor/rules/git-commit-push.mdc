@@ -1,0 +1,14 @@
+---
+description: Kod değişikliklerinden sonra commit ve push yap; kullanıcı ayrıca söylemesin
+alwaysApply: true
+---
+
+# Git: Commit ve push
+
+Kod değişikliği yapıp işi bitirdiğinde:
+
+1. **Otomatik commit ve push yap.** Kullanıcıdan "commit at / push at" diye ayrıca sorma.
+2. Anlamlı bir commit mesajı yaz (feat/fix/refactor vb.).
+3. Sadece ilgili değişen dosyaları stage et, commit at, sonra push et.
+
+Kullanıcı henüz git identity (user.name / user.email) ayarlamamışsa veya push hata verirse (yetki, network vb.) durumu kısaca açıkla; gerekiyorsa kullanıcıya ne yapması gerektiğini söyle.

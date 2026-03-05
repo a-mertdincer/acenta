@@ -59,6 +59,13 @@ export default function AdminBalloonCalendarPage() {
   const [editCapacity, setEditCapacity] = useState('');
   const [editClosed, setEditClosed] = useState(false);
 
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [bulkPrice, setBulkPrice] = useState('');
+  const [bulkCapacity, setBulkCapacity] = useState('');
+  const [bulkClosed, setBulkClosed] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   useEffect(() => {
     getTours().then((list) => {
       const balloon = list.filter((t) => t.type === 'BALLOON').map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, capacity: t.capacity }));
@@ -95,11 +102,59 @@ export default function AdminBalloonCalendarPage() {
   const defaultCapacity = data?.defaultCapacity ?? 0;
 
   const openEdit = (dateStr: string) => {
+    if (bulkMode) {
+      setSelectedDates((prev) => {
+        const next = new Set(prev);
+        if (next.has(dateStr)) next.delete(dateStr);
+        else next.add(dateStr);
+        return next;
+      });
+      return;
+    }
     const entry = entriesByDate[dateStr];
     setEditDate(dateStr);
     setEditPrice(entry ? String(entry.price) : String(basePrice));
     setEditCapacity(entry?.capacityOverride != null ? String(entry.capacityOverride) : String(defaultCapacity));
     setEditClosed(entry?.isClosed ?? false);
+  };
+
+  const selectAllCurrentMonth = () => {
+    const currentMonthCells = calendarCells.filter((c) => c.isCurrentMonth);
+    setSelectedDates(new Set(currentMonthCells.map((c) => c.dateStr)));
+  };
+
+  const clearSelection = () => setSelectedDates(new Set());
+
+  const applyBulkUpdate = async () => {
+    if (!balloonTourId || selectedDates.size === 0) return;
+    const price = parseFloat(bulkPrice);
+    if (Number.isNaN(price) || price < 0) {
+      alert('Geçerli bir fiyat girin.');
+      return;
+    }
+    setBulkSaving(true);
+    const cap = bulkCapacity.trim() === '' ? undefined : parseInt(bulkCapacity, 10);
+    const capacityOverride = cap !== undefined && !Number.isNaN(cap) ? cap : undefined;
+    const dates = Array.from(selectedDates);
+    let ok = 0;
+    for (const dateStr of dates) {
+      const result = await setTourDatePrice(balloonTourId, dateStr, {
+        price,
+        capacityOverride,
+        isClosed: bulkClosed,
+      });
+      if (result.ok) ok++;
+    }
+    setBulkSaving(false);
+    if (ok === dates.length) {
+      setSelectedDates(new Set());
+      const [y, m] = month.split('-').map(Number);
+      const from = `${y}-${String(m).padStart(2, '0')}-01`;
+      const lastDay = new Date(y, m, 0).getDate();
+      const to = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const nextData = await getTourDatePricesInRange(balloonTourId, from, to);
+      setData(nextData ?? null);
+    } else alert(`${ok}/${dates.length} gün güncellendi. Bazı günler kaydedilemedi.`);
   };
 
   const saveEdit = async () => {
@@ -135,10 +190,10 @@ export default function AdminBalloonCalendarPage() {
     <div>
       <h1 style={{ marginBottom: 'var(--space-xl)' }}>Balon Fiyat Takvimi</h1>
       <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-        Her güne ayrı fiyat girebilir, kapasite sınırı koyabilir ve günü kapatabilirsiniz. Takvimde bir güne tıklayarak düzenleyin.
+        Her güne ayrı fiyat girebilir, kapasite sınırı koyabilir ve günü kapatabilirsiniz. Takvimde bir güne tıklayarak düzenleyin. Toplu güncelleme için &quot;Birden fazla gün seç&quot; ile günleri seçip aynı fiyatı uygulayın.
       </p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-lg)', alignItems: 'center', marginBottom: 'var(--space-xl)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-lg)', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>Balon turu</label>
           <select
@@ -160,7 +215,28 @@ export default function AdminBalloonCalendarPage() {
             style={{ padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
           />
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginTop: '1.5rem' }}>
+          <input type="checkbox" checked={bulkMode} onChange={(e) => { setBulkMode(e.target.checked); if (!e.target.checked) setSelectedDates(new Set()); }} />
+          <span>Birden fazla gün seç (toplu güncelleme)</span>
+        </label>
       </div>
+
+      {selectedDates.size > 0 && (
+        <div className="card" style={{ padding: 'var(--space-lg)', marginBottom: 'var(--space-lg)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'flex-end' }}>
+          <span style={{ fontWeight: 'bold' }}>Seçilen {selectedDates.size} gün</span>
+          <Button variant="secondary" type="button" onClick={selectAllCurrentMonth}>Bu ayın tümünü seç</Button>
+          <Button variant="secondary" type="button" onClick={clearSelection}>Seçimi temizle</Button>
+          <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Input label="Fiyat (€)" type="number" step="0.01" value={bulkPrice} onChange={(e) => setBulkPrice(e.target.value)} placeholder={String(basePrice)} style={{ width: '100px' }} />
+            <Input label="Kapasite" type="number" min="0" value={bulkCapacity} onChange={(e) => setBulkCapacity(e.target.value)} placeholder={String(defaultCapacity)} style={{ width: '80px' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+              <input type="checkbox" checked={bulkClosed} onChange={(e) => setBulkClosed(e.target.checked)} />
+              <span>Günleri kapat</span>
+            </label>
+            <Button onClick={applyBulkUpdate} disabled={bulkSaving}>{bulkSaving ? 'Uygulanıyor…' : 'Seçilen günlere uygula'}</Button>
+          </div>
+        </div>
+      )}
 
       {tours.length === 0 ? (
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
@@ -179,6 +255,7 @@ export default function AdminBalloonCalendarPage() {
                 const cap = entry?.capacityOverride ?? defaultCapacity;
                 const closed = entry?.isClosed ?? false;
                 const isCurrentMonth = cell.isCurrentMonth;
+                const isSelected = selectedDates.has(cell.dateStr);
                 return (
                   <button
                     key={`${cell.dateStr}-${idx}`}
@@ -187,9 +264,9 @@ export default function AdminBalloonCalendarPage() {
                     disabled={!isCurrentMonth}
                     style={{
                       padding: 'var(--space-sm)',
-                      border: '1px solid var(--color-border)',
+                      border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
                       borderRadius: '6px',
-                      background: closed ? 'var(--color-bg-light)' : isCurrentMonth ? 'var(--color-bg-card)' : 'var(--color-bg-light)',
+                      background: isSelected ? '#dbeafe' : closed ? 'var(--color-bg-light)' : isCurrentMonth ? 'var(--color-bg-card)' : 'var(--color-bg-light)',
                       cursor: isCurrentMonth ? 'pointer' : 'default',
                       textAlign: 'left',
                       opacity: isCurrentMonth ? 1 : 0.6,

@@ -271,6 +271,33 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   }
 }
 
+export type UpdateTourInput = CreateTourInput;
+
+export async function updateTour(tourId: string, data: UpdateTourInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    await prisma.tour.update({
+      where: { id: tourId },
+      data: {
+        type: data.type,
+        titleEn: data.titleEn.trim(),
+        titleTr: data.titleTr.trim(),
+        titleZh: data.titleZh.trim(),
+        descEn: data.descEn.trim(),
+        descTr: data.descTr.trim(),
+        descZh: data.descZh.trim(),
+        basePrice: Number(data.basePrice) || 0,
+        capacity: Number(data.capacity) || 0,
+      },
+    });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Tur güncellenemedi' };
+  }
+}
+
 // --- Tour options CRUD (admin only) ---
 export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number };
 

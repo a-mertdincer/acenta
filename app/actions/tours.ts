@@ -234,6 +234,43 @@ export async function getTourDatePricesInRange(
   }
 }
 
+// --- Tour CRUD (admin only) ---
+export type CreateTourInput = {
+  type: TourType;
+  titleEn: string;
+  titleTr: string;
+  titleZh: string;
+  descEn: string;
+  descTr: string;
+  descZh: string;
+  basePrice: number;
+  capacity: number;
+};
+
+export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    await prisma.tour.create({
+      data: {
+        type: data.type,
+        titleEn: data.titleEn.trim(),
+        titleTr: data.titleTr.trim(),
+        titleZh: data.titleZh.trim(),
+        descEn: data.descEn.trim(),
+        descTr: data.descTr.trim(),
+        descZh: data.descZh.trim(),
+        basePrice: Number(data.basePrice) || 0,
+        capacity: Number(data.capacity) || 0,
+      },
+    });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Tur eklenemedi' };
+  }
+}
+
 // --- Tour options CRUD (admin only) ---
 export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number };
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferTiers, seedDemoTours, type TourOptionRow, type TransferTier } from '../../../actions/tours';
+import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferTiers, seedDemoTours, createTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
 
 export default function AdminToursPage() {
     const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number }[]>([]);
@@ -28,6 +28,19 @@ export default function AdminToursPage() {
     const [transferTiers, setTransferTiers] = useState<TransferTier[]>([]);
     const [transferSaving, setTransferSaving] = useState(false);
     const [seedLoading, setSeedLoading] = useState(false);
+
+    const [showNewTourForm, setShowNewTourForm] = useState(false);
+    const [createSaving, setCreateSaving] = useState(false);
+    const [newType, setNewType] = useState<TourType>('TOUR');
+    const [newTitleEn, setNewTitleEn] = useState('');
+    const [newTitleTr, setNewTitleTr] = useState('');
+    const [newTitleZh, setNewTitleZh] = useState('');
+    const [newDescEn, setNewDescEn] = useState('');
+    const [newDescTr, setNewDescTr] = useState('');
+    const [newDescZh, setNewDescZh] = useState('');
+    const [newBasePrice, setNewBasePrice] = useState('0');
+    const [newCapacity, setNewCapacity] = useState('10');
+
     const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
 
     useEffect(() => {
@@ -127,6 +140,41 @@ export default function AdminToursPage() {
         } else alert(result.error ?? 'Yüklenemedi');
     };
 
+    const handleCreateTour = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newTitleEn.trim()) {
+            alert('Ürün adı (EN) zorunludur.');
+            return;
+        }
+        setCreateSaving(true);
+        const result = await createTour({
+            type: newType,
+            titleEn: newTitleEn.trim(),
+            titleTr: newTitleTr.trim() || newTitleEn.trim(),
+            titleZh: newTitleZh.trim() || newTitleEn.trim(),
+            descEn: newDescEn.trim() || '-',
+            descTr: newDescTr.trim() || '-',
+            descZh: newDescZh.trim() || '-',
+            basePrice: parseFloat(newBasePrice) || 0,
+            capacity: parseInt(newCapacity, 10) || 0,
+        });
+        setCreateSaving(false);
+        if (result.ok) {
+            const list = await getTours();
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+            if (list.length > 0) setDailyTourId(list[list.length - 1].id);
+            setShowNewTourForm(false);
+            setNewTitleEn('');
+            setNewTitleTr('');
+            setNewTitleZh('');
+            setNewDescEn('');
+            setNewDescTr('');
+            setNewDescZh('');
+            setNewBasePrice('0');
+            setNewCapacity('10');
+        } else alert(result.error ?? 'Tur eklenemedi');
+    };
+
     if (loading) return <div className="loading-block">Turlar yükleniyor...</div>;
 
     return (
@@ -144,8 +192,55 @@ export default function AdminToursPage() {
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2xl)' }}>
                 <h1>Turlar ve Fiyatlandırma Yönetimi</h1>
-                <Button>Yeni Ürün Ekle</Button>
+                <Button onClick={() => setShowNewTourForm((v) => !v)}>
+                    {showNewTourForm ? 'Formu kapat' : 'Yeni Ürün Ekle'}
+                </Button>
             </div>
+
+            {showNewTourForm && (
+                <form onSubmit={handleCreateTour} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
+                    <h2 style={{ marginBottom: 'var(--space-lg)' }}>Yeni tur / ürün ekle</h2>
+                    <div style={{ display: 'grid', gap: 'var(--space-md)', maxWidth: 560 }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Tip</label>
+                            <select
+                                value={newType}
+                                onChange={(e) => setNewType(e.target.value as TourType)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                <option value="BALLOON">BALLOON</option>
+                                <option value="TOUR">TOUR</option>
+                                <option value="TRANSFER">TRANSFER</option>
+                                <option value="CONCIERGE">CONCIERGE</option>
+                                <option value="PACKAGE">PACKAGE</option>
+                            </select>
+                        </div>
+                        <Input label="Başlık (EN) *" value={newTitleEn} onChange={(e) => setNewTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
+                        <Input label="Başlık (TR)" value={newTitleTr} onChange={(e) => setNewTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
+                        <Input label="Başlık (ZH)" value={newTitleZh} onChange={(e) => setNewTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>
+                            <textarea value={newDescEn} onChange={(e) => setNewDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (TR)</label>
+                            <textarea value={newDescTr} onChange={(e) => setNewDescTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (ZH)</label>
+                            <textarea value={newDescZh} onChange={(e) => setNewDescZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} />
+                            <Input label="Kapasite" type="number" min={1} value={newCapacity} onChange={(e) => setNewCapacity(e.target.value)} />
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
+                        <Button type="submit" disabled={createSaving}>{createSaving ? 'Ekleniyor...' : 'Ürünü ekle'}</Button>
+                        <Button type="button" variant="secondary" onClick={() => setShowNewTourForm(false)}>İptal</Button>
+                    </div>
+                </form>
+            )}
 
             <form onSubmit={handleDailySubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
                 <h2 style={{ marginBottom: 'var(--space-lg)' }}>Günlük Fiyat / Kapasite / Gün Kapat</h2>

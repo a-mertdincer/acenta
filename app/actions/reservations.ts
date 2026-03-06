@@ -3,7 +3,7 @@
 import { prisma } from '../../lib/prisma';
 import { getSession } from '../actions/auth';
 import { Resend } from 'resend';
-import { sanitizeGuestInput, formatGuestNotesForStorage } from '@/lib/guestNotes';
+import { sanitizeGuestInput } from '@/lib/guestNotes';
 
 export interface CreateReservationItem {
   tourId: string;
@@ -137,10 +137,10 @@ export async function cancelReservationByGuest(
   }
 }
 
-/** Guest self-service: update own reservation (structured notes + pax). All text is sanitized (XSS). */
+/** Guest self-service: update own reservation (tur tarihi, kişi sayısı, isteğe bağlı not). All text sanitized (XSS). */
 export async function updateReservationByGuest(
   reservationId: string,
-  data: { hotel?: string; room?: string; flight?: string; other?: string; pax?: number }
+  data: { date?: string; pax?: number; notes?: string }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Unauthorized' };
@@ -150,20 +150,12 @@ export async function updateReservationByGuest(
     const isOwner = res.userId === session.id || (res.guestEmail && res.guestEmail === session.email);
     if (!isOwner) return { ok: false, error: 'Not your reservation' };
     if (res.status === 'CANCELLED') return { ok: false, error: 'Cannot update cancelled reservation' };
-    const update: { notes?: string | null; pax?: number } = {};
-    if (
-      data.hotel !== undefined ||
-      data.room !== undefined ||
-      data.flight !== undefined ||
-      data.other !== undefined
-    ) {
-      update.notes = formatGuestNotesForStorage({
-        hotel: data.hotel ?? '',
-        room: data.room ?? '',
-        flight: data.flight ?? '',
-        other: data.other ?? '',
-      });
+    const update: { date?: Date; notes?: string | null; pax?: number } = {};
+    if (data.date !== undefined && data.date) {
+      const d = new Date(data.date + 'T12:00:00.000Z');
+      if (!Number.isNaN(d.getTime())) update.date = d;
     }
+    if (data.notes !== undefined) update.notes = sanitizeGuestInput(data.notes, 500) || null;
     if (data.pax !== undefined && data.pax >= 1) update.pax = data.pax;
     if (Object.keys(update).length === 0) return { ok: true };
     await prisma.reservation.update({
@@ -265,21 +257,28 @@ function formatTimeAgo(date: Date): string {
 export async function getRecentActivities(limit = 10): Promise<RecentActivity[]> {
   try {
     const list = await prisma.reservation.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       take: limit,
       include: { tour: true },
     });
-    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date; date: Date; pax: number; totalPrice: number; status: string }) => ({
-      id: r.id,
-      guestName: r.guestName,
-      tourTitle: r.tour?.titleTr ?? r.tour?.titleEn ?? 'Tur',
-      description: r.depositPaid > 0 ? 'havale ile depozit ödedi.' : 'rezervasyon talebi gönderdi.',
-      timeAgo: formatTimeAgo(r.createdAt),
-      dateStr: r.date.toISOString().split('T')[0],
-      pax: r.pax,
-      totalPrice: r.totalPrice,
-      status: r.status,
-    }));
+    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date; updatedAt: Date; date: Date; pax: number; totalPrice: number; status: string }) => {
+      const wasUpdated = r.updatedAt.getTime() - r.createdAt.getTime() > 60_000; // > 1 min
+      let description: string;
+      if (wasUpdated) description = 'misafir rezervasyonu güncelledi.';
+      else if (r.depositPaid > 0) description = 'havale ile depozit ödedi.';
+      else description = 'rezervasyon talebi gönderdi.';
+      return {
+        id: r.id,
+        guestName: r.guestName,
+        tourTitle: r.tour?.titleTr ?? r.tour?.titleEn ?? 'Tur',
+        description,
+        timeAgo: formatTimeAgo(wasUpdated ? r.updatedAt : r.createdAt),
+        dateStr: r.date.toISOString().split('T')[0],
+        pax: r.pax,
+        totalPrice: r.totalPrice,
+        status: r.status,
+      };
+    });
   } catch {
     return [];
   }

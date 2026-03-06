@@ -78,3 +78,13 @@ export function formatGuestNotesDisplay(parsed: GuestNotesParsed): string {
   if (parsed.other) parts.push(parsed.other);
   return parts.join(' · ');
 }
+
+/** Admin/anywhere: show notes as readable text (JSON → parsed line, plain → as-is). */
+export function formatNotesForDisplay(notes: string | null | undefined): string {
+  if (!notes || typeof notes !== 'string') return '';
+  const t = notes.trim();
+  if (!t) return '';
+  const parsed = parseGuestNotes(t);
+  const line = formatGuestNotesDisplay(parsed);
+  return line || t;
+}

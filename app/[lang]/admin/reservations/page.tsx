@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail, updateReservationDeposit } from '../../../actions/reservations';
 import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '@/lib/reservationStatus';
+import { formatNotesForDisplay } from '@/lib/guestNotes';
 
 /** Seçilen opsiyon: sepette { id, title, price } olarak saklanıyor */
 function parseOptionsJson(optionsStr: string | null): { title: string; price: number }[] {
@@ -35,6 +36,7 @@ interface ResRow {
     depositPaid: number;
     createdAt: string;
     notes: string | null;
+    displayNotes: string;
     optionsRaw: string | null;
     transferAirport: string | null;
 }
@@ -92,6 +94,7 @@ export default function AdminReservationsPage() {
                 depositPaid: r.depositPaid ?? 0,
                 createdAt: r.createdAt.toISOString(),
                 notes: r.notes ?? null,
+                displayNotes: formatNotesForDisplay(r.notes),
                 optionsRaw: r.options ?? null,
                 transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
             })));
@@ -145,7 +148,7 @@ export default function AdminReservationsPage() {
                             <th style={{ padding: 'var(--space-md)' }}>Tur / Hizmet</th>
                             <th style={{ padding: 'var(--space-md)' }}>Tur tarihi</th>
                             <th style={{ padding: 'var(--space-md)' }}>Rez. tarihi</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Konaklama / Oda</th>
+                            <th style={{ padding: 'var(--space-md)' }}>Notlar</th>
                             <th style={{ padding: 'var(--space-md)' }}>Kişi</th>
                             <th style={{ padding: 'var(--space-md)' }}>Toplam</th>
                             <th style={{ padding: 'var(--space-md)' }}>Depozit</th>
@@ -185,7 +188,7 @@ export default function AdminReservationsPage() {
                                             <td style={{ padding: 'var(--space-md)' }}>{res.tour}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.date}</td>
                                             <td style={{ padding: 'var(--space-md)', whiteSpace: 'nowrap' }}>{createdAtShort}</td>
-                                            <td style={{ padding: 'var(--space-md)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={res.notes ?? ''}>{res.notes || '—'}</td>
+                                            <td style={{ padding: 'var(--space-md)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={res.displayNotes || res.notes ?? ''}>{res.displayNotes || '—'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.pax}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.total}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
@@ -247,7 +250,7 @@ export default function AdminReservationsPage() {
                                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-md)', fontSize: '0.9rem' }}>
                                                         <div><strong>Tur tarihi (gidiş):</strong> {res.date}</div>
                                                         <div><strong>Rezervasyon / satın alma tarihi:</strong> {res.createdAt ? new Date(res.createdAt).toLocaleString('tr-TR') : '—'}</div>
-                                                        <div><strong>Konaklama / Oda:</strong> {res.notes || '—'}</div>
+                                                        <div><strong>Notlar:</strong> {res.displayNotes || '—'}</div>
                                                         <div><strong>E-posta:</strong> <a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></div>
                                                         <div><strong>Telefon:</strong> <a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></div>
                                                         {res.transferAirport && (

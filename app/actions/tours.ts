@@ -263,6 +263,26 @@ export async function getTourDatePricesInRange(
   }
 }
 
+/** Guest update: list of available tour dates (not closed) for dropdown. Default next 90 days. */
+export async function getAvailableTourDatesForGuest(
+  tourId: string,
+  fromDateStr?: string,
+  days = 90
+): Promise<string[]> {
+  try {
+    const from = fromDateStr ? new Date(fromDateStr + 'T00:00:00.000Z') : new Date();
+    const to = new Date(from);
+    to.setUTCDate(to.getUTCDate() + days);
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+    const res = await getTourDatePricesInRange(tourId, fromStr, toStr);
+    if (!res) return [];
+    return res.entries.filter((e) => !e.isClosed).map((e) => e.date);
+  } catch {
+    return [];
+  }
+}
+
 // --- Tour CRUD (admin only) ---
 export type CreateTourInput = {
   type: TourType;

@@ -188,7 +188,7 @@ export default function AdminReservationsPage() {
                                             <td style={{ padding: 'var(--space-md)' }}>{res.tour}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.date}</td>
                                             <td style={{ padding: 'var(--space-md)', whiteSpace: 'nowrap' }}>{createdAtShort}</td>
-                                            <td style={{ padding: 'var(--space-md)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={res.displayNotes || res.notes ?? ''}>{res.displayNotes || '—'}</td>
+                                            <td style={{ padding: 'var(--space-md)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={res.displayNotes || (res.notes ?? '')}>{res.displayNotes || '—'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.pax}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>{res.total}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>

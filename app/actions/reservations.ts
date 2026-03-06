@@ -148,7 +148,7 @@ export async function updateReservationByGuest(
     const isOwner = res.userId === session.id || (res.guestEmail && res.guestEmail === session.email);
     if (!isOwner) return { ok: false, error: 'Not your reservation' };
     if (res.status === 'CANCELLED') return { ok: false, error: 'Cannot update cancelled reservation' };
-    const update: { notes?: string; pax?: number } = {};
+    const update: { notes?: string | null; pax?: number } = {};
     if (data.notes !== undefined) update.notes = data.notes || null;
     if (data.pax !== undefined && data.pax >= 1) update.pax = data.pax;
     if (Object.keys(update).length === 0) return { ok: true };

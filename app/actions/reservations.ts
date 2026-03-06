@@ -111,6 +111,57 @@ export async function getReservationsByUserId(userId: string) {
   }
 }
 
+/** Guest self-service: cancel own reservation (by userId or guestEmail). */
+export async function cancelReservationByGuest(
+  reservationId: string,
+  reason?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Unauthorized' };
+  try {
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!res) return { ok: false, error: 'Reservation not found' };
+    const isOwner = res.userId === session.id || (res.guestEmail && res.guestEmail === session.email);
+    if (!isOwner) return { ok: false, error: 'Not your reservation' };
+    if (res.status === 'CANCELLED') return { ok: false, error: 'Already cancelled' };
+    const newNotes = [res.notes, reason ? `[İptal nedeni: ${reason}]` : null].filter(Boolean).join(' ');
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: { status: 'CANCELLED', notes: newNotes || res.notes },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Cancel failed' };
+  }
+}
+
+/** Guest self-service: update own reservation (notes, pax). */
+export async function updateReservationByGuest(
+  reservationId: string,
+  data: { notes?: string; pax?: number }
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Unauthorized' };
+  try {
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!res) return { ok: false, error: 'Reservation not found' };
+    const isOwner = res.userId === session.id || (res.guestEmail && res.guestEmail === session.email);
+    if (!isOwner) return { ok: false, error: 'Not your reservation' };
+    if (res.status === 'CANCELLED') return { ok: false, error: 'Cannot update cancelled reservation' };
+    const update: { notes?: string; pax?: number } = {};
+    if (data.notes !== undefined) update.notes = data.notes || null;
+    if (data.pax !== undefined && data.pax >= 1) update.pax = data.pax;
+    if (Object.keys(update).length === 0) return { ok: true };
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: update,
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Update failed' };
+  }
+}
+
 /** Dashboard: today's reservation count, pending count, balloon capacity/available, recent activities */
 function getTodayUtcRange() {
   const start = new Date();

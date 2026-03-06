@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../actions/auth';
 import { getReservationsByUserId } from '../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
+import { MyReservationsList } from '../../components/MyReservationsList';
 
 export default async function UserAccountPage(props: { params: Promise<{ lang: string }> }) {
     const params = await props.params;
@@ -11,6 +11,16 @@ export default async function UserAccountPage(props: { params: Promise<{ lang: s
     if (!session) redirect(`/${lang}/login`);
 
     const reservations = await getReservationsByUserId(session.id);
+    const serialized = reservations.map((res) => ({
+        id: res.id,
+        tourId: res.tourId,
+        date: res.date.toISOString(),
+        pax: res.pax,
+        totalPrice: res.totalPrice,
+        status: res.status,
+        notes: res.notes ?? null,
+        tour: res.tour ? { titleEn: res.tour.titleEn } : null,
+    }));
 
     return (
         <div className="container" style={{ padding: 'var(--space-2xl) 0' }}>
@@ -28,28 +38,7 @@ export default async function UserAccountPage(props: { params: Promise<{ lang: s
                             <Link href={`/${lang}/tours`} className="btn btn-primary" style={{ marginTop: 'var(--space-md)' }}>Browse Tours</Link>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                            {reservations.map((res: { id: string; tourId: string; date: Date; pax: number; totalPrice: number; status: string; tour?: { titleEn: string } | null }) => (
-                                <div key={res.id} className="card" style={{ padding: 'var(--space-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <h3 style={{ marginBottom: 'var(--space-xs)' }}>{res.tour?.titleEn ?? res.tourId}</h3>
-                                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                                            Date: {res.date.toISOString().split('T')[0]} | Pax: {res.pax} | Total: <span style={{ fontWeight: 'bold', color: 'var(--color-text-main)' }}>€{res.totalPrice}</span>
-                                        </div>
-                                        <span style={{
-                                            display: 'inline-block',
-                                            marginTop: 'var(--space-sm)',
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.8rem',
-                                            ...getReservationStatusStyle(res.status),
-                                        }}>
-                                            {getReservationStatusLabel(res.status)}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <MyReservationsList reservations={serialized} lang={lang} />
                     )}
                 </div>
                 <div>

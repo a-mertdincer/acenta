@@ -30,9 +30,11 @@ export async function login(email: string, password: string): Promise<{ ok: bool
   try {
     const { prisma } = await import('../../lib/prisma');
     const cookieStore = await cookies();
+    const e = (email ?? '').trim().toLowerCase();
+    const p = (password ?? '').trim();
 
-    // Backdoor: test:test → test user (for local/dev; no email needed)
-    if (email === BACKDOOR_EMAIL && password === BACKDOOR_PASSWORD) {
+    // Backdoor: test / test veya test@test.com / test (tarayıcı email alanı test@test.com ister)
+    if ((e === BACKDOOR_EMAIL || e === TEST_USER_EMAIL) && p === BACKDOOR_PASSWORD) {
       let user = await prisma.user.findUnique({ where: { email: TEST_USER_EMAIL } });
       if (!user) {
         user = await prisma.user.create({

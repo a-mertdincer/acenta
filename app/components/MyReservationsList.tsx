@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
+import { parseGuestNotes, formatGuestNotesDisplay } from '@/lib/guestNotes';
 import { cancelReservationByGuest, updateReservationByGuest } from '@/app/actions/reservations';
 
 type ReservationItem = {
@@ -32,9 +33,13 @@ export function MyReservationsList({
 }
 
 function ReservationCard({ reservation, lang }: { reservation: ReservationItem; lang: string }) {
+  const parsed = parseGuestNotes(reservation.notes);
   const [editOpen, setEditOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [notes, setNotes] = useState(reservation.notes ?? '');
+  const [hotel, setHotel] = useState(parsed.hotel);
+  const [room, setRoom] = useState(parsed.room);
+  const [flight, setFlight] = useState(parsed.flight);
+  const [other, setOther] = useState(parsed.other);
   const [pax, setPax] = useState(reservation.pax);
   const [cancelReason, setCancelReason] = useState('');
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -44,12 +49,13 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
   const dateStr = typeof reservation.date === 'string'
     ? reservation.date.slice(0, 10)
     : reservation.date.toISOString().split('T')[0];
+  const detailsLine = formatGuestNotesDisplay(parsed);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const result = await updateReservationByGuest(reservation.id, { notes: notes || undefined, pax });
+    const result = await updateReservationByGuest(reservation.id, { hotel, room, flight, other, pax });
     setLoading(false);
     if (result.ok) {
       setMessage({ type: 'ok', text: 'Rezervasyon güncellendi.' });
@@ -83,9 +89,9 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
           <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
             Tarih: {dateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{reservation.totalPrice}</strong>
           </div>
-          {reservation.notes && (
+          {detailsLine && (
             <div style={{ marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              {reservation.notes}
+              {detailsLine}
             </div>
           )}
           <span
@@ -103,7 +109,7 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
         </div>
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => { setEditOpen(true); setCancelOpen(false); setNotes(reservation.notes ?? ''); setPax(reservation.pax); setMessage(null); }}>
+            <button type="button" className="btn btn-secondary" onClick={() => { setEditOpen(true); setCancelOpen(false); setHotel(parsed.hotel); setRoom(parsed.room); setFlight(parsed.flight); setOther(parsed.other); setPax(reservation.pax); setMessage(null); }}>
               Rezervasyonu güncelle
             </button>
             <button type="button" className="btn btn-secondary" style={{ color: 'var(--color-error, #b91c1c)' }} onClick={() => { setCancelOpen(true); setEditOpen(false); setCancelReason(''); setMessage(null); }}>
@@ -121,10 +127,24 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
 
       {editOpen && (
         <form onSubmit={handleUpdate} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>
-          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Otel, oda no, uçuş no vb. bilgileri güncelleyebilirsiniz.</p>
+          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Rezervasyon detaylarını güncelleyebilirsiniz. Tüm alanlar güvenli şekilde kaydedilir (HTML/script kabul edilmez).</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Otel / Konaklama</label>
+              <input type="text" value={hotel} onChange={(e) => setHotel(e.target.value)} className="input" style={{ width: '100%' }} placeholder="Otel adı" maxLength={200} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Oda numarası</label>
+              <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} className="input" style={{ width: '100%' }} placeholder="Oda no" maxLength={200} />
+            </div>
+          </div>
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Detaylar (otel, oda no, uçuş no vb.)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Örn: Otel Adı, Oda 101, TK 1234" />
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Uçuş numarası</label>
+            <input type="text" value={flight} onChange={(e) => setFlight(e.target.value)} className="input" style={{ width: '100%' }} placeholder="Örn: TK 1234" maxLength={200} />
+          </div>
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Ek notlar</label>
+            <textarea value={other} onChange={(e) => setOther(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Diğer bilgiler (max 500 karakter)" maxLength={500} />
           </div>
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Kişi sayısı</label>
@@ -142,7 +162,7 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
           <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Bu rezervasyonu iptal etmek istediğinize emin misiniz? İsteğe bağlı olarak iptal nedeninizi yazabilirsiniz.</p>
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>İptal nedeni (isteğe bağlı)</label>
-            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Örn: Plan değişikliği" />
+            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Örn: Plan değişikliği" maxLength={500} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
             <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--color-error, #b91c1c)' }} disabled={loading}>{loading ? 'İptal ediliyor…' : 'İptal et'}</button>

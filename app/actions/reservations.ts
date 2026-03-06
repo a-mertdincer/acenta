@@ -3,6 +3,7 @@
 import { prisma } from '../../lib/prisma';
 import { getSession } from '../actions/auth';
 import { Resend } from 'resend';
+import { sanitizeGuestInput, formatGuestNotesForStorage } from '@/lib/guestNotes';
 
 export interface CreateReservationItem {
   tourId: string;
@@ -124,7 +125,8 @@ export async function cancelReservationByGuest(
     const isOwner = res.userId === session.id || (res.guestEmail && res.guestEmail === session.email);
     if (!isOwner) return { ok: false, error: 'Not your reservation' };
     if (res.status === 'CANCELLED') return { ok: false, error: 'Already cancelled' };
-    const newNotes = [res.notes, reason ? `[İptal nedeni: ${reason}]` : null].filter(Boolean).join(' ');
+    const safeReason = reason ? sanitizeGuestInput(reason, 500) : '';
+    const newNotes = [res.notes, safeReason ? `[İptal nedeni: ${safeReason}]` : null].filter(Boolean).join(' ');
     await prisma.reservation.update({
       where: { id: reservationId },
       data: { status: 'CANCELLED', notes: newNotes || res.notes },
@@ -135,10 +137,10 @@ export async function cancelReservationByGuest(
   }
 }
 
-/** Guest self-service: update own reservation (notes, pax). */
+/** Guest self-service: update own reservation (structured notes + pax). All text is sanitized (XSS). */
 export async function updateReservationByGuest(
   reservationId: string,
-  data: { notes?: string; pax?: number }
+  data: { hotel?: string; room?: string; flight?: string; other?: string; pax?: number }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Unauthorized' };
@@ -149,7 +151,19 @@ export async function updateReservationByGuest(
     if (!isOwner) return { ok: false, error: 'Not your reservation' };
     if (res.status === 'CANCELLED') return { ok: false, error: 'Cannot update cancelled reservation' };
     const update: { notes?: string | null; pax?: number } = {};
-    if (data.notes !== undefined) update.notes = data.notes || null;
+    if (
+      data.hotel !== undefined ||
+      data.room !== undefined ||
+      data.flight !== undefined ||
+      data.other !== undefined
+    ) {
+      update.notes = formatGuestNotesForStorage({
+        hotel: data.hotel ?? '',
+        room: data.room ?? '',
+        flight: data.flight ?? '',
+        other: data.other ?? '',
+      });
+    }
     if (data.pax !== undefined && data.pax >= 1) update.pax = data.pax;
     if (Object.keys(update).length === 0) return { ok: true };
     await prisma.reservation.update({

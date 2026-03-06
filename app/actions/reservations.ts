@@ -74,6 +74,21 @@ export async function getReservations(filters?: { from?: Date; to?: Date; status
   }
 }
 
+/** Public: fetch reservation details by ids for thank-you / success page only. Ids are from redirect URL. */
+export async function getReservationDetailsByIds(ids: string[]) {
+  if (!ids?.length) return [];
+  try {
+    const list = await prisma.reservation.findMany({
+      where: { id: { in: ids } },
+      include: { tour: true },
+      orderBy: { date: 'asc' },
+    });
+    return list;
+  } catch {
+    return [];
+  }
+}
+
 export async function updateReservationStatus(id: string, status: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await prisma.reservation.update({

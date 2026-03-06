@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 import { cancelReservationByGuest, updateReservationByGuest } from '@/app/actions/reservations';
@@ -107,31 +108,35 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
     ? (availableDates.includes(currentDateStr) ? availableDates : [currentDateStr, ...availableDates])
     : [currentDateStr];
 
+  const detailHref = `/${lang}/booking/success?ids=${reservation.id}&from=account`;
+
   return (
     <div className="card" style={{ padding: 'var(--space-lg)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-        <div>
-          <h3 style={{ marginBottom: 'var(--space-xs)' }}>{reservation.tour?.titleEn ?? reservation.tourId}</h3>
-          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-            Tarih: {currentDateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{reservation.totalPrice}</strong>
-          </div>
-          {detailsLine && (
-            <div style={{ marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              {detailsLine}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Link href={detailHref} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} title="Rezervasyon detayını gör">
+            <h3 style={{ marginBottom: 'var(--space-xs)' }}>{reservation.tour?.titleEn ?? reservation.tourId}</h3>
+            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+              Tarih: {currentDateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{reservation.totalPrice}</strong>
             </div>
-          )}
-          <span
-            style={{
-              display: 'inline-block',
-              marginTop: 'var(--space-sm)',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-              ...getReservationStatusStyle(reservation.status),
-            }}
-          >
-            {getReservationStatusLabel(reservation.status)}
-          </span>
+            {detailsLine && (
+              <div style={{ marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                {detailsLine}
+              </div>
+            )}
+            <span
+              style={{
+                display: 'inline-block',
+                marginTop: 'var(--space-sm)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.8rem',
+                ...getReservationStatusStyle(reservation.status),
+              }}
+            >
+              {getReservationStatusLabel(reservation.status)}
+            </span>
+          </Link>
         </div>
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>

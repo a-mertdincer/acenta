@@ -99,8 +99,8 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
 
         if (result.ok) {
             clearCart();
-            alert('Reservation Request Submitted Successfully! We will contact you soon.');
-            router.push(`/${lang}/`);
+            const ids = result.ids ?? [];
+            router.push(`/${lang}/booking/success?ids=${ids.join(',')}`);
         } else {
             alert(result.error ?? 'Something went wrong. Please try again.');
         }

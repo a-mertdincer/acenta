@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getDictionary } from '../../../../dictionaries/getDictionary';
 import { Button } from '../../../../components/Button';
 import { TourCardImage } from '../../../../components/TourCardImage';
-import { getTourImagePath, getTourImageFallback } from '../../../../lib/imagePaths';
+import { getTourImagePath, getTourImageFallback } from '../../../../../lib/imagePaths';
 import { getTours } from '../../../../actions/tours';
 import {
   getDestinationBySlug,

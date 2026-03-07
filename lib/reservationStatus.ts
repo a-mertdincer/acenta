@@ -50,3 +50,15 @@ export function getReservationStatusStyle(status: string): { backgroundColor: st
       return { backgroundColor: '#e5e7eb', color: '#374151' };
   }
 }
+
+/** CSS class for status badge (admin table). */
+export function getReservationStatusBadgeClass(status: string): string {
+  switch (status) {
+    case RESERVATION_STATUS.PENDING: return 'status-pending';
+    case RESERVATION_STATUS.CONFIRMED: return 'status-confirmed';
+    case RESERVATION_STATUS.CANCELLED: return 'status-cancelled';
+    case RESERVATION_STATUS.COMPLETED: return 'status-completed';
+    case RESERVATION_STATUS.NO_SHOW: return 'status-noshow';
+    default: return 'status-unknown';
+  }
+}

@@ -1,276 +1,781 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '../../../components/Button';
-import { getReservations, updateReservationStatus, sendReservationConfirmationEmail, updateReservationDeposit } from '../../../actions/reservations';
-import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '@/lib/reservationStatus';
+import {
+  getReservations,
+  updateReservationStatus,
+  sendReservationConfirmationEmail,
+  updateReservationDeposit,
+} from '../../../actions/reservations';
+import {
+  getReservationStatusLabel,
+  getReservationStatusBadgeClass,
+  RESERVATION_STATUS_OPTIONS,
+  RESERVATION_STATUS,
+} from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 
-/** Seçilen opsiyon: sepette { id, title, price } olarak saklanıyor */
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function parseOptionsJson(optionsStr: string | null): { title: string; price: number }[] {
-    if (!optionsStr?.trim()) return [];
-    try {
-        const arr = JSON.parse(optionsStr);
-        if (!Array.isArray(arr)) return [];
-        return arr.map((o: { title?: string; price?: number }) => ({
-            title: o?.title ?? '',
-            price: typeof o?.price === 'number' ? o.price : 0,
-        }));
-    } catch {
-        return [];
-    }
+  if (!optionsStr?.trim()) return [];
+  try {
+    const arr = JSON.parse(optionsStr);
+    if (!Array.isArray(arr)) return [];
+    return arr.map((o: { title?: string; price?: number }) => ({
+      title: o?.title ?? '',
+      price: typeof o?.price === 'number' ? o.price : 0,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 interface ResRow {
-    id: string;
-    customer: string;
-    guestEmail: string;
-    guestPhone: string;
-    tour: string;
-    date: string;
-    pax: number;
-    total: string;
-    totalPrice: number;
-    status: string;
-    depositPaid: number;
-    createdAt: string;
-    notes: string | null;
-    displayNotes: string;
-    optionsRaw: string | null;
-    transferAirport: string | null;
+  id: string;
+  customer: string;
+  guestEmail: string;
+  guestPhone: string;
+  tour: string;
+  date: string;
+  pax: number;
+  total: string;
+  totalPrice: number;
+  status: string;
+  depositPaid: number;
+  createdAt: string;
+  notes: string | null;
+  displayNotes: string;
+  optionsRaw: string | null;
+  transferAirport: string | null;
+}
+
+type SortKey = 'tourDate' | 'createdAt' | 'customer' | 'tour' | 'totalPrice' | 'status';
+
+function SortIndicator({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
+  return (
+    <span className={active ? 'sort-icon active' : 'sort-icon'}>
+      {active ? (dir === 'asc' ? '▲' : '▼') : '⇅'}
+    </span>
+  );
 }
 
 export default function AdminReservationsPage() {
-    const searchParams = useSearchParams();
-    const highlightId = searchParams.get('highlight');
-    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
-    const [reservations, setReservations] = useState<ResRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
-    const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reservations, setReservations] = useState<ResRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('tourDate');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [search, setSearch] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterTour, setFilterTour] = useState<string>('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [statusPopoverId, setStatusPopoverId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [depositEditId, setDepositEditId] = useState<string | null>(null);
+  const [depositValue, setDepositValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const statusPopoverRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (highlightId) setExpandedId(highlightId);
-    }, [highlightId]);
+  useEffect(() => {
+    if (highlightId) setExpandedId(highlightId);
+  }, [highlightId]);
 
-    useEffect(() => {
-        if (highlightId && reservations.length > 0) {
-            const row = rowRefs.current[highlightId];
-            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    }, [highlightId, reservations]);
+  useEffect(() => {
+    if (highlightId && reservations.length > 0) {
+      const row = rowRefs.current[highlightId];
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [highlightId, reservations]);
 
-    useEffect(() => {
-        getReservations().then((list) => {
-            setReservations(list.map((r: {
-                id: string;
-                guestName: string;
-                guestEmail: string;
-                guestPhone: string;
-                tourId: string;
-                tour?: { titleEn: string } | null;
-                date: Date;
-                pax: number;
-                totalPrice: number;
-                status: string;
-                depositPaid?: number;
-                createdAt: Date;
-                notes: string | null;
-                options: string;
-                transferAirport?: string | null;
-            }) => ({
-                id: r.id,
-                customer: r.guestName,
-                guestEmail: r.guestEmail,
-                guestPhone: r.guestPhone,
-                tour: r.tour?.titleEn ?? r.tourId,
-                date: r.date.toISOString().split('T')[0],
-                pax: r.pax,
-                total: `€${r.totalPrice}`,
-                totalPrice: r.totalPrice,
-                status: r.status,
-                depositPaid: r.depositPaid ?? 0,
-                createdAt: r.createdAt.toISOString(),
-                notes: r.notes ?? null,
-                displayNotes: formatNotesForDisplay(r.notes),
-                optionsRaw: r.options ?? null,
-                transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
-            })));
-            setLoading(false);
-        });
-    }, []);
+  useEffect(() => {
+    getReservations().then((list) => {
+      setReservations(
+        list.map(
+          (r: {
+            id: string;
+            guestName: string;
+            guestEmail: string;
+            guestPhone: string;
+            tourId: string;
+            tour?: { titleEn: string } | null;
+            date: Date;
+            pax: number;
+            totalPrice: number;
+            status: string;
+            depositPaid?: number;
+            createdAt: Date;
+            notes: string | null;
+            options: string;
+            transferAirport?: string | null;
+          }) => ({
+            id: r.id,
+            customer: r.guestName,
+            guestEmail: r.guestEmail,
+            guestPhone: r.guestPhone,
+            tour: r.tour?.titleEn ?? r.tourId,
+            date: r.date.toISOString().split('T')[0],
+            pax: r.pax,
+            total: `€${r.totalPrice}`,
+            totalPrice: r.totalPrice,
+            status: r.status,
+            depositPaid: r.depositPaid ?? 0,
+            createdAt: r.createdAt.toISOString(),
+            notes: r.notes ?? null,
+            displayNotes: formatNotesForDisplay(r.notes),
+            optionsRaw: r.options ?? null,
+            transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
+          })
+        )
+      );
+      setLoading(false);
+    });
+  }, []);
 
-    const handleStatusChange = async (id: string, newStatus: string) => {
-        const result = await updateReservationStatus(id, newStatus);
-        if (result.ok) setReservations(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSortKey(key);
+    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
+  const filteredAndSorted = useMemo(() => {
+    let list = reservations;
+    const q = searchDebounced.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.customer.toLowerCase().includes(q) ||
+          r.id.toLowerCase().includes(q) ||
+          r.tour.toLowerCase().includes(q) ||
+          (r.displayNotes && r.displayNotes.toLowerCase().includes(q))
+      );
+    }
+    if (filterStatus) list = list.filter((r) => r.status === filterStatus);
+    if (filterTour) list = list.filter((r) => r.tour === filterTour);
+
+    list = [...list].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'tourDate':
+          cmp = a.date.localeCompare(b.date);
+          break;
+        case 'createdAt':
+          cmp = a.createdAt.localeCompare(b.createdAt);
+          break;
+        case 'customer':
+          cmp = a.customer.localeCompare(b.customer);
+          break;
+        case 'tour':
+          cmp = a.tour.localeCompare(b.tour);
+          break;
+        case 'totalPrice':
+          cmp = a.totalPrice - b.totalPrice;
+          break;
+        case 'status':
+          cmp = a.status.localeCompare(b.status);
+          break;
+        default:
+          cmp = 0;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [reservations, searchDebounced, filterStatus, filterTour, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / perPage));
+  const paginated = useMemo(
+    () => filteredAndSorted.slice((page - 1) * perPage, page * perPage),
+    [filteredAndSorted, page, perPage]
+  );
+
+  const uniqueTours = useMemo(
+    () => Array.from(new Set(reservations.map((r) => r.tour))).sort(),
+    [reservations]
+  );
+
+  const stats = useMemo(() => {
+    const list = filteredAndSorted;
+    const pending = list.filter((r) => r.status === RESERVATION_STATUS.PENDING).length;
+    const confirmed = list.filter((r) => r.status === RESERVATION_STATUS.CONFIRMED).length;
+    const cancelled = list.filter((r) => r.status === RESERVATION_STATUS.CANCELLED).length;
+    const revenue = list
+      .filter((r) => r.status !== RESERVATION_STATUS.CANCELLED)
+      .reduce((s, r) => s + r.totalPrice, 0);
+    return { total: list.length, pending, confirmed, cancelled, revenue };
+  }, [filteredAndSorted]);
+
+  const allChecked = paginated.length > 0 && paginated.every((r) => selected.has(r.id));
+  const toggleAll = () => {
+    if (allChecked) setSelected((s) => new Set([...s].filter((id) => !paginated.some((r) => r.id === id))));
+    else setSelected((s) => new Set([...s, ...paginated.map((r) => r.id)]));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const onClose = (e: MouseEvent) => {
+      if (statusPopoverRef.current && !statusPopoverRef.current.contains(e.target as Node)) setStatusPopoverId(null);
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) setContextMenu(null);
     };
+    document.addEventListener('mousedown', onClose);
+    return () => document.removeEventListener('mousedown', onClose);
+  }, []);
 
-    const handleSendConfirmation = async (id: string) => {
-        setSendingEmailId(id);
-        const result = await sendReservationConfirmationEmail(id);
-        setSendingEmailId(null);
-        if (result.ok) alert('Onay e-postası gönderildi.');
-        else alert(result.error ?? 'Gönderilemedi');
-    };
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setStatusPopoverId(null);
+    const result = await updateReservationStatus(id, newStatus);
+    if (result.ok) setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+  };
 
-    const [depositEditId, setDepositEditId] = useState<string | null>(null);
-    const [depositValue, setDepositValue] = useState('');
+  const handleSendConfirmation = async (id: string) => {
+    setContextMenu(null);
+    setSendingEmailId(id);
+    const result = await sendReservationConfirmationEmail(id);
+    setSendingEmailId(null);
+    if (result.ok) alert('Onay e-postası gönderildi.');
+    else alert(result.error ?? 'Gönderilemedi');
+  };
 
-    const handleSetDeposit = async (id: string) => {
-        const amount = parseFloat(depositValue);
-        if (Number.isNaN(amount) || amount < 0) return;
-        const result = await updateReservationDeposit(id, amount);
-        if (result.ok) {
-            setReservations(prev => prev.map(r => r.id === id ? { ...r, depositPaid: amount } : r));
-            setDepositEditId(null);
-            setDepositValue('');
-        } else alert(result.error);
-    };
+  const handleSetDeposit = async (id: string) => {
+    const amount = parseFloat(depositValue);
+    if (Number.isNaN(amount) || amount < 0) return;
+    const result = await updateReservationDeposit(id, amount);
+    if (result.ok) {
+      setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, depositPaid: amount } : r)));
+      setDepositEditId(null);
+      setDepositValue('');
+    } else alert(result.error);
+  };
 
-    if (loading) return <div className="loading-block">Rezervasyonlar yükleniyor...</div>;
-
-    return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2xl)' }}>
-                <h1>Rezervasyon Yönetimi</h1>
-                <Button>CSV Dışa Aktar</Button>
-            </div>
-
-            <div className="card" style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                            <th style={{ padding: 'var(--space-md)' }}></th>
-                            <th style={{ padding: 'var(--space-md)' }}>ID</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Müşteri</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Tur / Hizmet</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Tur tarihi</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Rez. tarihi</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Notlar</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Kişi</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Toplam</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Depozit</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Durum</th>
-                            <th style={{ padding: 'var(--space-md)' }}>İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reservations.length === 0 ? (
-                            <tr><td colSpan={12} style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)' }}>Henüz rezervasyon yok.</td></tr>
-                        ) : (
-                            reservations.map(res => {
-                                const optionsList = parseOptionsJson(res.optionsRaw);
-                                const createdAtShort = res.createdAt ? new Date(res.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-                                return (
-                                    <React.Fragment key={res.id}>
-                                        <tr
-                                            ref={(el) => { rowRefs.current[res.id] = el; }}
-                                            style={{
-                                                borderBottom: '1px solid var(--color-border)',
-                                                verticalAlign: 'middle',
-                                                backgroundColor: expandedId === res.id ? '#dbeafe' : undefined,
-                                            }}
-                                        >
-                                            <td style={{ padding: 'var(--space-sm)' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setExpandedId(expandedId === res.id ? null : res.id)}
-                                                    style={{ padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer', border: '1px solid var(--color-border)', borderRadius: '4px', background: expandedId === res.id ? 'var(--color-bg-light)' : 'transparent' }}
-                                                    title="Detay"
-                                                >
-                                                    {expandedId === res.id ? '▼' : '▶'}
-                                                </button>
-                                            </td>
-                                            <td style={{ padding: 'var(--space-md)', fontWeight: 'bold' }}>{res.id.slice(0, 8)}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>{res.customer}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>{res.tour}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>{res.date}</td>
-                                            <td style={{ padding: 'var(--space-md)', whiteSpace: 'nowrap' }}>{createdAtShort}</td>
-                                            <td style={{ padding: 'var(--space-md)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={res.displayNotes || (res.notes ?? '')}>{res.displayNotes || '—'}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>{res.pax}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>{res.total}</td>
-                                            <td style={{ padding: 'var(--space-md)' }}>
-                                                {depositEditId === res.id ? (
-                                                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.01"
-                                                            value={depositValue}
-                                                            onChange={(e) => setDepositValue(e.target.value)}
-                                                            placeholder="0"
-                                                            style={{ width: '70px', padding: '4px' }}
-                                                        />
-                                                        <Button type="button" style={{ padding: '2px 6px', fontSize: '0.75rem' }} onClick={() => handleSetDeposit(res.id)}>Kaydet</Button>
-                                                        <button type="button" style={{ padding: '2px 6px', fontSize: '0.75rem' }} onClick={() => { setDepositEditId(null); setDepositValue(''); }}>İptal</button>
-                                                    </span>
-                                                ) : (
-                                                    <span>
-                                                        €{res.depositPaid.toFixed(2)}
-                                                        <Button variant="secondary" type="button" style={{ marginLeft: '6px', padding: '2px 6px', fontSize: '0.75rem' }} onClick={() => { setDepositEditId(res.id); setDepositValue(String(res.depositPaid)); }}>Düzenle</Button>
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: 'var(--space-md)' }}>
-                                                <span style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 'bold',
-                                                    ...getReservationStatusStyle(res.status),
-                                                }}>
-                                                    {getReservationStatusLabel(res.status)}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 'var(--space-md)' }}>
-                                                <select
-                                                    value={res.status}
-                                                    onChange={(e) => handleStatusChange(res.id, e.target.value)}
-                                                    style={{ padding: '4px', borderRadius: '4px', border: '1px solid var(--color-border)', marginRight: 'var(--space-sm)' }}
-                                                >
-                                                    {RESERVATION_STATUS_OPTIONS.map((opt) => (
-                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                    ))}
-                                                </select>
-                                                <Button
-                                                    variant="secondary"
-                                                    style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                                                    onClick={() => handleSendConfirmation(res.id)}
-                                                    disabled={sendingEmailId === res.id}
-                                                >
-                                                    {sendingEmailId === res.id ? 'Gönderiliyor…' : 'Onay mail'}
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                        {expandedId === res.id && (
-                                            <tr key={`${res.id}-detail`} style={{ backgroundColor: 'var(--color-bg-light)', borderBottom: '1px solid var(--color-border)' }}>
-                                                <td colSpan={12} style={{ padding: 'var(--space-lg)' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-md)', fontSize: '0.9rem' }}>
-                                                        <div><strong>Tur tarihi (gidiş):</strong> {res.date}</div>
-                                                        <div><strong>Rezervasyon / satın alma tarihi:</strong> {res.createdAt ? new Date(res.createdAt).toLocaleString('tr-TR') : '—'}</div>
-                                                        <div><strong>Notlar:</strong> {res.displayNotes || '—'}</div>
-                                                        <div><strong>E-posta:</strong> <a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></div>
-                                                        <div><strong>Telefon:</strong> <a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></div>
-                                                        {res.transferAirport && (
-                                                            <div><strong>Transfer havalimanı:</strong> {res.transferAirport === 'ASR' ? 'Kayseri (ASR)' : res.transferAirport === 'NAV' ? 'Nevşehir (NAV)' : res.transferAirport}</div>
-                                                        )}
-                                                        <div style={{ gridColumn: optionsList.length ? '1 / -1' : undefined }}>
-                                                            <strong>Seçilen opsiyonlar:</strong>{' '}
-                                                            {optionsList.length ? optionsList.map((o, i) => <span key={i}>{o.title}{o.price ? ` (+€${o.price})` : ''}{i < optionsList.length - 1 ? ', ' : ''}</span>) : '—'}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  const exportCsv = () => {
+    const headers = ['ID', 'Müşteri', 'Tur', 'Tur Tarihi', 'Kişi', 'Toplam', 'Depozit', 'Durum', 'Rez. Tarihi'];
+    const rows = (selected.size ? filteredAndSorted.filter((r) => selected.has(r.id)) : filteredAndSorted).map(
+      (r) =>
+        [
+          r.id.slice(0, 8),
+          r.customer,
+          r.tour,
+          formatDate(r.date),
+          r.pax,
+          r.total,
+          `€${r.depositPaid.toFixed(2)}`,
+          getReservationStatusLabel(r.status),
+          formatDate(r.createdAt),
+        ].join(',')
     );
+    const csv = [headers.join(','), ...rows].map((row) => `"${row.replace(/"/g, '""')}"`).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rezervasyonlar_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) return <div className="admin-loading-block">Rezervasyonlar yükleniyor...</div>;
+
+  return (
+    <div>
+      <div className="admin-page-title-row">
+        <h1>Rezervasyon Yönetimi</h1>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={exportCsv}>
+            CSV Dışa Aktar
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="admin-stats">
+        <div className="admin-stat-card">
+          <div className="admin-stat-value">{stats.total}</div>
+          <div className="admin-stat-label">Toplam</div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-value">{stats.pending}</div>
+          <div className="admin-stat-label">Bekleyen</div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-value">{stats.confirmed}</div>
+          <div className="admin-stat-label">Onaylı</div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-value">€{stats.revenue.toLocaleString('tr-TR')}</div>
+          <div className="admin-stat-label">Gelir</div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-value">{stats.cancelled}</div>
+          <div className="admin-stat-label">İptal</div>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="admin-filter-bar">
+        <input
+          type="search"
+          className="admin-search-input"
+          placeholder="Müşteri, ID veya tur ara..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === 'Escape' && setSearch('')}
+        />
+        <select
+          className="admin-filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="">Tüm durumlar</option>
+          {RESERVATION_STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <select className="admin-filter-select" value={filterTour} onChange={(e) => setFilterTour(e.target.value)}>
+          <option value="">Tüm turlar</option>
+          {uniqueTours.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+          {filteredAndSorted.length} kayıt
+        </span>
+      </div>
+
+      {/* Bulk bar */}
+      {selected.size > 0 && (
+        <div className="admin-bulk-bar">
+          <span>
+            <strong>{selected.size}</strong> rezervasyon seçildi
+          </span>
+          <Button variant="secondary" onClick={exportCsv}>
+            Seçilenleri dışa aktar
+          </Button>
+          <button type="button" onClick={() => setSelected(new Set())} className="btn btn-secondary btn-sm">
+            Seçimi temizle
+          </button>
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th className="admin-th-check">
+                <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Tümünü seç" />
+              </th>
+              <th style={{ width: 36 }}></th>
+              <th>ID</th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('status')}>
+                Durum <SortIndicator active={sortKey === 'status'} dir={sortDir} />
+              </th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('customer')}>
+                Müşteri <SortIndicator active={sortKey === 'customer'} dir={sortDir} />
+              </th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('tour')}>
+                Tur / Hizmet <SortIndicator active={sortKey === 'tour'} dir={sortDir} />
+              </th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('tourDate')}>
+                Tur tarihi <SortIndicator active={sortKey === 'tourDate'} dir={sortDir} />
+              </th>
+              <th className="admin-cell-num">Kişi</th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('totalPrice')}>
+                Toplam <SortIndicator active={sortKey === 'totalPrice'} dir={sortDir} />
+              </th>
+              <th>Depozit</th>
+              <th>Notlar</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.length === 0 ? (
+              <tr>
+                <td colSpan={12} className="admin-empty-cell">
+                  {filteredAndSorted.length === 0 ? 'Filtreye uyan rezervasyon yok.' : 'Henüz rezervasyon yok.'}
+                </td>
+              </tr>
+            ) : (
+              paginated.map((res) => {
+                const optionsList = parseOptionsJson(res.optionsRaw);
+                const isExpanded = expandedId === res.id;
+                return (
+                  <React.Fragment key={res.id}>
+                    <tr
+                      ref={(el) => {
+                        rowRefs.current[res.id] = el;
+                      }}
+                      className={isExpanded ? 'admin-row-expanded' : ''}
+                    >
+                      <td className="admin-td-check">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(res.id)}
+                          onChange={() => toggleOne(res.id)}
+                          aria-label={`${res.customer} seç`}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-action-btn"
+                          title="Detay"
+                          onClick={() => setExpandedId(isExpanded ? null : res.id)}
+                        >
+                          {isExpanded ? '▾' : '▸'}
+                        </button>
+                      </td>
+                      <td className="admin-cell-id">{res.id.slice(0, 8)}</td>
+                      <td style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className={`status-badge ${getReservationStatusBadgeClass(res.status)}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setStatusPopoverId(statusPopoverId === res.id ? null : res.id);
+                          }}
+                        >
+                          {getReservationStatusLabel(res.status)}
+                        </button>
+                        {statusPopoverId === res.id && (
+                          <div ref={statusPopoverRef} className="admin-status-popover">
+                            {RESERVATION_STATUS_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => handleStatusChange(res.id, opt.value)}
+                              >
+                                {res.status === opt.value ? '✓ ' : ''}
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="admin-cell-truncate" title={res.customer}>
+                        {res.customer}
+                      </td>
+                      <td className="admin-cell-truncate" title={res.tour}>
+                        {res.tour}
+                      </td>
+                      <td>{formatDate(res.date)}</td>
+                      <td className="admin-cell-num">{res.pax}</td>
+                      <td className="admin-cell-currency">{res.total}</td>
+                      <td className="admin-cell-deposit">
+                        {depositEditId === res.id ? (
+                          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              value={depositValue}
+                              onChange={(e) => setDepositValue(e.target.value)}
+                              placeholder="0"
+                              style={{ width: 70, padding: 4, fontSize: '0.8125rem' }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleSetDeposit(res.id)}
+                            >
+                              Kaydet
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setDepositEditId(null);
+                                setDepositValue('');
+                              }}
+                            >
+                              İptal
+                            </button>
+                          </span>
+                        ) : (
+                          <span
+                            className={`deposit-amount ${res.depositPaid === 0 ? 'deposit-zero' : ''}`}
+                            onClick={() => {
+                              setDepositEditId(res.id);
+                              setDepositValue(String(res.depositPaid));
+                            }}
+                            title="Tıkla: depozit düzenle"
+                          >
+                            €{res.depositPaid.toFixed(2)}
+                            <svg
+                              className="deposit-edit-icon"
+                              width={11}
+                              height={11}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </span>
+                        )}
+                      </td>
+                      <td className="admin-cell-notes" title={res.displayNotes || (res.notes ?? '')}>
+                        {res.displayNotes || '—'}
+                      </td>
+                      <td className="admin-actions-cell">
+                        <button
+                          type="button"
+                          className="admin-action-btn"
+                          title="Detay"
+                          onClick={() => setExpandedId(isExpanded ? null : res.id)}
+                        >
+                          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx={12} cy={12} r={3} />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-action-btn"
+                          title="Depozit düzenle"
+                          onClick={() => {
+                            setDepositEditId(res.id);
+                            setDepositValue(String(res.depositPaid));
+                          }}
+                        >
+                          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-action-btn"
+                          title="Diğer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContextMenu({ id: res.id, x: e.clientX, y: e.clientY });
+                          }}
+                        >
+                          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <circle cx={12} cy={12} r={1} />
+                            <circle cx={5} cy={12} r={1} />
+                            <circle cx={19} cy={12} r={1} />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${res.id}-detail`} style={{ background: 'var(--color-bg-light)' }}>
+                        <td colSpan={12} style={{ padding: 'var(--space-lg)' }}>
+                          <div className="admin-expand-content">
+                            <div className="admin-expand-section">
+                              <h4>Müşteri bilgileri</h4>
+                              <p>Ad: {res.customer}</p>
+                              <p>E-posta: <a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></p>
+                              <p>Telefon: <a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></p>
+                            </div>
+                            <div className="admin-expand-section">
+                              <h4>Konaklama / Notlar</h4>
+                              <p>{res.displayNotes || '—'}</p>
+                              <p><strong>Rez. tarihi:</strong> {formatDate(res.createdAt)}</p>
+                            </div>
+                            <div className="admin-expand-section">
+                              <h4>Ödeme</h4>
+                              <p>Toplam: {res.total}</p>
+                              <p>Depozit: €{res.depositPaid.toFixed(2)}</p>
+                              <p>Kalan: €{(res.totalPrice - res.depositPaid).toFixed(2)}</p>
+                            </div>
+                            {res.transferAirport && (
+                              <div className="admin-expand-section">
+                                <h4>Transfer</h4>
+                                <p>{res.transferAirport === 'ASR' ? 'Kayseri (ASR)' : res.transferAirport === 'NAV' ? 'Nevşehir (NAV)' : res.transferAirport}</p>
+                              </div>
+                            )}
+                            <div className="admin-expand-section" style={{ gridColumn: optionsList.length ? '1 / -1' : undefined }}>
+                              <h4>Seçilen opsiyonlar</h4>
+                              <p>
+                                {optionsList.length
+                                  ? optionsList.map((o, i) => (
+                                      <span key={i}>
+                                        {o.title}
+                                        {o.price ? ` (+€${o.price})` : ''}
+                                        {i < optionsList.length - 1 ? ', ' : ''}
+                                      </span>
+                                    ))
+                                  : '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 12 }}>
+                            <Button
+                              variant="secondary"
+                              style={{ marginRight: 8 }}
+                              onClick={() => handleSendConfirmation(res.id)}
+                              disabled={sendingEmailId === res.id}
+                            >
+                              {sendingEmailId === res.id ? 'Gönderiliyor…' : 'Onay mail gönder'}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Context menu (fixed position) */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="admin-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button type="button" onClick={() => handleSendConfirmation(contextMenu.id)}>
+            Onay mail gönder
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const r = reservations.find((x) => x.id === contextMenu.id);
+              if (r) {
+                setDepositEditId(r.id);
+                setDepositValue(String(r.depositPaid));
+                setExpandedId(r.id);
+              }
+              setContextMenu(null);
+            }}
+          >
+            Depozit düzenle
+          </button>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {filteredAndSorted.length > 0 && (
+        <div className="admin-pagination">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>Sayfa başına:</span>
+            <select
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+              className="admin-filter-select"
+              style={{ width: 70 }}
+            >
+              {[10, 25, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span>
+            {filteredAndSorted.length} kayıttan {(page - 1) * perPage + 1}-{Math.min(page * perPage, filteredAndSorted.length)} gösteriliyor
+          </span>
+          <div className="admin-pagination-controls">
+            <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              ‹
+            </button>
+            <span>
+              {page} / {totalPages}
+            </span>
+            <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              ›
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile card view */}
+      <div className="admin-cards-mobile">
+        {paginated.length === 0 ? (
+          <p className="admin-empty-cell">{filteredAndSorted.length === 0 ? 'Filtreye uyan rezervasyon yok.' : 'Henüz rezervasyon yok.'}</p>
+        ) : (
+          paginated.map((res) => {
+            const isExpanded = expandedId === res.id;
+            return (
+              <div key={res.id} className="admin-reservation-card">
+                <div className="admin-reservation-card-header">
+                  <button
+                    type="button"
+                    className={`status-badge ${getReservationStatusBadgeClass(res.status)}`}
+                    onClick={() => setStatusPopoverId(statusPopoverId === res.id ? null : res.id)}
+                  >
+                    {getReservationStatusLabel(res.status)}
+                  </button>
+                  <span style={{ fontFamily: 'ui-monospace', fontSize: '0.75rem' }}>#{res.id.slice(0, 8)}</span>
+                </div>
+                <p style={{ fontWeight: 600 }}>{res.customer}</p>
+                <p>{res.tour}</p>
+                <div className="admin-reservation-card-meta">
+                  {formatDate(res.date)} · {res.pax} kişi · {res.total}
+                </div>
+                {res.displayNotes && <p className="admin-reservation-card-meta">{res.displayNotes}</p>}
+                <p className="admin-reservation-card-meta">Depozit: €{res.depositPaid.toFixed(2)}</p>
+                <div className="admin-reservation-card-actions">
+                  <button type="button" className="admin-action-btn" onClick={() => setExpandedId(isExpanded ? null : res.id)}>
+                    Detay
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-action-btn"
+                    onClick={() => {
+                      setDepositEditId(res.id);
+                      setDepositValue(String(res.depositPaid));
+                    }}
+                  >
+                    Depozit
+                  </button>
+                  <Button variant="secondary" onClick={() => handleSendConfirmation(res.id)} disabled={sendingEmailId === res.id}>
+                    Onay mail
+                  </Button>
+                </div>
+                {isExpanded && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-border)' }}>
+                    <p><a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></p>
+                    <p><a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></p>
+                    <p>Rez. tarihi: {formatDate(res.createdAt)}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 }

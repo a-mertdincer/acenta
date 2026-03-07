@@ -3,6 +3,7 @@ import '../globals.css';
 import { getDictionary } from '../dictionaries/getDictionary';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { ScrollReveal } from '../components/ScrollReveal';
 import { getSession } from '../actions/auth';
 
 export const metadata: Metadata = {
@@ -65,6 +66,7 @@ export default async function RootLayout(props: {
         <main>
           {children}
         </main>
+        <ScrollReveal />
         <Footer lang={lang} footer={footer} />
       </body>
     </html>

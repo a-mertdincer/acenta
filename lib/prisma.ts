@@ -29,7 +29,12 @@ function getPrismaClient(): PrismaClient {
     return globalForPrisma.prisma;
   }
   try {
-    const adapter = new PrismaPg({ connectionString: url });
+    // Silence pg SSL warning: use explicit sslmode=verify-full when URL has prefer/require/verify-ca
+    let connectionString = url;
+    if (url.includes('postgres') && /[?&]sslmode=(prefer|require|verify-ca)(&|$)/i.test(url)) {
+      connectionString = url.replace(/sslmode=(prefer|require|verify-ca)/i, 'sslmode=verify-full');
+    }
+    const adapter = new PrismaPg({ connectionString });
     globalForPrisma.prisma = new PrismaClient({ adapter });
     return globalForPrisma.prisma;
   } catch {

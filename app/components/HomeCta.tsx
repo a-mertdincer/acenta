@@ -6,13 +6,15 @@ interface HomeCtaProps {
   lang: Lang;
   title: string;
   buttonLabel: string;
+  subtitle?: string;
 }
 
-export function HomeCta({ lang, title, buttonLabel }: HomeCtaProps) {
+export function HomeCta({ lang, title, buttonLabel, subtitle }: HomeCtaProps) {
   return (
-    <section className="home-cta page-section section-alt">
+    <section className="home-cta page-section">
       <div className="container">
-        <p className="home-cta-title">{title}</p>
+        <h2 className="home-cta-title">{title}</h2>
+        {subtitle && <p className="home-cta-subtitle">{subtitle}</p>}
         <div className="home-cta-actions">
           <Link href={`/${lang}/tours`} className="btn btn-primary btn-lg">
             {buttonLabel}

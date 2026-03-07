@@ -31,10 +31,11 @@ function IconMapPin({ className }: { className?: string }) {
   );
 }
 
+/* Content matched to correct headings: Premium = safety, Local experts = local knowledge, Best price = service/pricing */
 const DEFAULT_DESC = {
   desc1: 'We are fully licensed and insured. Your safety and satisfaction are our top priorities on every balloon flight and tour.',
-  desc2: 'From first contact to post-trip follow-up, we provide personalized service and transparent pricing with no hidden fees.',
-  desc3: 'Our team lives in Cappadocia. We know the best viewpoints, timings, and local spots to make your experience unforgettable.',
+  desc2: 'Our team lives in Cappadocia. We know the best viewpoints, timings, and local spots to make your experience unforgettable.',
+  desc3: 'From first contact to post-trip follow-up, we provide personalized service and transparent pricing with no hidden fees.',
 };
 
 export function HomeWhyUs({
@@ -48,8 +49,8 @@ export function HomeWhyUs({
 }: HomeWhyUsProps) {
   const items = [
     { title: point1, desc: desc1, icon: IconShield },
-    { title: point2, desc: desc2, icon: IconHeart },
-    { title: point3, desc: desc3, icon: IconMapPin },
+    { title: point2, desc: desc2, icon: IconMapPin },
+    { title: point3, desc: desc3, icon: IconHeart },
   ];
 
   return (

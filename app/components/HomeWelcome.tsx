@@ -1,4 +1,7 @@
+'use client';
+
 interface HomeWelcomeStat {
+  number?: string;
   label: string;
 }
 
@@ -13,9 +16,9 @@ interface HomeWelcomeProps {
 }
 
 const DEFAULT_STATS: HomeWelcomeStat[] = [
-  { label: '10+ Years Experience' },
-  { label: '500+ Happy Guests' },
-  { label: 'Local Experts' },
+  { number: '10+', label: 'Years Experience' },
+  { number: '500+', label: 'Happy Guests' },
+  { number: '24/7', label: 'Local Support' },
 ];
 
 export function HomeWelcome({
@@ -57,6 +60,7 @@ export function HomeWelcome({
               <div className="home-welcome-stats">
                 {stats.map((stat, i) => (
                   <div key={i} className="home-welcome-stat">
+                    {stat.number != null && <span className="home-welcome-stat-number">{stat.number}</span>}
                     <span className="home-welcome-stat-label">{stat.label}</span>
                   </div>
                 ))}

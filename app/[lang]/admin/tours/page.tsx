@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
+import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
 
 export default function AdminToursPage() {
     const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number }[]>([]);
@@ -41,6 +42,8 @@ export default function AdminToursPage() {
     const [newDescZh, setNewDescZh] = useState('');
     const [newBasePrice, setNewBasePrice] = useState('0');
     const [newCapacity, setNewCapacity] = useState('10');
+    const [newDestination, setNewDestination] = useState('cappadocia');
+    const [newCategory, setNewCategory] = useState('');
 
     const [editTourId, setEditTourId] = useState<string | null>(null);
     const [editSaving, setEditSaving] = useState(false);
@@ -53,8 +56,13 @@ export default function AdminToursPage() {
     const [tourEditDescZh, setTourEditDescZh] = useState('');
     const [tourEditBasePrice, setTourEditBasePrice] = useState('0');
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
+    const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
+    const [tourEditCategory, setTourEditCategory] = useState('');
 
     const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
+    const destinations = getDestinations();
+    const createCategories = getCategoriesForDestination(newDestination);
+    const editCategories = getCategoriesForDestination(tourEditDestination);
 
     useEffect(() => {
         getTours().then((list) => {
@@ -78,6 +86,8 @@ export default function AdminToursPage() {
         getTourById(editTourId).then((t) => {
             if (!t) return;
             setTourEditType(t.type as TourType);
+            setTourEditDestination((t as { destination?: string }).destination ?? 'cappadocia');
+            setTourEditCategory((t as { category?: string | null }).category ?? '');
             setTourEditTitleEn(t.titleEn);
             setTourEditTitleTr(t.titleTr);
             setTourEditTitleZh(t.titleZh);
@@ -194,6 +204,8 @@ export default function AdminToursPage() {
             descZh: newDescZh.trim() || '-',
             basePrice: parseFloat(newBasePrice) || 0,
             capacity: parseInt(newCapacity, 10) || 0,
+            destination: newDestination,
+            category: newCategory || null,
         });
         setCreateSaving(false);
         if (result.ok) {
@@ -225,6 +237,8 @@ export default function AdminToursPage() {
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
             descEn: tourEditDescEn.trim() || '-',
+            destination: tourEditDestination,
+            category: tourEditCategory || null,
             descTr: tourEditDescTr.trim() || '-',
             descZh: tourEditDescZh.trim() || '-',
             basePrice: parseFloat(tourEditBasePrice) || 0,
@@ -282,6 +296,23 @@ export default function AdminToursPage() {
                                 <option value="PACKAGE">PACKAGE</option>
                             </select>
                         </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Destinasyon</label>
+                            <select value={newDestination} onChange={(e) => { setNewDestination(e.target.value); setNewCategory(''); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                {destinations.map((d) => (
+                                    <option key={d.id} value={d.slug}>{d.nameTr}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Kategori</label>
+                            <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                <option value="">— Seçin —</option>
+                                {createCategories.map((c) => (
+                                    <option key={c.id} value={c.slug}>{c.labelTr}</option>
+                                ))}
+                            </select>
+                        </div>
                         <Input label="Başlık (EN) *" value={newTitleEn} onChange={(e) => setNewTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
                         <Input label="Başlık (TR)" value={newTitleTr} onChange={(e) => setNewTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
                         <Input label="Başlık (ZH)" value={newTitleZh} onChange={(e) => setNewTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
@@ -325,6 +356,23 @@ export default function AdminToursPage() {
                                 <option value="TRANSFER">TRANSFER</option>
                                 <option value="CONCIERGE">CONCIERGE</option>
                                 <option value="PACKAGE">PACKAGE</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Destinasyon</label>
+                            <select value={tourEditDestination} onChange={(e) => { setTourEditDestination(e.target.value); setTourEditCategory(''); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                {destinations.map((d) => (
+                                    <option key={d.id} value={d.slug}>{d.nameTr}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Kategori</label>
+                            <select value={tourEditCategory} onChange={(e) => setTourEditCategory(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                <option value="">— Seçin —</option>
+                                {editCategories.map((c) => (
+                                    <option key={c.id} value={c.slug}>{c.labelTr}</option>
+                                ))}
                             </select>
                         </div>
                         <Input label="Başlık (EN) *" value={tourEditTitleEn} onChange={(e) => setTourEditTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />

@@ -183,7 +183,6 @@ const mockTours = [
 ];
 
 export default function TourDetailPage(props: { params: Promise<{ lang: string; id: string }> }) {
-    // We must `use()` the promise for params in React 19 Client Components
     const params = use(props.params);
     const { lang, id } = params;
     const router = useRouter();
@@ -259,7 +258,6 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     return (
         <div className="container tour-detail-layout">
 
-            {/* Left Column: Details */}
             <div>
                 <h1 style={{ marginBottom: 'var(--space-md)' }}>{title}</h1>
                 <span style={{ backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
@@ -293,7 +291,6 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 )}
             </div>
 
-            {/* Right Column: Booking Widget */}
             <div>
                 <div className="card tour-detail-booking-card" style={{ padding: 'var(--space-xl)' }}>
                     <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>{t.bookNow}</h3>

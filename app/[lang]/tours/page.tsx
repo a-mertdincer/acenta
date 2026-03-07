@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { TourCardImage } from '../../components/TourCardImage';
 import { getTourImagePath, getTourImageFallback } from '../../../lib/imagePaths';
 import { getTours } from '../../actions/tours';
+import { ActivitiesDestinationSection } from '../../components/ActivitiesDestinationSection';
 
 const MOCK_TOURS = [
     { id: 'mock-balloon', type: 'BALLOON' as const, titleEn: 'Standard Balloon Flight', titleTr: 'Standart Balon Turu', titleZh: '标准热气球飞行', descEn: 'Float above the fairy chimneys at sunrise in our spacious baskets. 1 hour flight with champagne toast.', descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.', descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。', basePrice: 150.0 },
@@ -44,15 +45,17 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
 
     return (
-        <div className="container tours-page">
-            <h1 className="text-center" style={{ marginBottom: 'var(--space-md)' }}>
-                {(dict.tours as { allTours?: string }).allTours ?? dict.navigation.tours}
-            </h1>
-            <p className="text-center tours-page-subtitle">
-                {(dict.home as { from?: string }).from} — {dict.home.popularExperiences}
-            </p>
+        <>
+            <ActivitiesDestinationSection
+                lang={lang}
+                title={(dict.tours as { allTours?: string }).allTours ?? dict.navigation.tours}
+            />
+            <div className="container tours-page" style={{ paddingTop: 0 }}>
+                <p className="text-center tours-page-subtitle" style={{ marginBottom: 'var(--space-xl)' }}>
+                    {(dict.home as { from?: string }).from} — {dict.home.popularExperiences}
+                </p>
 
-            <div className="tours-grid">
+                <div className="tours-grid">
                 {tours.map((tour) => {
                     const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
                     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
@@ -71,7 +74,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                                 <p className="tour-card-desc">{desc}</p>
                                 <div className="tour-card-footer">
                                     <span className="tour-card-price">{dict.home.from} €{Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice).toFixed(0)}</span>
-                                    <Link href={`/${lang}/tours/${tour.id}`}>
+                                    <Link href={`/${lang}/tour/${tour.id}`}>
                                         <Button className="tour-card-cta">{bookNowLabel}</Button>
                                     </Link>
                                 </div>
@@ -79,7 +82,8 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                         </article>
                     );
                 })}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

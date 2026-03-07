@@ -31,6 +31,8 @@ model Tour {
   descZh       String
   basePrice    Float // Default price if not overridden by date
   type         String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
+  destination  String          @default("cappadocia") // slug: cappadocia, antalya, istanbul
+  category     String?         // slug: hot-air-balloon, daily-tours, transfers, etc.
   capacity             Int             @default(0) // Default capacity
   transferTiers        Json?           // Legacy: ASR tiers. Prefer transferAirportTiers.
   transferAirportTiers Json?           // For type=TRANSFER: { ASR: [{ minPax, maxPax, price }], NAV: [...] }

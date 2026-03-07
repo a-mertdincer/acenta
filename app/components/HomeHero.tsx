@@ -7,12 +7,13 @@ interface HomeHeroProps {
   subtitle: string;
   bookLabel: string;
   exploreLabel: string;
+  scrollLabel?: string;
   lang: string;
   heroSrc: string;
   heroFallback: string;
 }
 
-export function HomeHero({ title, subtitle, bookLabel, exploreLabel, lang, heroSrc, heroFallback }: HomeHeroProps) {
+export function HomeHero({ title, subtitle, bookLabel, exploreLabel, scrollLabel, lang, heroSrc, heroFallback }: HomeHeroProps) {
   const [heroImgSrc, setHeroImgSrc] = useState(heroSrc);
 
   return (
@@ -45,6 +46,10 @@ export function HomeHero({ title, subtitle, bookLabel, exploreLabel, lang, heroS
             {exploreLabel}
           </a>
         </div>
+        <a href="#welcome" className="home-hero-scroll" aria-label={scrollLabel ?? 'Scroll to explore'}>
+          <span className="home-hero-scroll-text">{scrollLabel ?? 'Scroll to explore'}</span>
+          <span className="home-hero-scroll-chevron" aria-hidden>▼</span>
+        </a>
       </div>
     </section>
   );

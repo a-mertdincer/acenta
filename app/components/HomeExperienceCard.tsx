@@ -30,7 +30,7 @@ export function HomeExperienceCard({
 
   return (
     <div className="card card-hover">
-      <Link href={`/${lang}/tours/${tourId}`} className="card-image-link">
+      <Link href={`/${lang}/tour/${tourId}`} className="card-image-link">
         <div
           className="card-image-wrap"
           style={{
@@ -39,6 +39,7 @@ export function HomeExperienceCard({
             backgroundPosition: 'center',
           }}
         >
+          <span className="card-price-badge">{fromLabel} €{price}</span>
           <img
             src={imageSrc}
             alt=""
@@ -53,7 +54,7 @@ export function HomeExperienceCard({
         <p className="card-desc">{desc}</p>
         <div className="card-footer">
           <span className="card-price">{fromLabel} €{price}</span>
-          <Link href={`/${lang}/tours/${tourId}`} className="btn btn-primary btn-sm">
+          <Link href={`/${lang}/tour/${tourId}`} className="btn btn-primary btn-sm">
             {bookLabel}
           </Link>
         </div>

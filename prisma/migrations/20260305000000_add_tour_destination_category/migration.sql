@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Tour" ADD COLUMN IF NOT EXISTS "destination" TEXT NOT NULL DEFAULT 'cappadocia';
+ALTER TABLE "Tour" ADD COLUMN IF NOT EXISTS "category" TEXT;

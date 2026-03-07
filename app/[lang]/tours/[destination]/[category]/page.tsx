@@ -1,0 +1,125 @@
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { getDictionary } from '../../../../dictionaries/getDictionary';
+import { Button } from '../../../../components/Button';
+import { TourCardImage } from '../../../../components/TourCardImage';
+import { getTourImagePath, getTourImageFallback } from '../../../../lib/imagePaths';
+import { getTours } from '../../../../actions/tours';
+import {
+  getDestinationBySlug,
+  getCategoryBySlug,
+  getDestinationName,
+  getCategoryLabel,
+  type Lang,
+} from '@/lib/destinations';
+import { ActivitiesDestinationSection } from '../../../../components/ActivitiesDestinationSection';
+import type { Metadata } from 'next';
+
+export async function generateMetadata(props: {
+  params: Promise<{ lang: string; destination: string; category: string }>;
+}): Promise<Metadata> {
+  const { lang, destination, category } = await props.params;
+  const dest = getDestinationBySlug(destination);
+  const cat = dest ? getCategoryBySlug(destination, category) : null;
+  if (!dest || !cat) return { title: 'Tours' };
+  const L = lang as Lang;
+  const destName = getDestinationName(dest, L);
+  const catLabel = getCategoryLabel(cat, L);
+  return {
+    title: `${catLabel} — ${destName} | Tours`,
+    description: `${destName} ${catLabel}. Book online.`,
+  };
+}
+
+export default async function ToursCategoryPage(props: {
+  params: Promise<{ lang: string; destination: string; category: string }>;
+}) {
+  const params = await props.params;
+  const lang = params.lang as Lang;
+  const { destination, category } = params;
+
+  const dest = getDestinationBySlug(destination);
+  const cat = getCategoryBySlug(destination, category);
+  if (!dest || !cat) notFound();
+
+  const dict = await getDictionary(lang);
+  const dbTours = await getTours({ destination, category });
+  const byAirport = (t: { transferAirportTiers?: { ASR?: { price: number }[]; NAV?: { price: number }[] } | null; transferTiers?: { price: number }[] | null }) => {
+    if (t.transferAirportTiers) {
+      const asr = (t.transferAirportTiers as { ASR?: { price: number }[] }).ASR ?? [];
+      const nav = (t.transferAirportTiers as { NAV?: { price: number }[] }).NAV ?? [];
+      return [...asr, ...nav].map((x) => x.price);
+    }
+    return (t.transferTiers ?? []).map((x: { price: number }) => x.price);
+  };
+  const tours = dbTours.map((t) => {
+    const allTierPrices = byAirport(t);
+    const fromPrice = t.type === 'TRANSFER' && allTierPrices.length ? Math.min(...allTierPrices) : t.basePrice;
+    return {
+      id: t.id,
+      type: t.type,
+      titleEn: t.titleEn,
+      titleTr: t.titleTr,
+      titleZh: t.titleZh,
+      descEn: t.descEn,
+      descTr: t.descTr,
+      descZh: t.descZh,
+      basePrice: t.basePrice,
+      fromPrice,
+    };
+  });
+
+  const destName = getDestinationName(dest, lang);
+  const catLabel = getCategoryLabel(cat, lang);
+  const bookNowLabel = (dict.tours as { bookNow?: string })?.bookNow ?? 'Book Now';
+
+  return (
+    <>
+      <ActivitiesDestinationSection
+        lang={lang}
+        title={(dict.tours as { allTours?: string })?.allTours ?? dict.navigation?.tours ?? 'Tours'}
+        currentDestination={destination}
+        currentCategory={category}
+      />
+      <div className="container tours-page" style={{ paddingTop: 0 }}>
+        <h1 className="text-center" style={{ marginBottom: 'var(--space-md)' }}>
+          {catLabel} — {destName}
+        </h1>
+        {tours.length === 0 ? (
+          <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>
+            Bu kategoride henüz tur bulunmuyor.
+          </p>
+        ) : (
+          <div className="tours-grid">
+            {tours.map((tour) => {
+              const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
+              const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+              return (
+                <article key={tour.id} className="tour-card">
+                  <TourCardImage
+                    src={getTourImagePath(tour.type)}
+                    fallback={getTourImageFallback(tour.type)}
+                    alt={title}
+                  />
+                  <div className="tour-card-body">
+                    <div className="tour-card-header">
+                      <h2 className="tour-card-title">{title}</h2>
+                      <span className="tour-type-badge">{tour.type}</span>
+                    </div>
+                    <p className="tour-card-desc">{desc}</p>
+                    <div className="tour-card-footer">
+                      <span className="tour-card-price">{dict.home?.from ?? 'From'} €{Number(tour.fromPrice ?? tour.basePrice).toFixed(0)}</span>
+                      <Link href={`/${lang}/tour/${tour.id}`}>
+                        <Button className="tour-card-cta">{bookNowLabel}</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

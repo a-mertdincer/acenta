@@ -78,8 +78,18 @@ function InstagramIcon({ className }: { className?: string }) {
 export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const cartCount = useCartStore((s) => s.items.length);
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 0);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const navLinks = [
     { href: `/${lang}`, label: nav.home },
@@ -103,7 +113,7 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
   }, []);
 
   return (
-    <header className="site-header-compact">
+    <header className={`site-header-compact${scrolled ? ' scrolled' : ''}`}>
       {/* Top bar: social + language (Kelebek style) */}
       <div className="site-top-bar">
         <div className="site-top-bar-inner">

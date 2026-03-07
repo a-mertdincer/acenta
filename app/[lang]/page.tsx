@@ -3,7 +3,7 @@ import { getHeroPath, getHeroFallback, getTourImagePath, getTourImageFallback } 
 import { HomeHero } from '../components/HomeHero';
 import { HomeExperienceCard } from '../components/HomeExperienceCard';
 import { HomeWelcome } from '../components/HomeWelcome';
-import { HomeActivitiesStrip } from '../components/HomeActivitiesStrip';
+import { ActivitiesDestinationSection } from '../components/ActivitiesDestinationSection';
 import { HomeWhyUs } from '../components/HomeWhyUs';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
@@ -57,6 +57,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         subtitle={homeDict.subtitle ?? dict.home.subtitle}
         bookLabel={homeDict.bookBalloon ?? dict.home.bookBalloon}
         exploreLabel={homeDict.exploreTours ?? dict.home.exploreTours}
+        scrollLabel={homeDict.scrollToExplore as string | undefined}
         lang={lang}
         heroSrc={getHeroPath()}
         heroFallback={getHeroFallback()}
@@ -67,6 +68,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         heading={homeDict.welcomeHeading ?? ''}
         body1={homeDict.welcomeBody1 ?? ''}
         body2={homeDict.welcomeBody2 ?? ''}
+        welcomeImageSrc={getHeroPath()}
+        welcomeImageFallback={getHeroFallback()}
       />
 
       <section className="home-experiences page-section section-alt">
@@ -96,12 +99,9 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         </div>
       </section>
 
-      <HomeActivitiesStrip
+      <ActivitiesDestinationSection
         lang={lang}
         title={homeDict.activitiesTitle ?? 'Activities & Services'}
-        activityBalloon={homeDict.activityBalloon ?? 'Balloon'}
-        activityTours={homeDict.activityTours ?? 'Day Tours'}
-        activityTransfer={homeDict.activityTransfer ?? 'Transfer'}
       />
 
       <HomeWhyUs

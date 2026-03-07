@@ -7,6 +7,7 @@ import { getSession } from './auth';
 function revalidateTours() {
   ['en', 'tr', 'zh'].forEach(lang => {
     revalidatePath(`/${lang}/tours`);
+    revalidatePath(`/${lang}/tour`);
     revalidatePath(`/${lang}/admin/tours`);
     revalidatePath(`/${lang}/admin/balloon-calendar`);
   });
@@ -30,8 +31,9 @@ export interface TourWithOptions {
   descZh: string;
   basePrice: number;
   capacity: number;
+  destination?: string;
+  category?: string | null;
   transferTiers: TransferTier[] | null;
-  /** When set, use this for transfer pricing by airport. Else fallback to transferTiers for ASR. */
   transferAirportTiers: TransferAirportTiers | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
 }
@@ -42,13 +44,17 @@ export interface TourDatePriceResult {
   isClosed: boolean;
 }
 
-export async function getTours(): Promise<TourWithOptions[]> {
+export async function getTours(filters?: { destination?: string; category?: string }): Promise<TourWithOptions[]> {
   try {
+    const where: { destination?: string; category?: string | null } = {};
+    if (filters?.destination) where.destination = filters.destination;
+    if (filters?.category !== undefined) where.category = filters.category || null;
     const tours = await prisma.tour.findMany({
+      where: Object.keys(where).length ? where : undefined,
       include: { options: true },
       orderBy: { createdAt: 'asc' },
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => {
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
@@ -122,6 +128,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
     if (!tour) return null;
     const raw = tour as { transferAirportTiers?: unknown };
     const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
+    const t = tour as { destination?: string; category?: string | null };
     return {
       id: tour.id,
       type: tour.type,
@@ -133,6 +140,8 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       descZh: tour.descZh,
       basePrice: tour.basePrice,
       capacity: tour.capacity,
+      destination: t.destination ?? 'cappadocia',
+      category: t.category ?? null,
       transferTiers,
       transferAirportTiers,
       options: tour.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
@@ -294,6 +303,8 @@ export type CreateTourInput = {
   descZh: string;
   basePrice: number;
   capacity: number;
+  destination?: string;
+  category?: string | null;
 };
 
 export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; error?: string }> {
@@ -311,6 +322,8 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         descZh: data.descZh.trim(),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
+        destination: data.destination?.trim() || 'cappadocia',
+        category: data.category?.trim() || null,
       },
     });
     revalidateTours();
@@ -338,6 +351,8 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         descZh: data.descZh.trim(),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
+        destination: data.destination?.trim() || 'cappadocia',
+        category: data.category?.trim() || null,
       },
     });
     revalidateTours();
@@ -454,6 +469,8 @@ export async function seedDemoTours(): Promise<{ ok: boolean; error?: string }> 
         descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。',
         basePrice: 150,
         capacity: 20,
+        destination: 'cappadocia',
+        category: 'hot-air-balloon',
       },
     });
     const greenTour = await prisma.tour.create({
@@ -467,6 +484,8 @@ export async function seedDemoTours(): Promise<{ ok: boolean; error?: string }> 
         descZh: '探索地下城，在伊赫拉拉山谷徒步旅行，并参观塞利梅修道院。包括午餐。',
         basePrice: 40,
         capacity: 15,
+        destination: 'cappadocia',
+        category: 'daily-tours',
       },
     });
     await prisma.tourOption.createMany({
@@ -486,6 +505,8 @@ export async function seedDemoTours(): Promise<{ ok: boolean; error?: string }> 
         descZh: '内夫谢希尔或开塞利机场的VIP接送服务。 1-4人在奔驰Vito。',
         basePrice: 50,
         capacity: 10,
+        destination: 'cappadocia',
+        category: 'transfers',
       },
     });
     revalidateTours();

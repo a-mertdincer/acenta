@@ -10,6 +10,11 @@ interface FooterDict {
   privacy: string;
   cancellation: string;
   rights: string;
+  quickLinks?: string;
+  home?: string;
+  tours?: string;
+  aboutLink?: string;
+  contactLink?: string;
 }
 
 interface FooterProps {
@@ -25,6 +30,11 @@ const defaultFooter: FooterDict = {
   privacy: 'Privacy Policy',
   cancellation: 'Cancellation Policy',
   rights: 'All rights reserved.',
+  quickLinks: 'Quick links',
+  home: 'Home',
+  tours: 'Tours',
+  aboutLink: 'About',
+  contactLink: 'Contact',
 };
 
 const FOOTER_SOCIAL = [
@@ -51,7 +61,7 @@ function InstagramIcon({ className }: { className?: string }) {
 export function Footer({ lang, footer: f }: FooterProps) {
   const footer = f ?? defaultFooter;
   return (
-    <footer className="site-footer">
+    <footer id="contact" className="site-footer">
       <div className="container site-footer-inner">
         <div className="site-footer-grid">
           <div className="site-footer-block">
@@ -66,6 +76,15 @@ export function Footer({ lang, footer: f }: FooterProps) {
                 </a>
               ))}
             </div>
+          </div>
+          <div className="site-footer-block">
+            <h3 className="site-footer-title">{footer.quickLinks ?? 'Quick links'}</h3>
+            <nav className="site-footer-quicklinks" aria-label="Footer navigation">
+              <Link href={`/${lang}`}>{footer.home ?? 'Home'}</Link>
+              <Link href={`/${lang}/tours`}>{footer.tours ?? 'Tours'}</Link>
+              <Link href={`/${lang}#welcome`}>{footer.aboutLink ?? 'About'}</Link>
+              <Link href={`/${lang}#contact`}>{footer.contactLink ?? 'Contact'}</Link>
+            </nav>
           </div>
           <div className="site-footer-block">
             <h3 className="site-footer-title">{footer.contact}</h3>

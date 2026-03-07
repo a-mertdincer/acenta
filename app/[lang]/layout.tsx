@@ -37,26 +37,35 @@ export default async function RootLayout(props: {
 }) {
   const { children } = props;
   let lang = 'en' as 'en' | 'tr' | 'zh';
-  let dict: { navigation: typeof fallbackNav; footer: typeof fallbackFooter } = { navigation: fallbackNav, footer: fallbackFooter };
+  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter } = { navigation: fallbackNav, footer: fallbackFooter };
   let session: Awaited<ReturnType<typeof getSession>> = null;
 
   try {
     const params = await props.params;
     lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
-    dict = (await getDictionary(lang)) as typeof dict;
+    const d = await getDictionary(lang);
+    dict = d && typeof d === 'object' ? { navigation: d.navigation ?? fallbackNav, footer: d.footer ?? fallbackFooter } : dict;
+  } catch {
+    // getDictionary or params failed
+  }
+
+  try {
     session = await getSession();
   } catch {
-    // DATABASE_URL missing, DB down, or getDictionary failed — render with fallbacks so the app doesn't crash
+    session = null;
   }
+
+  const nav = dict?.navigation ?? fallbackNav;
+  const footer = dict?.footer ?? fallbackFooter;
 
   return (
     <html lang={lang}>
       <body>
-        <Header lang={lang} nav={dict.navigation} isLoggedIn={!!session} isAdmin={session?.role === 'ADMIN'} />
+        <Header lang={lang} nav={nav} isLoggedIn={!!session} isAdmin={session?.role === 'ADMIN'} />
         <main>
           {children}
         </main>
-        <Footer lang={lang} footer={dict.footer} />
+        <Footer lang={lang} footer={footer} />
       </body>
     </html>
   );

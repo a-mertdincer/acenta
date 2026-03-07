@@ -33,15 +33,16 @@ export function HomeWelcome({
     <section id="welcome" className="home-welcome page-section">
       <div className="container">
         <div className="home-welcome-inner">
-          {hasImage && (
+          {hasImage && (welcomeImageSrc || welcomeImageFallback) && (
             <div className="home-welcome-image-wrap">
               <img
-                src={welcomeImageSrc ?? welcomeImageFallback}
+                src={welcomeImageSrc || welcomeImageFallback || ''}
                 alt=""
                 aria-hidden
                 onError={(e) => {
-                  if (welcomeImageFallback && e.currentTarget.src !== welcomeImageFallback) {
-                    e.currentTarget.src = welcomeImageFallback;
+                  const fallback = welcomeImageFallback || welcomeImageSrc;
+                  if (fallback && e.currentTarget.src !== fallback) {
+                    e.currentTarget.src = fallback;
                   }
                 }}
               />

@@ -1,6 +1,34 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+/** SSR-safe storage: no-op on server so persist middleware does not touch localStorage during server render. */
+const safeStorage = {
+  getItem: (name: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window.localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(name, value);
+    } catch {
+      // ignore
+    }
+  },
+  removeItem: (name: string): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(name);
+    } catch {
+      // ignore
+    }
+  },
+};
+
 export interface CartItem {
     id: string; // Unique cart item ID (e.g. timestamp)
     tourId: string;
@@ -42,6 +70,8 @@ export const useCartStore = create<CartState>()(
         }),
         {
             name: 'kismet-cart-storage',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            storage: safeStorage as any,
         }
     )
 );

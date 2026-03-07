@@ -79,8 +79,13 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const cartCount = useCartStore((s) => s.items.length);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function onScroll() {
@@ -213,9 +218,9 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
                 <SearchIcon />
               </Link>
 
-              <Link href={`/${lang}/cart`} className="site-nav-icon-btn site-nav-cart-btn site-nav-cart-wrap" aria-label={`${nav.cart}${cartCount > 0 ? ` (${cartCount})` : ''}`} onClick={() => setMobileOpen(false)}>
+              <Link href={`/${lang}/cart`} className="site-nav-icon-btn site-nav-cart-btn site-nav-cart-wrap" aria-label={`${nav.cart}${mounted && cartCount > 0 ? ` (${cartCount})` : ''}`} onClick={() => setMobileOpen(false)}>
                 <CartIcon />
-                {cartCount > 0 && (
+                {mounted && cartCount > 0 && (
                   <span className="site-nav-cart-badge" aria-hidden>{cartCount > 99 ? '99+' : cartCount}</span>
                 )}
               </Link>

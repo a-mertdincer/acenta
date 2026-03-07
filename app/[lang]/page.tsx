@@ -15,14 +15,46 @@ const MOCK_CARDS = [
   { titleKey: 'transfer', descKey: 'transferDesc', price: 50, tourId: 'mock-transfer', type: 'TRANSFER' },
 ];
 
-export default async function Home(props: { params: Promise<{ lang: string }> }) {
-  const params = await props.params;
-  const lang = params.lang as 'en' | 'tr' | 'zh';
-  const dict = await getDictionary(lang);
-  const toursDict = dict.tours as Record<string, string>;
-  const homeDict = dict.home as Record<string, string>;
+const fallbackHome = {
+  title: 'Experience the Magic of Cappadocia',
+  subtitle: 'Discover breathtaking landscapes and hot air balloon rides with Kısmet Göreme Travel.',
+  bookBalloon: 'Book a Balloon',
+  exploreTours: 'Explore Tours',
+  popularExperiences: 'Popular Experiences',
+  from: 'From',
+  welcomeTagline: '',
+  welcomeHeading: 'Welcome to Kısmet Göreme',
+  welcomeBody1: '',
+  welcomeBody2: '',
+  bestSellingTours: 'Best Selling Tours',
+  activitiesTitle: 'Activities & Services',
+  whyUsTitle: 'Why choose us',
+  whyUs1: 'Premium experiences',
+  whyUs2: 'Local experts',
+  whyUs3: 'Best price guarantee',
+  ctaTitle: "Need help? We're here for you.",
+  ctaButton: 'View all tours',
+  viewAllTours: 'View all tours',
+};
+const fallbackToursDict = { bookNow: 'Book Now', standardBalloon: 'Standard Balloon', greenTour: 'Green Tour', transfer: 'Transfer', standardBalloonDesc: '', greenTourDesc: '', transferDesc: '' };
 
-  const dbTours = await getTours();
+export default async function Home(props: { params: Promise<{ lang: string }> }) {
+  let lang = 'en' as 'en' | 'tr' | 'zh';
+  let toursDict: Record<string, string> = fallbackToursDict;
+  let homeDict: Record<string, string> = fallbackHome;
+  let dbTours: Awaited<ReturnType<typeof getTours>> = [];
+
+  try {
+    const params = await props.params;
+    lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
+    const dict = await getDictionary(lang);
+    toursDict = (dict.tours as Record<string, string>) ?? fallbackToursDict;
+    homeDict = (dict.home as Record<string, string>) ?? fallbackHome;
+    dbTours = await getTours();
+  } catch {
+    // DB or getDictionary failed — use fallbacks so the page still renders
+  }
+
   const tours = dbTours.length > 0
     ? dbTours.map((t) => {
         const byAirport = t.transferAirportTiers;
@@ -53,10 +85,10 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   return (
     <>
       <HomeHero
-        title={homeDict.title ?? dict.home.title}
-        subtitle={homeDict.subtitle ?? dict.home.subtitle}
-        bookLabel={homeDict.bookBalloon ?? dict.home.bookBalloon}
-        exploreLabel={homeDict.exploreTours ?? dict.home.exploreTours}
+        title={homeDict.title}
+        subtitle={homeDict.subtitle}
+        bookLabel={homeDict.bookBalloon}
+        exploreLabel={homeDict.exploreTours}
         scrollLabel={homeDict.scrollToExplore as string | undefined}
         lang={lang}
         heroSrc={getHeroPath()}
@@ -74,7 +106,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
 
       <section className="home-experiences page-section section-alt">
         <div className="container">
-          <h2 className="home-section-title">{homeDict.bestSellingTours ?? dict.home.popularExperiences}</h2>
+          <h2 className="home-section-title">{homeDict.bestSellingTours}</h2>
           <div className="home-cards">
             {tours.map((tour) => (
               <HomeExperienceCard
@@ -82,7 +114,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
                 lang={lang}
                 title={tour.title}
                 desc={tour.desc}
-                fromLabel={homeDict.from ?? dict.home.from}
+                fromLabel={homeDict.from}
                 price={tour.price}
                 tourId={tour.id}
                 imageSrc={getTourImagePath(tour.type)}

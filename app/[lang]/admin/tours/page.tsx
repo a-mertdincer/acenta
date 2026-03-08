@@ -300,7 +300,7 @@ export default function AdminToursPage() {
             maxGroupSize: newVariant.maxGroupSize ?? null,
             routeStops: routeStops.length ? routeStops : null,
             adultPrice: Number(newVariant.adultPrice) || 0,
-            childPrice: newVariant.childPrice != null && newVariant.childPrice !== '' ? Number(newVariant.childPrice) : null,
+            childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,

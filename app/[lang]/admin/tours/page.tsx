@@ -537,11 +537,11 @@ export default function AdminToursPage() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Dahil (her satıra bir madde)</label>
-                                    <textarea value={Array.isArray(newVariant.includes) ? newVariant.includes.join('\n') : (newVariant.includes as string) ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, includes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Klimalı araç&#10;Rehber" />
+                                    <textarea value={Array.isArray(newVariant.includes) ? newVariant.includes.join('\n') : (typeof newVariant.includes === 'string' ? newVariant.includes : '')} onChange={(e) => setNewVariant((v) => ({ ...v, includes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Klimalı araç&#10;Rehber" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Hariç (her satıra bir madde)</label>
-                                    <textarea value={Array.isArray(newVariant.excludes) ? newVariant.excludes.join('\n') : (newVariant.excludes as string) ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, excludes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                    <textarea value={Array.isArray(newVariant.excludes) ? newVariant.excludes.join('\n') : (typeof newVariant.excludes === 'string' ? newVariant.excludes : '')} onChange={(e) => setNewVariant((v) => ({ ...v, excludes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
                                 </div>
                                 <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
                                     <Input label="Süre" value={newVariant.duration ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, duration: e.target.value }))} placeholder="4 saat" style={{ flex: 1 }} />

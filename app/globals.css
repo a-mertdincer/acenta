@@ -419,6 +419,108 @@ main {
   margin-top: var(--space-2xl);
 }
 
+/* Tours slider (horizontal scroll with arrows) */
+.tours-slider-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  position: relative;
+}
+.slider-arrow {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.slider-arrow:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+.tours-slider {
+  display: flex;
+  gap: var(--space-lg);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: var(--space-sm) 0;
+  margin: 0 -4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.tours-slider::-webkit-scrollbar {
+  height: 6px;
+}
+.tours-slider::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+.tour-card-slide {
+  flex: 0 0 280px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.tour-card-slide:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+.tour-card-slide .tour-card-image-wrap {
+  aspect-ratio: 4/3;
+  position: relative;
+  background: var(--color-bg-alt);
+  overflow: hidden;
+}
+.tour-card-slide .tour-card-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tour-card-slide .tour-card-price-badge {
+  position: absolute;
+  bottom: var(--space-sm);
+  left: var(--space-sm);
+  background: var(--color-primary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.tour-card-slide .tour-card-content {
+  padding: var(--space-md);
+  flex: 1;
+}
+.tour-card-slide .tour-card-content h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.section-cta {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
 /* Home activities / destination categories */
 .home-activities-grid {
   display: grid;

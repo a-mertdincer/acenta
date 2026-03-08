@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '../../../components/Button';
+import AdminReservationsCalendarView from './AdminReservationsCalendarView';
 import {
   getReservations,
   updateReservationStatus,
@@ -46,6 +47,7 @@ interface ResRow {
   guestEmail: string;
   guestPhone: string;
   tour: string;
+  variantTitle: string | null;
   date: string;
   pax: number;
   total: string;
@@ -71,10 +73,14 @@ function SortIndicator({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }
 
 export default function AdminReservationsPage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const highlightId = searchParams.get('highlight');
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const lang = (pathname?.split('/')[1] ?? 'tr') as string;
 
+  const [viewMode, setViewMode] = useState<'calendar' | 'table'>(() => (searchParams.get('view') === 'table' || searchParams.get('status') ? 'table' : 'calendar'));
   const [reservations, setReservations] = useState<ResRow[]>([]);
+  const urlStatus = searchParams.get('status');
   const [loading, setLoading] = useState(true);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -82,7 +88,7 @@ export default function AdminReservationsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>(() => urlStatus ?? '');
   const [filterTour, setFilterTour] = useState<string>('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [statusPopoverId, setStatusPopoverId] = useState<string | null>(null);
@@ -97,6 +103,12 @@ export default function AdminReservationsPage() {
   useEffect(() => {
     if (highlightId) setExpandedId(highlightId);
   }, [highlightId]);
+
+  useEffect(() => {
+    if (searchParams.get('view') === 'table') setViewMode('table');
+    const s = searchParams.get('status');
+    if (s) setFilterStatus(s);
+  }, [searchParams]);
 
   useEffect(() => {
     if (highlightId && reservations.length > 0) {
@@ -116,6 +128,7 @@ export default function AdminReservationsPage() {
             guestPhone: string;
             tourId: string;
             tour?: { titleEn: string } | null;
+            variant?: { titleEn: string; titleTr: string } | null;
             date: Date;
             pax: number;
             totalPrice: number;
@@ -131,6 +144,7 @@ export default function AdminReservationsPage() {
             guestEmail: r.guestEmail,
             guestPhone: r.guestPhone,
             tour: r.tour?.titleEn ?? r.tourId,
+            variantTitle: r.variant?.titleEn ?? null,
             date: r.date.toISOString().split('T')[0],
             pax: r.pax,
             total: `€${r.totalPrice}`,
@@ -300,19 +314,53 @@ export default function AdminReservationsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="admin-loading-block">Rezervasyonlar yükleniyor...</div>;
+  if (viewMode === 'table' && loading) return <div className="admin-loading-block">Rezervasyonlar yükleniyor...</div>;
 
   return (
     <div>
-      <div className="admin-page-title-row">
-        <h1>Rezervasyon Yönetimi</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="secondary" onClick={exportCsv}>
-            CSV Dışa Aktar
-          </Button>
+      <div className="admin-page-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+        <h1 style={{ margin: 0 }}>Rezervasyon Takvimi</h1>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setViewMode('calendar')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: viewMode === 'calendar' ? 'var(--color-primary)' : 'transparent',
+              color: viewMode === 'calendar' ? 'white' : 'inherit',
+              fontWeight: viewMode === 'calendar' ? 600 : 400,
+            }}
+          >
+            Takvim
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: viewMode === 'table' ? 'var(--color-primary)' : 'transparent',
+              color: viewMode === 'table' ? 'white' : 'inherit',
+              fontWeight: viewMode === 'table' ? 600 : 400,
+            }}
+          >
+            Tablo
+          </button>
+          {viewMode === 'table' && (
+            <Button variant="secondary" onClick={exportCsv}>
+              CSV Dışa Aktar
+            </Button>
+          )}
         </div>
       </div>
 
+      {viewMode === 'calendar' ? (
+        <AdminReservationsCalendarView lang={lang} />
+      ) : (
+        <>
       {/* Summary cards */}
       <div className="admin-stats">
         <div className="admin-stat-card">
@@ -406,6 +454,7 @@ export default function AdminReservationsPage() {
               <th className="admin-th-sortable" onClick={() => toggleSort('tour')}>
                 Tur / Hizmet <SortIndicator active={sortKey === 'tour'} dir={sortDir} />
               </th>
+              <th>Varyant</th>
               <th className="admin-th-sortable" onClick={() => toggleSort('tourDate')}>
                 Tur tarihi <SortIndicator active={sortKey === 'tourDate'} dir={sortDir} />
               </th>
@@ -421,7 +470,7 @@ export default function AdminReservationsPage() {
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={12} className="admin-empty-cell">
+                <td colSpan={13} className="admin-empty-cell">
                   {filteredAndSorted.length === 0 ? 'Filtreye uyan rezervasyon yok.' : 'Henüz rezervasyon yok.'}
                 </td>
               </tr>
@@ -487,6 +536,9 @@ export default function AdminReservationsPage() {
                       </td>
                       <td className="admin-cell-truncate" title={res.tour}>
                         {res.tour}
+                      </td>
+                      <td className="admin-cell-truncate" title={res.variantTitle ?? ''}>
+                        {res.variantTitle ?? '—'}
                       </td>
                       <td>{formatDate(res.date)}</td>
                       <td className="admin-cell-num">{res.pax}</td>
@@ -594,7 +646,7 @@ export default function AdminReservationsPage() {
                     </tr>
                     {isExpanded && (
                       <tr key={`${res.id}-detail`} style={{ background: 'var(--color-bg-light)' }}>
-                        <td colSpan={12} style={{ padding: 'var(--space-lg)' }}>
+                        <td colSpan={13} style={{ padding: 'var(--space-lg)' }}>
                           <div className="admin-expand-content">
                             <div className="admin-expand-section">
                               <h4>Müşteri bilgileri</h4>
@@ -613,6 +665,12 @@ export default function AdminReservationsPage() {
                               <p>Depozit: €{res.depositPaid.toFixed(2)}</p>
                               <p>Kalan: €{(res.totalPrice - res.depositPaid).toFixed(2)}</p>
                             </div>
+                            {res.variantTitle && (
+                              <div className="admin-expand-section">
+                                <h4>Varyant</h4>
+                                <p>{res.variantTitle}</p>
+                              </div>
+                            )}
                             {res.transferAirport && (
                               <div className="admin-expand-section">
                                 <h4>Transfer</h4>
@@ -776,6 +834,8 @@ export default function AdminReservationsPage() {
           })
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

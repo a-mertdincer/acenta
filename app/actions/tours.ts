@@ -33,6 +33,8 @@ export interface TourWithOptions {
   capacity: number;
   destination?: string;
   category?: string | null;
+  hasTourType?: boolean;
+  hasAirportSelect?: boolean;
   transferTiers: TransferTier[] | null;
   transferAirportTiers: TransferAirportTiers | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
@@ -67,6 +69,8 @@ export async function getTours(filters?: { destination?: string; category?: stri
         descZh: t.descZh,
         basePrice: t.basePrice,
         capacity: t.capacity,
+        hasTourType: Boolean((t as { hasTourType?: boolean }).hasTourType),
+        hasAirportSelect: Boolean((t as { hasAirportSelect?: boolean }).hasAirportSelect),
         transferTiers,
         transferAirportTiers,
         options: t.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
@@ -129,6 +133,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
     const raw = tour as { transferAirportTiers?: unknown };
     const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
     const t = tour as { destination?: string; category?: string | null };
+    const tourRecord = tour as { hasTourType?: boolean; hasAirportSelect?: boolean };
     return {
       id: tour.id,
       type: tour.type,
@@ -142,6 +147,8 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       capacity: tour.capacity,
       destination: t.destination ?? 'cappadocia',
       category: t.category ?? null,
+      hasTourType: Boolean(tourRecord.hasTourType),
+      hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
       transferTiers,
       transferAirportTiers,
       options: tour.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
@@ -333,7 +340,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   }
 }
 
-export type UpdateTourInput = CreateTourInput;
+export type UpdateTourInput = CreateTourInput & { hasTourType?: boolean; hasAirportSelect?: boolean };
 
 export async function updateTour(tourId: string, data: UpdateTourInput): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
@@ -353,6 +360,8 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
         category: data.category?.trim() || null,
+        ...(data.hasTourType !== undefined && { hasTourType: data.hasTourType }),
+        ...(data.hasAirportSelect !== undefined && { hasAirportSelect: data.hasAirportSelect }),
       },
     });
     revalidateTours();

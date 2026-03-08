@@ -7,6 +7,9 @@ import { Button } from '../../../components/Button';
 import { useCartStore } from '../../../store/cartStore';
 import { getTourImagePath, getTourImageFallback } from '../../../../lib/imagePaths';
 import { getTourById, getTourDatePrice } from '../../../actions/tours';
+import { getTourWithVariants } from '../../../actions/variants';
+import { ProductVariantBookingCard } from '../../../components/ProductVariantBookingCard';
+import { TourDetailGallery } from '../../../components/TourDetailGallery';
 
 function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: number; price: number }[] | null, pax: number, basePrice: number): number {
   if (transferTiers?.length) {
@@ -14,6 +17,32 @@ function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: n
     if (tier) return tier.price;
   }
   return basePrice;
+}
+
+function buildProductSchema(
+  _tour: { titleEn: string; type: string },
+  tourWithVariants: { variants: { titleEn: string; adultPrice: number; pricingType: string }[] },
+  title: string,
+  desc: string,
+  imagePath: string
+) {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const imageUrl = imagePath.startsWith('http') ? imagePath : `${baseUrl}${imagePath}`;
+  const offers = tourWithVariants.variants.map((v) => ({
+    '@type': 'Offer',
+    price: v.adultPrice,
+    priceCurrency: 'EUR',
+    name: v.titleEn,
+    availability: 'https://schema.org/InStock',
+  }));
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: title,
+    description: desc,
+    image: imageUrl,
+    ...(offers.length > 0 && { offers }),
+  };
 }
 
 type TransferAirport = 'ASR' | 'NAV';
@@ -189,6 +218,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const addItem = useCartStore(state => state.addItem);
 
     const [tour, setTour] = useState<any>(null);
+    const [tourWithVariants, setTourWithVariants] = useState<Awaited<ReturnType<typeof getTourWithVariants>>>(null);
     const [pax, setPax] = useState(1);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
@@ -213,6 +243,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 if (found) setTour(found);
             }
         });
+        getTourWithVariants(id).then(setTourWithVariants);
     }, [id, lang]);
 
     useEffect(() => {
@@ -227,6 +258,25 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     }, [tour?.id, selectedDate, id]);
 
     if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>Loading...</div>;
+
+    // Transfer sayfasında layout atlamasını önle: varyant verisi gelene kadar aynı layout ile skeleton göster
+    const needsVariants = tour.type === 'TRANSFER';
+    if (needsVariants && !tourWithVariants) {
+      return <div className="container tour-detail-layout tour-detail-layout--variant" style={{ padding: 'var(--space-2xl) 0', minHeight: '60vh' }}>
+        <div className="tour-detail-hero-grid tour-detail-hero-grid--variant" style={{ opacity: 0.6 }}>
+          <div>
+            <div style={{ height: 28, background: 'var(--color-border)', borderRadius: 4, marginBottom: 12, maxWidth: 240 }} />
+            <div style={{ height: 24, background: 'var(--color-border)', borderRadius: 4, marginBottom: 16, maxWidth: 80 }} />
+            <div style={{ aspectRatio: '4/3', background: 'var(--color-bg-alt)', borderRadius: 12 }} />
+          </div>
+          <div className="tour-detail-booking-card-wrapper" style={{ padding: 'var(--space-xl)', background: 'var(--color-bg-card)', borderRadius: 12 }}>
+            <div style={{ height: 80, background: 'var(--color-border)', borderRadius: 8, marginBottom: 12 }} />
+            <div style={{ height: 120, background: 'var(--color-border)', borderRadius: 8 }} />
+          </div>
+        </div>
+        <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'var(--space-lg)' }}>Yükleniyor...</p>
+      </div>;
+    }
 
     const locale = (lang === 'tr' || lang === 'zh' ? lang : 'en') as Lang;
     const t = TOUR_DETAIL_STRINGS[locale];
@@ -255,9 +305,56 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
         );
     };
 
-    return (
-        <div className="container tour-detail-layout">
+    const useVariantBooking = tourWithVariants && tourWithVariants.variants.length > 0;
+    const fromPrice = useVariantBooking && tourWithVariants
+        ? Math.min(...tourWithVariants.variants.map((v) => v.adultPrice))
+        : null;
+    const galleryMain = getTourImagePath(tour.type);
+    const galleryFallback = getTourImageFallback(tour.type);
 
+    const productSchema = useVariantBooking && tourWithVariants && tour
+        ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMain)
+        : null;
+
+    return (
+        <div className={`container tour-detail-layout${useVariantBooking ? ' tour-detail-layout--variant' : ''}`}>
+            {productSchema && (
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
+            )}
+            {useVariantBooking ? (
+                <>
+                    <div className="tour-detail-hero-grid tour-detail-hero-grid--variant">
+                        <div>
+                            <h1 style={{ marginBottom: 'var(--space-md)' }}>{title}</h1>
+                            <span style={{ backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-block', marginBottom: 'var(--space-md)' }}>
+                                {tour.type}
+                            </span>
+                            {fromPrice != null && (
+                                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)', marginBottom: 'var(--space-lg)' }}>
+                                    From {fromPrice.toFixed(2)}€
+                                </p>
+                            )}
+                            <TourDetailGallery mainSrc={galleryMain} fallbackSrc={galleryFallback} />
+                        </div>
+                        <div className="tour-detail-booking-card-wrapper">
+                            <ProductVariantBookingCard
+                                tourId={tour.id}
+                                tourType={tour.type}
+                                lang={lang as Lang}
+                                data={tourWithVariants!}
+                                title={title}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <h2>{t.description}</h2>
+                        <p style={{ color: 'var(--color-text-muted)', lineHeight: '1.6', fontSize: '1.1rem', marginTop: 'var(--space-sm)' }}>
+                            {desc}
+                        </p>
+                    </div>
+                </>
+            ) : (
+                <>
             <div>
                 <h1 style={{ marginBottom: 'var(--space-md)' }}>{title}</h1>
                 <span style={{ backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
@@ -387,7 +484,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     }}>{t.addToCart}</Button>
                 </div>
             </div>
-
+                </>
+                )}
         </div>
     );
 }

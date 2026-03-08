@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
-import { cancelReservationByGuest, updateReservationByGuest } from '@/app/actions/reservations';
+import { requestCancellationByGuest, requestUpdateByGuest } from '@/app/actions/reservations';
 import { getAvailableTourDatesForGuest } from '@/app/actions/tours';
 
 type ReservationItem = {
@@ -16,6 +16,8 @@ type ReservationItem = {
   status: string;
   notes: string | null;
   tour?: { titleEn: string } | null;
+  cancellationRequestedAt?: string | null;
+  updateRequestedAt?: string | null;
 };
 
 export function MyReservationsList({
@@ -63,20 +65,22 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
   }, [editOpen, reservation.tourId, currentDateStr]);
 
   const isCancelled = reservation.status === 'CANCELLED';
+  const hasCancellationRequest = Boolean(reservation.cancellationRequestedAt);
+  const hasUpdateRequest = Boolean(reservation.updateRequestedAt);
   const detailsLine = formatNotesForDisplay(reservation.notes);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const result = await updateReservationByGuest(reservation.id, { date: selectedDate, pax, notes });
+    const result = await requestUpdateByGuest(reservation.id, { date: selectedDate, pax, notes });
     setLoading(false);
     if (result.ok) {
-      setMessage({ type: 'ok', text: 'Rezervasyon güncellendi.' });
+      setMessage({ type: 'ok', text: 'Değişiklik talebiniz alındı. Operasyon ekibimiz en kısa sürede size dönüş yapacaktır.' });
       setEditOpen(false);
       setTimeout(() => window.location.reload(), 800);
     } else {
-      setMessage({ type: 'err', text: result.error ?? 'Güncelleme başarısız.' });
+      setMessage({ type: 'err', text: result.error ?? 'Talep gönderilemedi.' });
     }
   }
 
@@ -84,14 +88,14 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const result = await cancelReservationByGuest(reservation.id, cancelReason || undefined);
+    const result = await requestCancellationByGuest(reservation.id, cancelReason || undefined);
     setLoading(false);
     if (result.ok) {
-      setMessage({ type: 'ok', text: 'Rezervasyon iptal edildi.' });
+      setMessage({ type: 'ok', text: 'İptal talebiniz alındı. Operasyon ekibimiz en kısa sürede size dönüş yapacaktır.' });
       setCancelOpen(false);
       setTimeout(() => window.location.reload(), 800);
     } else {
-      setMessage({ type: 'err', text: result.error ?? 'İptal başarısız.' });
+      setMessage({ type: 'err', text: result.error ?? 'Talep gönderilemedi.' });
     }
   }
 
@@ -136,15 +140,21 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
             >
               {getReservationStatusLabel(reservation.status)}
             </span>
+            {(hasCancellationRequest || hasUpdateRequest) && (
+              <span style={{ display: 'block', marginTop: 'var(--space-xs)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                {hasCancellationRequest && 'İptal talebiniz inceleniyor. '}
+                {hasUpdateRequest && 'Değişiklik talebiniz inceleniyor.'}
+              </span>
+            )}
           </Link>
         </div>
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-secondary" onClick={openEdit}>
-              Rezervasyonu güncelle
+            <button type="button" className="btn btn-secondary" onClick={openEdit} disabled={hasUpdateRequest}>
+              {hasUpdateRequest ? 'Değişiklik talebi bekliyor' : 'Değişiklik talebi gönder'}
             </button>
-            <button type="button" className="btn btn-secondary" style={{ color: 'var(--color-error, #b91c1c)' }} onClick={() => { setCancelOpen(true); setEditOpen(false); setCancelReason(''); setMessage(null); }}>
-              İptal talebi
+            <button type="button" className="btn btn-secondary" style={{ color: 'var(--color-error, #b91c1c)' }} onClick={() => { setCancelOpen(true); setEditOpen(false); setCancelReason(''); setMessage(null); }} disabled={hasCancellationRequest}>
+              {hasCancellationRequest ? 'İptal talebi bekliyor' : 'İptal talebi gönder'}
             </button>
           </div>
         )}
@@ -158,7 +168,7 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
 
       {editOpen && (
         <form onSubmit={handleUpdate} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>
-          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Tur tarihi ve kişi sayısını güncelleyebilirsiniz. Tarih, rezervasyon alınan günler arasından seçilir.</p>
+          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Değişiklik talebiniz operasyon ekibimiz tarafından onaylandıktan sonra uygulanacaktır. Tarih, rezervasyon alınan günler arasından seçilir.</p>
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Tur tarihi</label>
             <select
@@ -183,7 +193,7 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Özel istek veya not (max 500 karakter)" maxLength={500} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Kaydediliyor…' : 'Kaydet'}</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Gönderiliyor…' : 'Değişiklik talebi gönder'}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setEditOpen(false)}>Vazgeç</button>
           </div>
         </form>
@@ -191,13 +201,13 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
 
       {cancelOpen && (
         <form onSubmit={handleCancel} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>
-          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Bu rezervasyonu iptal etmek istediğinize emin misiniz? İsteğe bağlı olarak iptal nedeninizi yazabilirsiniz.</p>
+          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>İptal talebiniz operasyon ekibimiz tarafından değerlendirilecektir; onay sonrası rezervasyon iptal edilir ve size bilgi verilir. İptal nedeninizi yazmanız bizim için değerlidir.</p>
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>İptal nedeni (isteğe bağlı)</label>
             <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Örn: Plan değişikliği" maxLength={500} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--color-error, #b91c1c)' }} disabled={loading}>{loading ? 'İptal ediliyor…' : 'İptal et'}</button>
+            <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--color-error, #b91c1c)' }} disabled={loading}>{loading ? 'Gönderiliyor…' : 'İptal talebi gönder'}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setCancelOpen(false)}>Vazgeç</button>
           </div>
         </form>

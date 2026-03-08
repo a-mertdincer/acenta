@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  devIndicators: false, // Altta "Rendering" / build göstergesini kapatır
 };
 
 export default nextConfig;

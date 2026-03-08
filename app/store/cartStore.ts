@@ -45,6 +45,14 @@ export interface CartItem {
     totalPrice: number;
     /** For transfer: ASR (Kayseri) | NAV (Nevşehir) */
     transferAirport?: 'ASR' | 'NAV';
+    /** When booking with variant system (Eco/Plus, Regular/Private) */
+    variantId?: string;
+    /** Transfer: arrival | departure | roundtrip */
+    transferDirection?: 'arrival' | 'departure' | 'roundtrip';
+    transferFlightArrival?: string | null;
+    transferFlightDeparture?: string | null;
+    transferHotelName?: string | null;
+    childCount?: number;
 }
 
 interface CartState {

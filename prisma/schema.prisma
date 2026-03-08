@@ -22,25 +22,73 @@ model User {
 }
 
 model Tour {
-  id           String          @id @default(uuid())
-  titleTr      String
-  titleEn      String
-  titleZh      String
-  descTr       String
-  descEn       String
-  descZh       String
-  basePrice    Float // Default price if not overridden by date
-  type         String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
-  destination  String          @default("cappadocia") // slug: cappadocia, antalya, istanbul
-  category     String?         // slug: hot-air-balloon, daily-tours, transfers, etc.
-  capacity             Int             @default(0) // Default capacity
-  transferTiers        Json?           // Legacy: ASR tiers. Prefer transferAirportTiers.
-  transferAirportTiers Json?           // For type=TRANSFER: { ASR: [{ minPax, maxPax, price }], NAV: [...] }
-  options              TourOption[]
-  prices         TourDatePrice[]
-  reservations   Reservation[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                 String          @id @default(uuid())
+  titleTr            String
+  titleEn            String
+  titleZh            String
+  descTr             String
+  descEn             String
+  descZh             String
+  basePrice          Float // Default price if not overridden by date
+  type               String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
+  destination        String          @default("cappadocia") // slug: cappadocia, antalya, istanbul
+  category           String?         // slug: hot-air-balloon, daily-tours, transfers, etc.
+  capacity           Int             @default(0) // Default capacity
+  transferTiers      Json?           // Legacy: ASR tiers. Prefer transferAirportTiers.
+  transferAirportTiers Json?         // For type=TRANSFER: { ASR: [{ minPax, maxPax, price }], NAV: [...] }
+  hasTourType        Boolean         @default(false) // Eco/Plus toggle for daily tours
+  hasAirportSelect   Boolean         @default(false) // Airport (NAV/ASR) for transfer
+  slug               String?         @unique // Optional URL slug e.g. green-tour
+  options            TourOption[]
+  prices             TourDatePrice[]
+  variants           TourVariant[]
+  reservations      Reservation[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model TourVariant {
+  id                 String   @id @default(uuid())
+  tourId             String
+  tour               Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  tourType           String?  // "eco" | "plus" | null
+  reservationType    String   // "regular" | "private"
+  airport            String?  // "NAV" | "ASR" | null
+  titleEn            String
+  titleTr            String
+  titleZh            String
+  descEn             String
+  descTr             String
+  descZh             String
+  includes           Json     // string[] e.g. ["Klimalı araç", "Rehber"]
+  excludes           Json     // string[]
+  duration           String?  // "4 saat" or "~40 dakika"
+  languages          Json?    // string[] e.g. ["en", "zh", "es"]
+  vehicleType        String?
+  maxGroupSize       Int?
+  routeStops         Json?    // string[]
+  adultPrice         Float
+  childPrice         Float?   // 4-7 yaş; null = same as adult
+  pricingType        String   // "per_person" | "per_vehicle"
+  sortOrder          Int      @default(0)
+  isActive           Boolean  @default(true)
+  isRecommended     Boolean  @default(false)
+  reservations      Reservation[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Flight {
+  id             String   @id @default(uuid())
+  code           String   // "TK 2000"
+  airline        String
+  airport        String   // "NAV" | "ASR"
+  direction      String   // "arrival" | "departure"
+  estimatedTime  String   // "08:45"
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model TourOption {
@@ -70,24 +118,40 @@ model TourDatePrice {
 }
 
 model Reservation {
-  id          String   @id @default(uuid())
-  userId      String?
-  guestName   String
-  guestEmail  String
-  guestPhone  String
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  tourId      String
-  tour        Tour     @relation(fields: [tourId], references: [id])
-  date        DateTime
-  pax         Int      @default(1)
-  totalPrice  Float
-  depositPaid Float    @default(0)
-  status         String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
-  notes          String?
-  options        String   // Stored as JSON string or comma separated for simplicity
-  transferAirport  String?  // For transfer reservations: ASR | NAV
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String        @id @default(uuid())
+  userId           String?
+  guestName        String
+  guestEmail       String
+  guestPhone       String
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tourId           String
+  tour             Tour          @relation(fields: [tourId], references: [id])
+  variantId        String?        // When booking with variant system
+  variant          TourVariant?   @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  date             DateTime
+  pax              Int            @default(1)
+  totalPrice       Float
+  depositPaid       Float         @default(0)
+  status           String         @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  notes            String?
+  options          String         // Stored as JSON string or comma separated for simplicity
+  transferAirport  String?        // For transfer reservations: ASR | NAV
+  transferDirection    String?    // arrival | departure | roundtrip
+  transferFlightArrival   String?
+  transferFlightDeparture String?
+  transferHotelName  String?
+  childCount        Int?          // 4-7 yaş çocuk sayısı
+  // Misafir iptal talebi (operasyon onayına kadar bekler)
+  cancellationRequestedAt   DateTime?
+  cancellationRequestReason  String?
+  // Misafir değişiklik talebi (tarih/kişi/not; operasyon onayına kadar bekler)
+  updateRequestedAt  DateTime?
+  pendingDate        DateTime?
+  pendingPax         Int?
+  pendingNotes      String?
+  cariRecords       CariRecord[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Coupon {
@@ -101,4 +165,33 @@ model Coupon {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model CariRecord {
+  id                    String    @id @default(uuid())
+  reservationId         String?
+  reservation           Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  guestName             String
+  hotelName             String?
+  roomNumber            String?
+  activityType          String    // Balon, Özel Tur, Transfer vb.
+  quantity              Int       @default(1)
+  activityDate          DateTime
+  salePrice             Float
+  saleCurrency          String    @default("EUR") // EUR, TRY, USD
+  costAmount            Float?
+  costCurrency          String?   // EUR, TRY, USD
+  costDescription       String?
+  agentName             String?   // Dış acenta adı
+  paymentMethod         String    @default("cash") // cash, transfer, card
+  paymentDestination    String    @default("internal") // internal, agency_direct
+  salesperson           String?
+  paidToAgency          String?   // paid, pending, unpaid
+  reservationConfirmed  Boolean   @default(false)
+  confirmationReceived  Boolean   @default(false)
+  paymentReceived       Boolean   @default(false)
+  profit                Float?    // Hesaplanan: (salePrice*quantity) - (costAmount*quantity)
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }

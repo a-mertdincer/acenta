@@ -99,6 +99,7 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
   const navLinks = [
     { href: `/${lang}`, label: nav.home },
     { href: `/${lang}/tours`, label: nav.tours },
+    ...(isAdmin ? [{ href: `/${lang}/admin`, label: nav.admin }] : []),
   ];
 
   const langLinks: { lang: Lang; label: string }[] = [
@@ -224,12 +225,6 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
                   <span className="site-nav-cart-badge" aria-hidden>{cartCount > 99 ? '99+' : cartCount}</span>
                 )}
               </Link>
-
-              {isAdmin && (
-                <Link href={`/${lang}/admin`} className="site-nav-link site-nav-admin" onClick={() => setMobileOpen(false)}>
-                  {nav.admin}
-                </Link>
-              )}
             </div>
           </nav>
         </div>

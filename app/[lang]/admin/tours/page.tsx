@@ -5,6 +5,8 @@ import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
 import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
+import { getTourVariantsForAdmin, createVariant, updateVariant, deleteVariant, type CreateVariantInput } from '../../../actions/variants';
+import type { TourVariantDisplay } from '@/lib/types/variant';
 
 export default function AdminToursPage() {
     const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number }[]>([]);
@@ -58,6 +60,17 @@ export default function AdminToursPage() {
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
     const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
     const [tourEditCategory, setTourEditCategory] = useState('');
+    const [tourEditHasTourType, setTourEditHasTourType] = useState(false);
+    const [tourEditHasAirportSelect, setTourEditHasAirportSelect] = useState(false);
+    const [variants, setVariants] = useState<TourVariantDisplay[]>([]);
+    const [variantSaving, setVariantSaving] = useState(false);
+    const [showAddVariant, setShowAddVariant] = useState(false);
+    const [newVariant, setNewVariant] = useState<Partial<CreateVariantInput>>({
+        tourType: null, reservationType: 'regular', airport: null,
+        titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '',
+        includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null,
+        adultPrice: 0, childPrice: null, pricingType: 'per_person', sortOrder: 0, isActive: true, isRecommended: false,
+    });
 
     const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
     const destinations = getDestinations();
@@ -85,9 +98,10 @@ export default function AdminToursPage() {
         if (!editTourId) return;
         getTourById(editTourId).then((t) => {
             if (!t) return;
+            const rec = t as { destination?: string; category?: string | null; hasTourType?: boolean; hasAirportSelect?: boolean };
             setTourEditType(t.type as TourType);
-            setTourEditDestination((t as { destination?: string }).destination ?? 'cappadocia');
-            setTourEditCategory((t as { category?: string | null }).category ?? '');
+            setTourEditDestination(rec.destination ?? 'cappadocia');
+            setTourEditCategory(rec.category ?? '');
             setTourEditTitleEn(t.titleEn);
             setTourEditTitleTr(t.titleTr);
             setTourEditTitleZh(t.titleZh);
@@ -96,7 +110,10 @@ export default function AdminToursPage() {
             setTourEditDescZh(t.descZh);
             setTourEditBasePrice(String(t.basePrice));
             setTourEditCapacity(String(t.capacity));
+            setTourEditHasTourType(Boolean(rec.hasTourType));
+            setTourEditHasAirportSelect(Boolean(rec.hasAirportSelect));
         });
+        getTourVariantsForAdmin(editTourId).then(setVariants);
     }, [editTourId]);
 
     const handleDailySubmit = async (e: React.FormEvent) => {
@@ -243,6 +260,8 @@ export default function AdminToursPage() {
             descZh: tourEditDescZh.trim() || '-',
             basePrice: parseFloat(tourEditBasePrice) || 0,
             capacity: parseInt(tourEditCapacity, 10) || 0,
+            hasTourType: tourEditHasTourType,
+            hasAirportSelect: tourEditHasAirportSelect,
         });
         setEditSaving(false);
         if (result.ok) {
@@ -250,6 +269,56 @@ export default function AdminToursPage() {
             setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
             setEditTourId(null);
         } else alert(result.error ?? 'Tur güncellenemedi');
+    };
+
+    const handleCreateVariant = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editTourId || !newVariant.titleEn?.trim()) {
+            alert('Varyant başlığı (EN) zorunludur.');
+            return;
+        }
+        setVariantSaving(true);
+        const includes = typeof newVariant.includes === 'string' ? (newVariant.includes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (newVariant.includes ?? []);
+        const excludes = typeof newVariant.excludes === 'string' ? (newVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (newVariant.excludes ?? []);
+        const routeStops = typeof newVariant.routeStops === 'string' ? (newVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (newVariant.routeStops ?? []);
+        const result = await createVariant({
+            tourId: editTourId,
+            tourType: newVariant.tourType ?? null,
+            reservationType: newVariant.reservationType ?? 'regular',
+            airport: newVariant.airport ?? null,
+            titleEn: newVariant.titleEn!.trim(),
+            titleTr: (newVariant.titleTr ?? '').trim() || newVariant.titleEn!.trim(),
+            titleZh: (newVariant.titleZh ?? '').trim() || newVariant.titleEn!.trim(),
+            descEn: (newVariant.descEn ?? '').trim(),
+            descTr: (newVariant.descTr ?? '').trim(),
+            descZh: (newVariant.descZh ?? '').trim(),
+            includes,
+            excludes,
+            duration: (newVariant.duration as string)?.trim() || null,
+            languages: newVariant.languages ?? null,
+            vehicleType: (newVariant.vehicleType as string)?.trim() || null,
+            maxGroupSize: newVariant.maxGroupSize ?? null,
+            routeStops: routeStops.length ? routeStops : null,
+            adultPrice: Number(newVariant.adultPrice) || 0,
+            childPrice: newVariant.childPrice != null && newVariant.childPrice !== '' ? Number(newVariant.childPrice) : null,
+            pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
+            sortOrder: variants.length,
+            isActive: newVariant.isActive !== false,
+            isRecommended: Boolean(newVariant.isRecommended),
+        });
+        setVariantSaving(false);
+        if (result.ok) {
+            getTourVariantsForAdmin(editTourId!).then(setVariants);
+            setShowAddVariant(false);
+            setNewVariant({ tourType: null, reservationType: 'regular', airport: null, titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '', includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null, adultPrice: 0, childPrice: null, pricingType: 'per_person', sortOrder: variants.length, isActive: true, isRecommended: false });
+        } else alert(result.error);
+    };
+
+    const handleDeleteVariant = async (variantId: string) => {
+        if (!confirm('Bu varyantı silmek istediğinize emin misiniz?')) return;
+        const result = await deleteVariant(variantId);
+        if (result.ok && editTourId) getTourVariantsForAdmin(editTourId).then(setVariants);
+        else if (!result.ok) alert(result.error);
     };
 
     const openEditTour = (tourId: string) => {
@@ -394,12 +463,133 @@ export default function AdminToursPage() {
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} />
                             <Input label="Kapasite" type="number" min={1} value={tourEditCapacity} onChange={(e) => setTourEditCapacity(e.target.value)} />
                         </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={tourEditHasTourType} onChange={(e) => setTourEditHasTourType(e.target.checked)} />
+                            <span>Eco/Plus (Tur Tipi) seçeneği var</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={tourEditHasAirportSelect} onChange={(e) => setTourEditHasAirportSelect(e.target.checked)} />
+                            <span>Havalimanı (NAV/ASR) seçeneği var</span>
+                        </label>
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
                         <Button type="submit" disabled={editSaving}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Button>
                         <Button type="button" variant="secondary" onClick={() => setEditTourId(null)}>İptal</Button>
                     </div>
                 </form>
+            )}
+
+            {editTourId && (
+                <div className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
+                    <h2 style={{ marginBottom: 'var(--space-lg)' }}>Varyantlar</h2>
+                    <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-md)', fontSize: '0.95rem' }}>
+                        Bu ürün için Eco/Plus, Regular/Private veya Havalimanı varyantları. Müşteri ürün sayfasında tek kart içinde seçim yapar.
+                    </p>
+                    <Button type="button" variant="secondary" style={{ marginBottom: 'var(--space-lg)' }} onClick={() => setShowAddVariant((v) => !v)}>
+                        {showAddVariant ? 'Formu kapat' : '+ Yeni varyant ekle'}
+                    </Button>
+                    {showAddVariant && (
+                        <form onSubmit={handleCreateVariant} style={{ marginBottom: 'var(--space-xl)', padding: 'var(--space-lg)', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                            <h3 style={{ marginBottom: 'var(--space-md)' }}>Yeni varyant</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Tur tipi</label>
+                                    <select value={newVariant.tourType ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, tourType: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="">— Yok (aktiviteler/transfer) —</option>
+                                        <option value="eco">Eco</option>
+                                        <option value="plus">Plus</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
+                                    <select value={newVariant.reservationType ?? 'regular'} onChange={(e) => setNewVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="regular">Regular (Paylaşımlı)</option>
+                                        <option value="private">Private (Özel)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Havalimanı</label>
+                                    <select value={newVariant.airport ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, airport: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="">— Yok —</option>
+                                        <option value="NAV">NAV (Nevşehir)</option>
+                                        <option value="ASR">ASR (Kayseri)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Fiyat tipi</label>
+                                    <select value={newVariant.pricingType ?? 'per_person'} onChange={(e) => setNewVariant((v) => ({ ...v, pricingType: e.target.value as 'per_person' | 'per_vehicle' }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="per_person">Kişi başı</option>
+                                        <option value="per_vehicle">Araç başı</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+                                <Input label="Başlık (EN) *" value={newVariant.titleEn ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, titleEn: e.target.value }))} placeholder="e.g. Regular Eco Green Tour" />
+                                <Input label="Başlık (TR)" value={newVariant.titleTr ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, titleTr: e.target.value }))} />
+                                <Input label="Başlık (ZH)" value={newVariant.titleZh ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, titleZh: e.target.value }))} />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                                    <Input label="Yetişkin fiyatı (€)" type="number" step="0.01" value={String(newVariant.adultPrice ?? 0)} onChange={(e) => setNewVariant((v) => ({ ...v, adultPrice: parseFloat(e.target.value) || 0 }))} />
+                                    <Input label="Çocuk fiyatı (€, boş = yetişkin ile aynı)" type="number" step="0.01" value={newVariant.childPrice != null ? String(newVariant.childPrice) : ''} onChange={(e) => setNewVariant((v) => ({ ...v, childPrice: e.target.value === '' ? null : parseFloat(e.target.value) }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Açıklama (EN)</label>
+                                    <textarea value={newVariant.descEn ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, descEn: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Dahil (her satıra bir madde)</label>
+                                    <textarea value={Array.isArray(newVariant.includes) ? newVariant.includes.join('\n') : (newVariant.includes as string) ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, includes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Klimalı araç&#10;Rehber" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Hariç (her satıra bir madde)</label>
+                                    <textarea value={Array.isArray(newVariant.excludes) ? newVariant.excludes.join('\n') : (newVariant.excludes as string) ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, excludes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
+                                    <Input label="Süre" value={newVariant.duration ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, duration: e.target.value }))} placeholder="4 saat" style={{ flex: 1 }} />
+                                    <Input label="Max grup" type="number" min={1} value={String(newVariant.maxGroupSize ?? '')} onChange={(e) => setNewVariant((v) => ({ ...v, maxGroupSize: e.target.value === '' ? null : parseInt(e.target.value, 10) }))} placeholder="12" style={{ width: '80px' }} />
+                                </div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                                    <input type="checkbox" checked={newVariant.isRecommended ?? false} onChange={(e) => setNewVariant((v) => ({ ...v, isRecommended: e.target.checked }))} />
+                                    <span>Önerilen</span>
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                                    <input type="checkbox" checked={newVariant.isActive !== false} onChange={(e) => setNewVariant((v) => ({ ...v, isActive: e.target.checked }))} />
+                                    <span>Aktif</span>
+                                </label>
+                            </div>
+                            <Button type="submit" disabled={variantSaving}>{variantSaving ? 'Ekleniyor...' : 'Varyant ekle'}</Button>
+                        </form>
+                    )}
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                                    <th style={{ padding: 'var(--space-md)' }}>Başlık (EN)</th>
+                                    <th style={{ padding: 'var(--space-md)' }}>Tip</th>
+                                    <th style={{ padding: 'var(--space-md)' }}>Fiyat</th>
+                                    <th style={{ padding: 'var(--space-md)' }}>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {variants.length === 0 ? (
+                                    <tr><td colSpan={4} style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>Varyant yok. Yukarıdan ekleyin.</td></tr>
+                                ) : (
+                                    variants.map((v) => (
+                                        <tr key={v.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                            <td style={{ padding: 'var(--space-md)' }}>{v.titleEn}</td>
+                                            <td style={{ padding: 'var(--space-md)' }}>
+                                                {[v.tourType, v.reservationType, v.airport].filter(Boolean).join(' / ') || '—'}
+                                            </td>
+                                            <td style={{ padding: 'var(--space-md)' }}>€{v.adultPrice} {v.pricingType === 'per_vehicle' ? '(araç)' : '(kişi)'}</td>
+                                            <td style={{ padding: 'var(--space-md)' }}>
+                                                <Button type="button" variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteVariant(v.id)}>Sil</Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
 
             <form onSubmit={handleDailySubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>

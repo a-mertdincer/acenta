@@ -94,6 +94,12 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                 totalPrice: item.totalPrice,
                 optionsJson: JSON.stringify(item.options),
                 ...(item.transferAirport && { transferAirport: item.transferAirport }),
+                ...(item.variantId && { variantId: item.variantId }),
+                ...(item.transferDirection && { transferDirection: item.transferDirection }),
+                ...(item.transferFlightArrival != null && { transferFlightArrival: item.transferFlightArrival }),
+                ...(item.transferFlightDeparture != null && { transferFlightDeparture: item.transferFlightDeparture }),
+                ...(item.transferHotelName != null && { transferHotelName: item.transferHotelName }),
+                ...(item.childCount != null && { childCount: item.childCount }),
             })),
         });
 

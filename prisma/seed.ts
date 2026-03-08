@@ -18,6 +18,27 @@ async function main() {
     await prisma.tourOption.deleteMany()
     await prisma.tour.deleteMany()
 
+    // Admin kullanıcısını en başta tanımla (sonraki adımlar hata verse bile admin kalsın)
+    const adminEmail = 'admin@acenta.local'
+    const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } })
+    if (!existingAdmin) {
+      await prisma.user.create({
+        data: {
+          name: 'Admin',
+          email: adminEmail,
+          passwordHash: hashPassword('Admin123!'),
+          role: 'ADMIN',
+        },
+      })
+      console.log('Admin user created: admin@acenta.local / Admin123! (please change after first login)')
+    } else if (existingAdmin.role !== 'ADMIN') {
+      await prisma.user.update({
+        where: { email: adminEmail },
+        data: { role: 'ADMIN' },
+      })
+      console.log('Existing user admin@acenta.local set to ADMIN role.')
+    }
+
     const balloon = await prisma.tour.create({
         data: {
             type: 'BALLOON',
@@ -58,9 +79,27 @@ async function main() {
             descTr: 'Yeraltı şehrini keşfedin, Ihlara Vadisinde yürüyüş yapın ve Selime Manastırını ziyaret edin. Öğle yemeği dahildir.',
             descZh: '探索地下城，在伊赫拉拉山谷徒步旅行，并参观塞利梅修道院。包括午餐。',
             basePrice: 40.0,
-            capacity: 15
+            capacity: 15,
+            hasTourType: true,
+            destination: 'cappadocia',
+            category: 'daily-tours',
         }
     })
+
+    // Seed variants for Green Tour (Eco/Plus × Regular/Private) — tek kart çoklu seçenek
+    try {
+        await (prisma as any).tourVariant.createMany({
+            data: [
+                { tourId: greenTour.id, tourType: 'eco', reservationType: 'regular', airport: null, titleEn: 'Regular Eco Green Tour', titleTr: 'Paylaşımlı Eko Yeşil Tur', titleZh: '拼团经济绿线', descEn: 'Compact 4-hour group tour. English only.', descTr: '4 saatlik kompakt grup turu. Sadece İngilizce.', descZh: '4小时紧凑团体游。仅英语。', includes: ['Air-conditioned vehicle', 'Guide'], excludes: ['Lunch', 'Museum entries'], duration: '4 hours', adultPrice: 45, childPrice: 35, pricingType: 'per_person', sortOrder: 0, maxGroupSize: 12 },
+                { tourId: greenTour.id, tourType: 'eco', reservationType: 'private', airport: null, titleEn: 'Private Eco Green Tour', titleTr: 'Özel Eko Yeşil Tur', titleZh: '包车经济绿线', descEn: 'Private 4-hour tour for your group only.', descTr: 'Sadece sizin grubunuz için özel 4 saatlik tur.', descZh: '仅限您团体的4小时私人游。', includes: ['Private vehicle', 'Guide'], excludes: ['Lunch'], duration: '4 hours', adultPrice: 280, childPrice: null, pricingType: 'per_vehicle', sortOrder: 1, isRecommended: true },
+                { tourId: greenTour.id, tourType: 'plus', reservationType: 'regular', airport: null, titleEn: 'Regular Plus Green Tour', titleTr: 'Paylaşımlı Plus Yeşil Tur', titleZh: '拼团升级绿线', descEn: 'Full 8-hour tour with lunch. Multi-language.', descTr: 'Öğle yemeği dahil 8 saatlik tam tur. Çok dilli.', descZh: '含午餐8小时全程游。多语种。', includes: ['Lunch', 'Vehicle', 'Guide', 'Museum entries'], excludes: [], duration: '8 hours', adultPrice: 75, childPrice: 55, pricingType: 'per_person', sortOrder: 2, maxGroupSize: 15 },
+                { tourId: greenTour.id, tourType: 'plus', reservationType: 'private', airport: null, titleEn: 'Private Plus Green Tour', titleTr: 'Özel Plus Yeşil Tur', titleZh: '包车升级绿线', descEn: 'Full private 8-hour tour with lunch.', descTr: 'Öğle yemeği dahil 8 saatlik özel tam tur.', descZh: '含午餐8小时私人全程游。', includes: ['Lunch', 'Private vehicle', 'Guide', 'Museum entries'], excludes: [], duration: '8 hours', adultPrice: 450, childPrice: null, pricingType: 'per_vehicle', sortOrder: 3 },
+            ]
+        })
+        console.log('Green Tour: 4 variants created.')
+    } catch (e) {
+        console.warn('Green Tour variants not created (run npx prisma generate if needed):', (e as Error)?.message)
+    }
 
     // Seed Add-on options for Green Tour
     await prisma.tourOption.createMany({
@@ -73,28 +112,36 @@ async function main() {
     const transfer = await prisma.tour.create({
         data: {
             type: 'TRANSFER',
-            titleEn: 'Private Airport Transfer',
-            titleTr: 'Özel Havalimanı Transferi',
-            titleZh: '私人机场接送',
-            descEn: 'VIP transfer to and from Nevşehir or Kayseri airports. 1-4 Pax in Mercedes Vito.',
-            descTr: 'Nevşehir veya Kayseri havalimanlarına Mercedes Vito ile VIP transfer. 1-4 Kişi.',
-            descZh: '内夫谢希尔或开塞利机场的VIP接送服务。 1-4人在奔驰Vito。',
+            titleEn: 'Airport Transfer',
+            titleTr: 'Havalimanı Transferi',
+            titleZh: '机场接送',
+            descEn: 'Transfer to and from Nevşehir or Kayseri airports. Shuttle or private.',
+            descTr: 'Nevşehir veya Kayseri havalimanlarına transfer. Paylaşımlı veya özel.',
+            descZh: '内夫谢希尔或开塞利机场接送。拼车或包车。',
             basePrice: 50.0,
-            capacity: 10
+            capacity: 10,
+            hasAirportSelect: true,
+            destination: 'cappadocia',
+            category: 'transfers',
         }
     })
 
-    const userCount = await prisma.user.count()
-    if (userCount === 0) {
-      await prisma.user.create({
-        data: {
-          name: 'Admin',
-          email: 'admin@acenta.local',
-          passwordHash: hashPassword('Admin123!'),
-          role: 'ADMIN',
-        },
-      })
-      console.log('Admin user created: admin@acenta.local / Admin123! (please change after first login)')
+    // Transfer varyantları: NAV/ASR × Regular/Private (tek kart çoklu seçenek)
+    try {
+        const tv = (prisma as any).tourVariant
+        if (tv?.createMany) {
+            await tv.createMany({
+                data: [
+                    { tourId: transfer.id, tourType: null, reservationType: 'regular', airport: 'NAV', titleEn: 'Shuttle — Nevşehir (NAV)', titleTr: 'Paylaşımlı — Nevşehir (NAV)', titleZh: '拼车 — 内夫谢希尔', descEn: 'Shared shuttle from Nevşehir airport. ~40 min to Göreme.', descTr: 'Nevşehir havalimanından paylaşımlı shuttle. Göreme ~40 dk.', descZh: '内夫谢希尔机场拼车。至格雷梅约40分钟。', includes: ['Wi-Fi', 'A/C'], excludes: ['Door-to-door'], duration: '~40 min', adultPrice: 15, childPrice: null, pricingType: 'per_person', sortOrder: 0, maxGroupSize: 8 },
+                    { tourId: transfer.id, tourType: null, reservationType: 'regular', airport: 'ASR', titleEn: 'Shuttle — Kayseri (ASR)', titleTr: 'Paylaşımlı — Kayseri (ASR)', titleZh: '拼车 — 开塞利', descEn: 'Shared shuttle from Kayseri airport. ~75 min to Göreme.', descTr: 'Kayseri havalimanından paylaşımlı shuttle. Göreme ~75 dk.', descZh: '开塞利机场拼车。至格雷梅约75分钟。', includes: ['Wi-Fi', 'A/C'], excludes: ['Door-to-door'], duration: '~75 min', adultPrice: 20, childPrice: null, pricingType: 'per_person', sortOrder: 1, maxGroupSize: 8 },
+                    { tourId: transfer.id, tourType: null, reservationType: 'private', airport: 'NAV', titleEn: 'Private — Nevşehir (NAV)', titleTr: 'Özel — Nevşehir (NAV)', titleZh: '包车 — 内夫谢希尔', descEn: 'Private transfer from Nevşehir. Door-to-door, ~40 min.', descTr: 'Nevşehir özel transfer. Kapıdan kapıya, ~40 dk.', descZh: '内夫谢希尔包车。门到门，约40分钟。', includes: ['Door-to-door', 'Flight tracking', 'A/C'], excludes: [], duration: '~40 min', adultPrice: 90, childPrice: null, pricingType: 'per_vehicle', sortOrder: 2, isRecommended: true },
+                    { tourId: transfer.id, tourType: null, reservationType: 'private', airport: 'ASR', titleEn: 'Private — Kayseri (ASR)', titleTr: 'Özel — Kayseri (ASR)', titleZh: '包车 — 开塞利', descEn: 'Private transfer from Kayseri. Door-to-door, ~75 min.', descTr: 'Kayseri özel transfer. Kapıdan kapıya, ~75 dk.', descZh: '开塞利包车。门到门，约75分钟。', includes: ['Door-to-door', 'Flight tracking', 'A/C'], excludes: [], duration: '~75 min', adultPrice: 120, childPrice: null, pricingType: 'per_vehicle', sortOrder: 3 },
+                ]
+            })
+            console.log('Transfer: 4 variants created (NAV/ASR × Shuttle/Private)')
+        }
+    } catch (e) {
+        console.warn('Transfer variants not created (run: npx prisma generate).', e)
     }
 
     console.log('Seed data inserted successfully')

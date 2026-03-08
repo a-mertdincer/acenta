@@ -20,6 +20,8 @@ export default async function UserAccountPage(props: { params: Promise<{ lang: s
         status: res.status,
         notes: res.notes ?? null,
         tour: res.tour ? { titleEn: res.tour.titleEn } : null,
+        cancellationRequestedAt: res.cancellationRequestedAt?.toISOString() ?? null,
+        updateRequestedAt: res.updateRequestedAt?.toISOString() ?? null,
     }));
 
     return (

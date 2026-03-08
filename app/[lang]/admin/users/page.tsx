@@ -1,26 +1,20 @@
 import { redirect } from 'next/navigation';
 import { getSession, getUsers } from '../../../actions/auth';
-import { getCoupons } from '../../../actions/coupons';
-import { AdminUsersClient } from './AdminUsersClient';
-import { Button } from '../../../components/Button';
 
 export default async function AdminUsersPage() {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') redirect('/en/login');
 
-  const [usersRes, couponsRes] = await Promise.all([getUsers(), getCoupons()]);
+  const usersRes = await getUsers();
   const users = usersRes.ok ? usersRes.users ?? [] : [];
-  const coupons = couponsRes.ok ? couponsRes.coupons ?? [] : [];
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2xl)' }}>
-        <h1>Kullanıcılar ve Kuponlar</h1>
+        <h1>👥 Kullanıcılar</h1>
       </div>
 
-      <AdminUsersClient coupons={coupons} />
-
-      <h2>Kullanıcı Listesi</h2>
+      <h2 style={{ marginBottom: 'var(--space-md)' }}>Kullanıcı Listesi</h2>
       <div className="card" style={{ overflowX: 'auto', marginTop: 'var(--space-md)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>

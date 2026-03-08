@@ -1,12 +1,13 @@
 import { getDictionary } from '../dictionaries/getDictionary';
-import { getHeroPath, getHeroFallback } from '../../lib/imagePaths';
+import { getHeroPath, getHeroFallback, getTourImagePath, getTourImageFallback } from '../../lib/imagePaths';
 import { HomeHero } from '../components/HomeHero';
+import { HomeExperienceCard } from '../components/HomeExperienceCard';
 import { HomeWelcome } from '../components/HomeWelcome';
-import { HomeToursSlider } from '../components/HomeToursSlider';
 import { ActivitiesDestinationSection } from '../components/ActivitiesDestinationSection';
 import { HomeWhyUs } from '../components/HomeWhyUs';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
+import Link from 'next/link';
 
 const MOCK_CARDS = [
   { titleKey: 'standardBalloon', descKey: 'standardBalloonDesc', price: 150, tourId: 'mock-balloon', type: 'BALLOON' },
@@ -108,6 +109,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
 
   const heroSrc = getHeroPath();
   const heroFallback = getHeroFallback();
+  const bookNowLabel = toursDict.bookNow ?? 'Book Now';
+
   return (
     <>
       <HomeHero
@@ -132,16 +135,39 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         />
       </div>
 
-      <HomeToursSlider
-        tours={tours.map((t) => ({ id: t.id, type: t.type, title: t.title, price: t.price }))}
-        lang={lang}
-        sectionTitle={homeDict.bestSellingTours ?? FALLBACK_HOME.bestSellingTours}
-        viewAllLabel={homeDict.viewAllTours ?? FALLBACK_HOME.viewAllTours}
-        fromLabel={homeDict.from ?? FALLBACK_HOME.from}
-      />
+      <section className="home-experiences page-section section-alt fade-in-up">
+        <div className="container">
+          <h2 className="home-section-title">{homeDict.bestSellingTours ?? FALLBACK_HOME.bestSellingTours}</h2>
+          <div className="home-cards">
+            {tours.map((tour) => (
+              <HomeExperienceCard
+                key={tour.id}
+                lang={lang}
+                title={tour.title}
+                desc={tour.desc}
+                fromLabel={homeDict.from ?? FALLBACK_HOME.from}
+                price={tour.price}
+                tourId={tour.id}
+                imageSrc={getTourImagePath(tour.type)}
+                imageFallback={getTourImageFallback(tour.type)}
+                bookLabel={bookNowLabel}
+              />
+            ))}
+          </div>
+          <div className="home-view-all">
+            <Link href={`/${lang}/tours`} className="btn btn-secondary">
+              {homeDict.viewAllTours ?? FALLBACK_HOME.viewAllTours}
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <div className="fade-in-up">
-        <ActivitiesDestinationSection lang={lang} title={homeDict.activitiesTitle ?? FALLBACK_HOME.activitiesTitle} />
+        <ActivitiesDestinationSection
+          lang={lang}
+          title={homeDict.activitiesTitle ?? FALLBACK_HOME.activitiesTitle}
+          viewAllLabel={homeDict.viewAllTours ?? FALLBACK_HOME.viewAllTours}
+        />
       </div>
 
       <div className="fade-in-up">

@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRef } from 'react';
 import {
   getActiveDestinations,
   getDestinationName,
   getCategoryLabel,
   type Lang,
-  type DestinationConfig,
-  type CategoryConfig,
 } from '@/lib/destinations';
 
 interface ActivitiesDestinationSectionProps {
@@ -17,6 +16,8 @@ interface ActivitiesDestinationSectionProps {
   currentDestination?: string;
   /** Slug of currently selected category (for tours category page) */
   currentCategory?: string;
+  /** Label for "View all" / "View All Activities" CTA (homepage only) */
+  viewAllLabel?: string;
 }
 
 export function ActivitiesDestinationSection({
@@ -24,17 +25,26 @@ export function ActivitiesDestinationSection({
   title,
   currentDestination,
   currentCategory,
+  viewAllLabel,
 }: ActivitiesDestinationSectionProps) {
+  const sliderRef = useRef<HTMLDivElement>(null);
   const destinations = getActiveDestinations();
   const selectedDest = currentDestination
     ? destinations.find((d) => d.slug === currentDestination) ?? destinations[0]
     : destinations[0];
   const categories = selectedDest?.categories ?? [];
 
+  const scroll = (dir: 'left' | 'right') => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const step = 200;
+    el.scrollBy({ left: dir === 'left' ? -step : step, behavior: 'smooth' });
+  };
+
   return (
     <section className="home-activities page-section section-alt">
       <div className="container">
-        <h2 className="home-section-title">{title}</h2>
+        <h2 className="section-title home-section-title">{title}</h2>
 
         {destinations.length > 1 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)' }}>
@@ -62,26 +72,52 @@ export function ActivitiesDestinationSection({
           </div>
         )}
 
-        <div className="home-activities-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--space-md)' }}>
-          {categories.map((cat) => {
-            const href = `/${lang}/tours/${selectedDest!.slug}/${cat.slug}`;
-            const isActive = currentCategory === cat.slug;
-            return (
-              <Link
-                key={cat.id}
-                href={href}
-                className="home-activity-card"
-                style={{
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  border: isActive ? '2px solid var(--color-primary)' : undefined,
-                }}
-              >
-                <span className="home-activity-label">{getCategoryLabel(cat, lang)}</span>
-              </Link>
-            );
-          })}
+        <div className="tours-slider-container">
+          <button
+            type="button"
+            className="slider-arrow slider-arrow-left"
+            onClick={() => scroll('left')}
+            aria-label="Önceki"
+          >
+            ‹
+          </button>
+          <div className="tours-slider activities-slider" ref={sliderRef}>
+            {categories.map((cat) => {
+              const href = `/${lang}/tours/${selectedDest!.slug}/${cat.slug}`;
+              const isActive = currentCategory === cat.slug;
+              return (
+                <Link
+                  key={cat.id}
+                  href={href}
+                  className="home-activity-card activity-card-slide"
+                  style={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    border: isActive ? '2px solid var(--color-primary)' : undefined,
+                  }}
+                >
+                  <span className="home-activity-label">{getCategoryLabel(cat, lang)}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="slider-arrow slider-arrow-right"
+            onClick={() => scroll('right')}
+            aria-label="Sonraki"
+          >
+            ›
+          </button>
         </div>
+
+        {viewAllLabel && (
+          <div className="section-cta home-view-all">
+            <Link href={`/${lang}/tours`} className="btn btn-secondary">
+              {viewAllLabel}
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

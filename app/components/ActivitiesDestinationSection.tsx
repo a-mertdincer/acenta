@@ -8,6 +8,7 @@ import {
   getCategoryLabel,
   type Lang,
 } from '@/lib/destinations';
+import { getActivityCategoryImage } from '@/lib/activityCategoryImages';
 
 interface ActivitiesDestinationSectionProps {
   lang: Lang;
@@ -37,7 +38,7 @@ export function ActivitiesDestinationSection({
   const scroll = (dir: 'left' | 'right') => {
     const el = sliderRef.current;
     if (!el) return;
-    const step = 200;
+    const step = 240;
     el.scrollBy({ left: dir === 'left' ? -step : step, behavior: 'smooth' });
   };
 
@@ -96,7 +97,19 @@ export function ActivitiesDestinationSection({
                     border: isActive ? '2px solid var(--color-primary)' : undefined,
                   }}
                 >
-                  <span className="home-activity-label">{getCategoryLabel(cat, lang)}</span>
+                  <div className="activity-card-image-wrap">
+                    <img
+                      src={getActivityCategoryImage(cat.slug)}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getActivityCategoryImage('daily-tours');
+                      }}
+                    />
+                  </div>
+                  <div className="activity-card-content">
+                    <span className="home-activity-label">{getCategoryLabel(cat, lang)}</span>
+                  </div>
                 </Link>
               );
             })}

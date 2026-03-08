@@ -471,11 +471,46 @@ main {
   text-align: center;
 }
 
-/* Activities slider: category cards in horizontal scroll */
+/* Activities slider: category cards with image on top, larger size */
 .activities-slider .activity-card-slide {
-  flex: 0 0 160px;
+  flex: 0 0 220px;
   scroll-snap-align: start;
-  min-height: 100px;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  overflow: hidden;
+}
+.activities-slider .activity-card-slide .activity-card-image-wrap {
+  aspect-ratio: 4/3;
+  background: var(--color-bg-alt);
+  overflow: hidden;
+}
+.activities-slider .activity-card-slide .activity-card-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+.activities-slider .activity-card-slide:hover .activity-card-image-wrap img {
+  transform: scale(1.05);
+}
+.activities-slider .activity-card-slide .activity-card-content {
+  padding: var(--space-md) var(--space-lg);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+}
+.activities-slider .activity-card-slide .home-activity-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.activities-slider .activity-card-slide::before {
+  display: none;
 }
 
 /* Home activities / destination categories */

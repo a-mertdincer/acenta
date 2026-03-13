@@ -13,6 +13,8 @@ model User {
   id           String        @id @default(uuid())
   name         String
   email        String        @unique
+  phone        String?
+  country      String?
   passwordHash String
   role         String        @default("CUSTOMER") // ADMIN or CUSTOMER
   reservations Reservation[]
@@ -149,6 +151,11 @@ model Reservation {
   pendingDate        DateTime?
   pendingPax         Int?
   pendingNotes      String?
+  couponId         String?       // Kullanılan kupon (varsa)
+  couponCode       String?       // Kupon kodu (görüntüleme için)
+  originalPrice    Float?        // İndirim öncesi tutar
+  discountAmount   Float?        @default(0)  // Uygulanan indirim
+  // totalPrice = final price (indirim sonrası)
   cariRecords       CariRecord[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -157,14 +164,51 @@ model Reservation {
 model Coupon {
   id          String    @id @default(uuid())
   code        String    @unique
-  discountPct Float? // Percentage discount
-  discountAbs Float? // Absolute discount amount
-  userId      String? // If tied to a specific user
+  // İndirim (tek tip: percentage veya fixed)
+  discountType   String   @default("percentage") // "percentage" | "fixed"
+  discountValue  Float    @default(0)
+  discountCurrency String? // EUR, TRY - sadece fixed için
+  // Eski alanlar (migration uyumluluğu, kademeli kaldırılacak)
+  discountPct Float?
+  discountAbs Float?
+  userId      String?
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   validUntil  DateTime?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // Yeni: iki tarih aralığı
+  bookingStart   DateTime  // Rezervasyon dönemi başlangıcı
+  bookingEnd     DateTime  // Rezervasyon dönemi bitişi
+  activityStart  DateTime  // Aktivite dönemi başlangıcı
+  activityEnd    DateTime  // Aktivite dönemi bitişi
+  // Kullanım limiti
+  usageLimit   Int       @default(0) // 0 = sınırsız
+  usageCount   Int       @default(0)
+  // Kapsam
+  applicableCategories String? // JSON: ["daily-tours","transfer"] veya null = tümü
+  minCartAmount Float?
+  // Meta
+  isActive     Boolean   @default(true)
+  internalNote String?
+  createdBy    String?
+  usages       CouponUsage[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model CouponUsage {
+  id              String   @id @default(uuid())
+  couponId        String
+  coupon          Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  reservationId   String?
+  guestName       String
+  guestEmail      String?
+  usedAt          DateTime @default(now())
+  tourName        String
+  tourDate        DateTime
+  originalAmount  Float
+  discountAmount  Float
+  finalAmount     Float
+  currency        String   @default("EUR")
+  createdAt       DateTime @default(now())
 }
 
 model CariRecord {

@@ -4,6 +4,8 @@ import { prisma } from '../../lib/prisma';
 import { getSession } from '../actions/auth';
 import { Resend } from 'resend';
 import { sanitizeGuestInput } from '@/lib/guestNotes';
+import { getTourDatePrice } from './tours';
+import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 
 export interface CreateReservationItem {
   tourId: string;
@@ -11,6 +13,8 @@ export interface CreateReservationItem {
   pax: number;
   totalPrice: number;
   optionsJson: string;
+  /** Tour type for coupon validation: BALLOON, TOUR, TRANSFER, etc. */
+  tourType?: string;
   /** For transfer reservations: ASR | NAV */
   transferAirport?: string;
   /** When booking with variant system */
@@ -32,14 +36,51 @@ export interface CreateReservationInput {
   paymentMethod: string;
   notes?: string;
   items: CreateReservationItem[];
+  /** Kupon kodu — backend validate eder, frontend'e güvenilmez */
+  couponCode?: string | null;
 }
 
 export async function createReservations(input: CreateReservationInput): Promise<{ ok: boolean; ids?: string[]; error?: string }> {
   try {
     const session = await getSession();
     const userId = input.userId ?? session?.id ?? null;
+    const subtotal = input.items.reduce((s, i) => s + i.totalPrice, 0);
+
+    let couponId: string | null = null;
+    let couponCode: string | null = null;
+    let totalDiscount = 0;
+
+    if (input.couponCode?.trim()) {
+      const { validateCoupon } = await import('./coupons');
+      const validation = await validateCoupon({
+        code: input.couponCode.trim(),
+        subtotal,
+        items: input.items.map((i) => ({
+          date: i.date,
+          tourType: i.tourType ?? 'TOUR',
+          totalPrice: i.totalPrice,
+          title: '',
+        })),
+        userId: userId ?? undefined,
+      });
+      if (!validation.ok) return { ok: false, error: validation.error };
+      couponId = validation.couponId;
+      couponCode = input.couponCode.trim().toUpperCase();
+      totalDiscount = validation.discountAmount;
+    }
+
     const ids: string[] = [];
+    const couponUsages: { reservationId: string; tourId: string; date: string; totalPrice: number; itemDiscount: number; itemTotalPrice: number }[] = [];
+
     for (const item of input.items) {
+      let itemTotalPrice = item.totalPrice;
+      let itemDiscount = 0;
+      let itemOriginalPrice = item.totalPrice;
+      if (couponId && totalDiscount > 0 && subtotal > 0) {
+        itemDiscount = (item.totalPrice / subtotal) * totalDiscount;
+        itemTotalPrice = Math.max(0, item.totalPrice - itemDiscount);
+      }
+
       const res = await prisma.reservation.create({
         data: {
           userId,
@@ -50,7 +91,7 @@ export async function createReservations(input: CreateReservationInput): Promise
           variantId: item.variantId ?? undefined,
           date: new Date(item.date),
           pax: item.pax,
-          totalPrice: item.totalPrice,
+          totalPrice: itemTotalPrice,
           options: item.optionsJson,
           notes: [input.hotelName, input.roomNumber].filter(Boolean).join(' | ') || input.notes || null,
           transferAirport: item.transferAirport ?? null,
@@ -59,9 +100,48 @@ export async function createReservations(input: CreateReservationInput): Promise
           transferFlightDeparture: item.transferFlightDeparture ?? null,
           transferHotelName: item.transferHotelName ?? null,
           childCount: item.childCount ?? null,
+          couponId: couponId ?? null,
+          couponCode: couponCode ?? null,
+          originalPrice: itemOriginalPrice,
+          discountAmount: itemDiscount > 0 ? itemDiscount : null,
         },
       });
       ids.push(res.id);
+
+      if (couponId && itemDiscount > 0) {
+        couponUsages.push({
+          reservationId: res.id,
+          tourId: item.tourId,
+          date: item.date,
+          totalPrice: item.totalPrice,
+          itemDiscount,
+          itemTotalPrice,
+        });
+      }
+    }
+
+    if (couponId && couponUsages.length > 0) {
+      const { recordCouponUsage } = await import('./coupons');
+      const tourIds = [...new Set(couponUsages.map(u => u.tourId))];
+      const tours = await prisma.tour.findMany({
+        where: { id: { in: tourIds } },
+        select: { id: true, titleEn: true },
+      });
+      const tourMap = new Map(tours.map(t => [t.id, t.titleEn]));
+      await recordCouponUsage({
+        couponId,
+        usages: couponUsages.map(u => ({
+          reservationId: u.reservationId,
+          guestName: input.guestName,
+          guestEmail: input.guestEmail,
+          tourName: tourMap.get(u.tourId) ?? 'Tur',
+          tourDate: new Date(u.date),
+          originalAmount: u.totalPrice,
+          discountAmount: u.itemDiscount,
+          finalAmount: u.itemTotalPrice,
+          currency: 'EUR',
+        })),
+      });
     }
     return { ok: true, ids };
   } catch (e) {
@@ -104,10 +184,15 @@ export async function getReservationDetailsByIds(ids: string[]) {
 
 export async function updateReservationStatus(id: string, status: string): Promise<{ ok: boolean; error?: string }> {
   try {
+    const prev = await prisma.reservation.findUnique({ where: { id }, select: { couponId: true, status: true } });
     await prisma.reservation.update({
       where: { id },
       data: { status },
     });
+    if (status === 'CANCELLED' && prev?.couponId && prev.status !== 'CANCELLED') {
+      const { decrementCouponUsage } = await import('./coupons');
+      await decrementCouponUsage(prev.couponId);
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Update failed' };
@@ -218,6 +303,10 @@ export async function approveGuestCancellationRequest(reservationId: string, sen
         cancellationRequestReason: null,
       },
     });
+    if (res.couponId) {
+      const { decrementCouponUsage } = await import('./coupons');
+      await decrementCouponUsage(res.couponId);
+    }
     if (sendEmail) await sendGuestRequestResponseEmail(reservationId, 'cancellation_approved');
     return { ok: true };
   } catch (e) {
@@ -250,7 +339,72 @@ export async function rejectGuestCancellationRequest(reservationId: string, admi
   }
 }
 
-/** Admin: misafir değişiklik talebini onayla → tarih/kişi/not güncellenir, misafire bildirim. */
+/** Rezervasyon fiyatını yeni tarih/kişi sayısına göre yeniden hesapla. Değişiklik talebi onayında kupon için kullanılır. */
+async function recalculateReservationPrice(
+  res: { tourId: string; variantId: string | null; options: string; transferAirport: string | null; transferDirection: string | null; childCount: number | null },
+  newDate: Date,
+  newPax: number
+): Promise<{ subtotal: number; tourType: string } | null> {
+  const dateStr = newDate.toISOString().split('T')[0];
+  const tour = await prisma.tour.findUnique({
+    where: { id: res.tourId },
+    include: { options: true, variants: true },
+  });
+  if (!tour) return null;
+
+  const datePrice = await getTourDatePrice(res.tourId, dateStr);
+  const basePrice = datePrice?.price ?? tour.basePrice;
+
+  let subtotal = 0;
+
+  if (res.variantId) {
+    const variant = tour.variants.find((v) => v.id === res.variantId);
+    if (variant) {
+      const children = res.childCount ?? 0;
+      const adults = Math.max(0, newPax - children);
+      if (variant.pricingType === 'per_person') {
+        subtotal = variant.adultPrice * adults + (variant.childPrice ?? variant.adultPrice) * children;
+      } else {
+        subtotal = variant.adultPrice;
+      }
+      if (res.transferDirection === 'roundtrip') subtotal = subtotal * 2 * 0.9;
+    } else {
+      subtotal = basePrice * newPax;
+    }
+  } else if (tour.type === 'TRANSFER' && res.transferAirport && (res.transferAirport === 'ASR' || res.transferAirport === 'NAV')) {
+    const transferPrice = getTransferPriceForPaxAndAirport(
+      {
+        basePrice,
+        transferTiers: tour.transferTiers as { minPax: number; maxPax: number; price: number }[] | null,
+        transferAirportTiers: tour.transferAirportTiers as { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null,
+      },
+      newPax,
+      res.transferAirport
+    );
+    subtotal = res.transferDirection === 'roundtrip' ? transferPrice * 2 * 0.9 : transferPrice;
+  } else {
+    subtotal = basePrice * newPax;
+  }
+
+  try {
+    const opts = JSON.parse(res.options || '[]') as { id?: number; price?: number }[];
+    if (Array.isArray(opts)) {
+      for (const o of opts) {
+        if (typeof o?.price === 'number') subtotal += o.price * newPax;
+        else {
+          const tourOpt = tour.options.find((to) => String(to.id) === String(o?.id));
+          if (tourOpt) subtotal += tourOpt.priceAdd * newPax;
+        }
+      }
+    }
+  } catch {
+    // options parse failed, skip
+  }
+
+  return { subtotal, tourType: tour.type };
+}
+
+/** Admin: misafir değişiklik talebini onayla → tarih/kişi/not güncellenir, kupon varsa indirim yeniden hesaplanır. */
 export async function approveGuestUpdateRequest(reservationId: string, sendEmail = true): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
@@ -258,7 +412,24 @@ export async function approveGuestUpdateRequest(reservationId: string, sendEmail
     const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!res) return { ok: false, error: 'Reservation not found' };
     if (!res.updateRequestedAt) return { ok: false, error: 'Değişiklik talebi bulunamadı' };
-    const data: { date?: Date; pax?: number; notes?: string | null; updateRequestedAt?: null; pendingDate?: null; pendingPax?: null; pendingNotes?: null } = {
+
+    const newDate = res.pendingDate ?? res.date;
+    const newPax = res.pendingPax ?? res.pax;
+
+    const data: {
+      date?: Date;
+      pax?: number;
+      notes?: string | null;
+      totalPrice?: number;
+      originalPrice?: number | null;
+      discountAmount?: number | null;
+      couponId?: string | null;
+      couponCode?: string | null;
+      updateRequestedAt?: null;
+      pendingDate?: null;
+      pendingPax?: null;
+      pendingNotes?: null;
+    } = {
       updateRequestedAt: null,
       pendingDate: null,
       pendingPax: null,
@@ -267,6 +438,36 @@ export async function approveGuestUpdateRequest(reservationId: string, sendEmail
     if (res.pendingDate) data.date = res.pendingDate;
     if (res.pendingPax != null) data.pax = res.pendingPax;
     if (res.pendingNotes !== undefined) data.notes = res.pendingNotes;
+
+    if (res.pendingDate || res.pendingPax != null) {
+      const recalc = await recalculateReservationPrice(res, newDate, newPax);
+      if (recalc) {
+        data.totalPrice = recalc.subtotal;
+        data.originalPrice = recalc.subtotal;
+        data.discountAmount = null;
+        data.couponId = null;
+        data.couponCode = null;
+
+        if (res.couponId && res.couponCode) {
+          const { validateCoupon, decrementCouponUsage } = await import('./coupons');
+          const validation = await validateCoupon({
+            code: res.couponCode,
+            subtotal: recalc.subtotal,
+            items: [{ date: newDate.toISOString().split('T')[0], tourType: recalc.tourType, totalPrice: recalc.subtotal, title: '' }],
+          });
+          if (validation.ok) {
+            data.originalPrice = recalc.subtotal;
+            data.discountAmount = validation.discountAmount;
+            data.totalPrice = Math.max(0, recalc.subtotal - validation.discountAmount);
+            data.couponId = res.couponId;
+            data.couponCode = res.couponCode;
+          } else {
+            await decrementCouponUsage(res.couponId);
+          }
+        }
+      }
+    }
+
     await prisma.reservation.update({
       where: { id: reservationId },
       data,

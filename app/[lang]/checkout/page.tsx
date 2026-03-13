@@ -15,7 +15,14 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
     const { items, getTotal, clearCart } = useCartStore();
     const [mounted, setMounted] = useState(false);
     const [couponCode, setCouponCode] = useState('');
-    const [couponApplied, setCouponApplied] = useState<{ discountPct?: number; discountAbs?: number } | null>(null);
+    const [couponApplied, setCouponApplied] = useState<{
+        couponId: string;
+        couponCode: string;
+        discountAmount: number;
+        message: string;
+        activityStart?: string;
+        activityEnd?: string;
+    } | null>(null);
     const [couponError, setCouponError] = useState('');
 
     // Form state
@@ -53,18 +60,30 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
     }
 
     const subtotal = getTotal();
-    let total = subtotal;
-    if (couponApplied) {
-        if (couponApplied.discountPct) total = subtotal * (1 - couponApplied.discountPct / 100);
-        else if (couponApplied.discountAbs) total = Math.max(0, subtotal - couponApplied.discountAbs);
-    }
+    const total = couponApplied ? Math.max(0, subtotal - couponApplied.discountAmount) : subtotal;
 
     const handleApplyCoupon = async () => {
         setCouponError('');
         const { validateCoupon } = await import('../../actions/coupons');
-        const result = await validateCoupon(couponCode);
+        const result = await validateCoupon({
+            code: couponCode,
+            subtotal,
+            items: items.map(i => ({
+                date: i.date,
+                tourType: i.tourType,
+                totalPrice: i.totalPrice,
+                title: i.title,
+            })),
+        });
         if (result.ok) {
-            setCouponApplied({ discountPct: result.discountPct, discountAbs: result.discountAbs });
+            setCouponApplied({
+                couponId: result.couponId,
+                couponCode: couponCode.trim().toUpperCase(),
+                discountAmount: result.discountAmount,
+                message: result.message,
+                activityStart: result.activityStart,
+                activityEnd: result.activityEnd,
+            });
         } else {
             setCouponApplied(null);
             setCouponError(result.error ?? 'Invalid coupon');
@@ -87,11 +106,13 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
             hotelName: formData.hotelName,
             roomNumber: formData.roomNumber,
             paymentMethod: formData.paymentMethod,
+            couponCode: couponApplied?.couponCode ?? null,
             items: items.map((item) => ({
                 tourId: item.tourId,
                 date: item.date,
                 pax: item.pax,
                 totalPrice: item.totalPrice,
+                tourType: item.tourType,
                 optionsJson: JSON.stringify(item.options),
                 ...(item.transferAirport && { transferAirport: item.transferAirport }),
                 ...(item.variantId && { variantId: item.variantId }),
@@ -194,7 +215,16 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                                 <button type="button" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }} onClick={handleApplyCoupon}>Apply</button>
                             </div>
                             {couponError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 'var(--space-xs)' }}>{couponError}</p>}
-                            {couponApplied && <p style={{ color: '#10b981', fontSize: '0.85rem', marginTop: 'var(--space-xs)' }}>Coupon applied.</p>}
+                            {couponApplied && (
+                                <div style={{ color: '#10b981', fontSize: '0.85rem', marginTop: 'var(--space-xs)' }}>
+                                    <p style={{ fontWeight: '600' }}>✓ {couponApplied.message}</p>
+                                    {couponApplied.activityStart && couponApplied.activityEnd && (
+                                        <p style={{ color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                            Geçerli: {couponApplied.activityStart} – {couponApplied.activityEnd} tarihli aktiviteler için
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-sm)' }}>
                             <span>Subtotal</span>
@@ -202,8 +232,8 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                         </div>
                         {couponApplied && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
-                                <span>Discount</span>
-                                <span>-€{(subtotal - total).toFixed(2)}</span>
+                                <span>Discount ({couponApplied.couponCode})</span>
+                                <span>-€{couponApplied.discountAmount.toFixed(2)}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px dashed var(--color-border)', paddingTop: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: '1.5rem', fontWeight: 'bold' }}>

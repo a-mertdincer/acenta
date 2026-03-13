@@ -59,6 +59,9 @@ interface ResRow {
   displayNotes: string;
   optionsRaw: string | null;
   transferAirport: string | null;
+  couponCode: string | null;
+  originalPrice: number | null;
+  discountAmount: number | null;
 }
 
 type SortKey = 'tourDate' | 'createdAt' | 'customer' | 'tour' | 'totalPrice' | 'status';
@@ -156,6 +159,9 @@ export default function AdminReservationsPage() {
             displayNotes: formatNotesForDisplay(r.notes),
             optionsRaw: r.options ?? null,
             transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
+            couponCode: (r as { couponCode?: string | null }).couponCode ?? null,
+            originalPrice: (r as { originalPrice?: number | null }).originalPrice ?? null,
+            discountAmount: (r as { discountAmount?: number | null }).discountAmount ?? null,
           })
         )
       );
@@ -662,6 +668,11 @@ export default function AdminReservationsPage() {
                             <div className="admin-expand-section">
                               <h4>Ödeme</h4>
                               <p>Toplam: {res.total}</p>
+                              {res.couponCode && res.originalPrice != null && res.discountAmount != null && (
+                                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                                  🎟 {res.couponCode} · Orijinal: €{res.originalPrice.toFixed(2)} · İndirim: -€{res.discountAmount.toFixed(2)}
+                                </p>
+                              )}
                               <p>Depozit: €{res.depositPaid.toFixed(2)}</p>
                               <p>Kalan: €{(res.totalPrice - res.depositPaid).toFixed(2)}</p>
                             </div>

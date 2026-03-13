@@ -24,6 +24,8 @@ interface HeaderProps {
   nav: NavDict;
   isLoggedIn?: boolean;
   isAdmin?: boolean;
+  userName?: string;
+  activeCouponCount?: number;
 }
 
 const SOCIAL_LINKS = [
@@ -75,7 +77,7 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: HeaderProps) {
+export function Header({ lang, nav, isLoggedIn = false, isAdmin = false, userName, activeCouponCount = 0 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -195,11 +197,47 @@ export function Header({ lang, nav, isLoggedIn = false, isAdmin = false }: Heade
                 <div className={`site-nav-user-dropdown ${userMenuOpen ? 'site-nav-user-dropdown-open' : ''}`} onMouseLeave={() => setUserMenuOpen(false)}>
                   {isLoggedIn ? (
                     <>
-                      <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        {nav.account}
-                      </Link>
+                      <div className="site-nav-dropdown-item" style={{ fontWeight: 600, cursor: 'default' }}>
+                        👤 {userName ?? nav.account}
+                      </div>
+                      <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
+                      {isAdmin ? (
+                        <>
+                          <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            🛠 Admin Hesabim
+                          </Link>
+                          <Link href={`/${lang}/admin`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            📊 Admin Pano
+                          </Link>
+                          <Link href={`/${lang}/admin/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            📅 Rezervasyon Takvimi
+                          </Link>
+                          <Link href={`/${lang}/admin/users`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            👥 Kullanicilar
+                          </Link>
+                          <Link href={`/${lang}/admin/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            🎟 Kuponlar
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            📋 Profilim
+                          </Link>
+                          <Link href={`/${lang}/account/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            🎟 Kuponlarim {activeCouponCount > 0 ? `(${activeCouponCount})` : ''}
+                          </Link>
+                          <Link href={`/${lang}/account/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            📅 Rezervasyonlarim
+                          </Link>
+                          <Link href={`/${lang}/account/contact`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                            📞 Iletisim
+                          </Link>
+                        </>
+                      )}
+                      <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
                       <a href={`/${lang}/logout`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        {nav.logout}
+                        🚪 {nav.logout}
                       </a>
                     </>
                   ) : (

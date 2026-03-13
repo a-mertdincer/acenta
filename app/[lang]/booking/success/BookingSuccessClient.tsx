@@ -16,6 +16,9 @@ type ResItem = {
   transferAirport: string | null;
   createdAt: string;
   optionsParsed: { title: string; price: number }[];
+  couponCode?: string | null;
+  originalPrice?: number | null;
+  discountAmount?: number | null;
 };
 
 export function BookingSuccessClient({
@@ -66,6 +69,11 @@ export function BookingSuccessClient({
               <div><strong>Rezervasyon tarihi:</strong> {new Date(r.createdAt).toLocaleString('tr-TR')}</div>
               <div><strong>Kişi sayısı:</strong> {r.pax}</div>
               <div><strong>Toplam:</strong> €{r.totalPrice.toFixed(2)}</div>
+              {r.couponCode && r.originalPrice != null && r.discountAmount != null && (
+                <div style={{ padding: 'var(--space-sm)', background: 'var(--color-bg-alt)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                  🎟 {r.couponCode} uygulandı · Orijinal: €{r.originalPrice.toFixed(2)} · İndirim: -€{r.discountAmount.toFixed(2)}
+                </div>
+              )}
               {r.displayNotes && <div><strong>Notlar:</strong> {r.displayNotes}</div>}
               <div><strong>E-posta:</strong> {r.guestEmail}</div>
               <div><strong>Telefon:</strong> {r.guestPhone}</div>
@@ -83,11 +91,19 @@ export function BookingSuccessClient({
           </div>
         ))}
 
-        {!skipLoading && (
-          <p style={{ marginTop: 'var(--space-lg)', marginBottom: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
-            Sorularınız için bize ulaşabilirsiniz. Rezervasyon talebiniz alındı.
-          </p>
-        )}
+        <div style={{ marginTop: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
+          {!skipLoading && (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', marginBottom: 'var(--space-sm)' }}>
+              Sorularınız için bize ulaşabilirsiniz. Rezervasyon talebiniz alındı.
+            </p>
+          )}
+          <div style={{ padding: 'var(--space-md)', background: 'var(--color-bg-alt)', borderRadius: '8px', fontSize: '0.95rem' }}>
+            <strong style={{ display: 'block', marginBottom: 'var(--space-xs)' }}>Acenta iletişim:</strong>
+            <a href="tel:+903841212345" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>+90 384 212 34 56</a>
+            <span style={{ color: 'var(--color-text-muted)', margin: '0 0.5rem' }}>·</span>
+            <a href="mailto:info@kismetgoreme.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>info@kismetgoreme.com</a>
+          </div>
+        </div>
 
         <Link
           href={skipLoading ? `/${lang}/account` : `/${lang}/booking/done`}

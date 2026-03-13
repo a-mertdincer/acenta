@@ -287,13 +287,36 @@ export async function getAvailableTourDatesForGuest(
 ): Promise<string[]> {
   try {
     const from = fromDateStr ? new Date(fromDateStr + 'T00:00:00.000Z') : new Date();
+    from.setUTCHours(0, 0, 0, 0);
     const to = new Date(from);
     to.setUTCDate(to.getUTCDate() + days);
-    const fromStr = from.toISOString().split('T')[0];
-    const toStr = to.toISOString().split('T')[0];
-    const res = await getTourDatePricesInRange(tourId, fromStr, toStr);
-    if (!res) return [];
-    return res.entries.filter((e) => !e.isClosed).map((e) => e.date);
+
+    const tour = await prisma.tour.findUnique({
+      where: { id: tourId },
+      select: { id: true },
+    });
+    if (!tour) return [];
+
+    const closedRows = await prisma.tourDatePrice.findMany({
+      where: {
+        tourId,
+        date: { gte: from, lte: to },
+        isClosed: true,
+      },
+      select: { date: true },
+    });
+    const closedDates = new Set(closedRows.map((row) => row.date.toISOString().split('T')[0]));
+
+    const availableDates: string[] = [];
+    const cursor = new Date(from);
+    while (cursor <= to) {
+      const dateKey = cursor.toISOString().split('T')[0];
+      if (!closedDates.has(dateKey)) {
+        availableDates.push(dateKey);
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return availableDates;
   } catch {
     return [];
   }

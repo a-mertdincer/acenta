@@ -18,7 +18,12 @@ type ReservationItem = {
   tour?: { titleEn: string } | null;
   cancellationRequestedAt?: string | null;
   updateRequestedAt?: string | null;
+  couponCode?: string | null;
+  originalPrice?: number | null;
+  discountAmount?: number | null;
 };
+
+type DateFetchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
 export function MyReservationsList({
   reservations,
@@ -50,18 +55,61 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
   const [cancelReason, setCancelReason] = useState('');
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dateFetchState, setDateFetchState] = useState<DateFetchState>('idle');
 
   useEffect(() => {
-    if (editOpen && reservation.tourId) {
-      getAvailableTourDatesForGuest(reservation.tourId).then((dates) => {
+    if (!editOpen || !reservation.tourId) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadDates = async () => {
+      try {
+        setDateFetchState('loading');
+        const timeoutMs = 10000;
+        const result = await Promise.race<
+          { kind: 'ok'; dates: string[] } | { kind: 'timeout' }
+        >([
+          getAvailableTourDatesForGuest(reservation.tourId)
+            .then((dates) => ({ kind: 'ok' as const, dates }))
+            .catch(() => ({ kind: 'timeout' as const })),
+          new Promise<{ kind: 'timeout' }>((resolve) => {
+            setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs);
+          }),
+        ]);
+
+        if (cancelled) return;
+        if (result.kind === 'timeout') {
+          setDateFetchState('error');
+          setAvailableDates([]);
+          setSelectedDate(currentDateStr);
+          return;
+        }
+        const dates = result.dates;
         setAvailableDates(dates);
-        if (dates.length > 0 && !dates.includes(currentDateStr)) {
+        if (dates.length === 0) {
+          setDateFetchState('empty');
+          setSelectedDate(currentDateStr);
+          return;
+        }
+        setDateFetchState('loaded');
+        if (!dates.includes(currentDateStr)) {
           setSelectedDate(dates[0]);
         } else {
           setSelectedDate(currentDateStr);
         }
-      });
-    }
+      } catch {
+        if (cancelled) return;
+        setDateFetchState('error');
+        setAvailableDates([]);
+        setSelectedDate(currentDateStr);
+      }
+    };
+
+    void loadDates();
+    return () => {
+      cancelled = true;
+    };
   }, [editOpen, reservation.tourId, currentDateStr]);
 
   const isCancelled = reservation.status === 'CANCELLED';
@@ -102,6 +150,8 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
   function openEdit() {
     setEditOpen(true);
     setCancelOpen(false);
+    setDateFetchState('loading');
+    setAvailableDates([]);
     setSelectedDate(currentDateStr);
     setPax(reservation.pax);
     setNotes(reservation.notes ?? '');
@@ -121,8 +171,19 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
           <Link href={detailHref} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} title="Rezervasyon detayını gör">
             <h3 style={{ marginBottom: 'var(--space-xs)' }}>{reservation.tour?.titleEn ?? reservation.tourId}</h3>
             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              Tarih: {currentDateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{reservation.totalPrice}</strong>
+              Tarih: {currentDateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{Number(reservation.totalPrice).toFixed(2)}</strong>
             </div>
+            {reservation.couponCode && reservation.originalPrice != null && reservation.discountAmount != null && (
+              <div style={{ marginTop: 'var(--space-xs)', padding: 'var(--space-sm)', background: 'var(--color-bg-alt)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                🎟 {reservation.couponCode} uygulandı
+                <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--space-xs)' }}>
+                  Orijinal: €{reservation.originalPrice.toFixed(2)} · İndirim: -€{reservation.discountAmount.toFixed(2)}
+                  {reservation.originalPrice > 0 && (
+                    <span> (%{Math.round((reservation.discountAmount / reservation.originalPrice) * 100)})</span>
+                  )}
+                </span>
+              </div>
+            )}
             {detailsLine && (
               <div style={{ marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                 {detailsLine}
@@ -176,10 +237,13 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
               onChange={(e) => setSelectedDate(e.target.value)}
               className="input"
               style={{ minWidth: '180px' }}
+              disabled={dateFetchState === 'loading'}
               required
             >
-              {availableDates.length === 0 && <option value={currentDateStr}>Yükleniyor…</option>}
-              {dateOptions.map((d) => (
+              {dateFetchState === 'loading' && <option value={currentDateStr}>Yükleniyor...</option>}
+              {dateFetchState === 'error' && <option value={currentDateStr}>Tarihler yüklenemedi. Sayfayı yenileyin.</option>}
+              {dateFetchState === 'empty' && <option value={currentDateStr}>Müsait tarih bulunamadı.</option>}
+              {(dateFetchState === 'loaded' || dateFetchState === 'idle') && dateOptions.map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>

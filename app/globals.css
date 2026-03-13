@@ -251,6 +251,46 @@ button, input, select, textarea {
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
+/* Shared input style used across account/admin forms */
+.input {
+  width: 100%;
+  display: block;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+textarea.input {
+  min-height: 96px;
+  resize: vertical;
+}
+
+select.input {
+  cursor: pointer;
+}
+
 /* Layout helpers */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }

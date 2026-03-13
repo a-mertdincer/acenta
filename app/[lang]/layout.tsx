@@ -5,6 +5,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { getSession } from '../actions/auth';
+import { getActiveCouponCountForUser } from '../actions/coupons';
 
 export const metadata: Metadata = {
   title: 'Kısmet Göreme Travel',
@@ -40,6 +41,7 @@ export default async function RootLayout(props: {
   let lang = 'en' as 'en' | 'tr' | 'zh';
   let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter } = { navigation: fallbackNav, footer: fallbackFooter };
   let session: Awaited<ReturnType<typeof getSession>> = null;
+  let activeCouponCount = 0;
 
   try {
     const params = await props.params;
@@ -55,6 +57,9 @@ export default async function RootLayout(props: {
   } catch {
     session = null;
   }
+  if (session?.id) {
+    activeCouponCount = await getActiveCouponCountForUser(session.id);
+  }
 
   const nav = dict?.navigation ?? fallbackNav;
   const footer = dict?.footer ?? fallbackFooter;
@@ -62,7 +67,14 @@ export default async function RootLayout(props: {
   return (
     <html lang={lang}>
       <body>
-        <Header lang={lang} nav={nav} isLoggedIn={!!session} isAdmin={session?.role === 'ADMIN'} />
+        <Header
+          lang={lang}
+          nav={nav}
+          isLoggedIn={!!session}
+          isAdmin={session?.role === 'ADMIN'}
+          userName={session?.name}
+          activeCouponCount={activeCouponCount}
+        />
         <main>
           {children}
         </main>

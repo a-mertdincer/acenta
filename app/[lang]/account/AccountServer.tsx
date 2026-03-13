@@ -5,17 +5,22 @@ import { getMyCoupons } from '../../actions/coupons';
 import { prisma } from '../../../lib/prisma';
 import { AccountClient } from './AccountClient';
 import { AdminAccountClient } from './AdminAccountClient';
+import { getDictionary } from '../../dictionaries/getDictionary';
 
 type AccountTab = 'profile' | 'coupons' | 'reservations' | 'contact';
 
 export async function AccountServer({ lang, tab }: { lang: string; tab: AccountTab }) {
+  const locale = (lang === 'tr' || lang === 'zh' ? lang : 'en') as 'en' | 'tr' | 'zh';
+  const dict = await getDictionary(locale);
+  const accountDict = dict.account;
   const profileRes = await getMyProfile();
   if (!profileRes.ok || !profileRes.profile) redirect(`/${lang}/login`);
 
   const profile = profileRes.profile;
   if (profile.role === 'ADMIN') {
+    if (lang !== 'tr') redirect('/tr/account');
     if (tab !== 'profile') redirect(`/${lang}/account`);
-    return <AdminAccountClient lang={lang} profile={profile} />;
+    return <AdminAccountClient lang={lang} profile={profile} labels={accountDict} />;
   }
   const reservations = await getReservationsByUserId(profile.id);
   const couponsRes = await getMyCoupons();
@@ -68,6 +73,8 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
       totalReservations={totalReservations}
       totalSpend={totalSpend}
       activeCouponCount={activeCouponCount}
+      labels={accountDict}
+      locale={locale}
     />
   );
 }

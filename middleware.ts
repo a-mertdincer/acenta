@@ -32,12 +32,20 @@ export function middleware(request: NextRequest) {
         return;
     }
 
-    // Check if there is any supported locale in the pathname
-    const pathnameHasLocale = locales.some(
-        (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-    );
+  // Check if there is any supported locale in the pathname
+  const pathnameHasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+  );
 
-    if (pathnameHasLocale) return;
+  if (pathnameHasLocale) {
+    // Admin panel is intentionally Turkish-only.
+    const currentLocale = pathname.split('/')[1];
+    if (currentLocale !== 'tr' && (pathname === `/${currentLocale}/admin` || pathname.startsWith(`/${currentLocale}/admin/`))) {
+      request.nextUrl.pathname = pathname.replace(`/${currentLocale}/admin`, '/tr/admin');
+      return NextResponse.redirect(request.nextUrl);
+    }
+    return;
+  }
 
     // Redirect if there is no locale
     const locale = getLocale(request);

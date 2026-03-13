@@ -32,6 +32,18 @@ const fallbackFooter = {
   cancellation: 'Cancellation Policy',
   rights: 'All rights reserved.',
 };
+const fallbackHeaderUserMenu = {
+  signedInAs: 'Signed in as',
+  profile: 'Profile',
+  myCoupons: 'My Coupons',
+  myReservations: 'My Reservations',
+  contact: 'Contact',
+  adminAccount: 'Admin Account',
+  adminDashboard: 'Admin Dashboard',
+  adminReservations: 'Reservation Calendar',
+  adminUsers: 'Users',
+  adminCoupons: 'Coupons',
+};
 
 export default async function RootLayout(props: {
   children: React.ReactNode;
@@ -39,7 +51,11 @@ export default async function RootLayout(props: {
 }) {
   const { children } = props;
   let lang = 'en' as 'en' | 'tr' | 'zh';
-  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter } = { navigation: fallbackNav, footer: fallbackFooter };
+  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter; headerUserMenu?: typeof fallbackHeaderUserMenu } = {
+    navigation: fallbackNav,
+    footer: fallbackFooter,
+    headerUserMenu: fallbackHeaderUserMenu,
+  };
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let activeCouponCount = 0;
 
@@ -47,7 +63,11 @@ export default async function RootLayout(props: {
     const params = await props.params;
     lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
     const d = await getDictionary(lang);
-    dict = d && typeof d === 'object' ? { navigation: d.navigation ?? fallbackNav, footer: d.footer ?? fallbackFooter } : dict;
+    dict = d && typeof d === 'object' ? {
+      navigation: d.navigation ?? fallbackNav,
+      footer: d.footer ?? fallbackFooter,
+      headerUserMenu: d.headerUserMenu ?? fallbackHeaderUserMenu,
+    } : dict;
   } catch {
     // getDictionary or params failed
   }
@@ -63,6 +83,7 @@ export default async function RootLayout(props: {
 
   const nav = dict?.navigation ?? fallbackNav;
   const footer = dict?.footer ?? fallbackFooter;
+  const headerUserMenu = dict?.headerUserMenu ?? fallbackHeaderUserMenu;
 
   return (
     <html lang={lang}>
@@ -70,6 +91,7 @@ export default async function RootLayout(props: {
         <Header
           lang={lang}
           nav={nav}
+          menu={headerUserMenu}
           isLoggedIn={!!session}
           isAdmin={session?.role === 'ADMIN'}
           userName={session?.name}

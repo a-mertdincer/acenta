@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
+import { getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 import { requestCancellationByGuest, requestUpdateByGuest } from '@/app/actions/reservations';
 import { getAvailableTourDatesForGuest } from '@/app/actions/tours';
@@ -25,26 +25,100 @@ type ReservationItem = {
 
 type DateFetchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
 
+type ReservationLabels = {
+  date: string;
+  pax: string;
+  total: string;
+  couponApplied: string;
+  original: string;
+  discount: string;
+  pendingCancellation: string;
+  pendingUpdate: string;
+  changeRequest: string;
+  changeRequestPending: string;
+  cancelRequest: string;
+  cancelRequestPending: string;
+  requestReceived: string;
+  requestFailed: string;
+  cancelRequestReceived: string;
+  cancelIntro: string;
+  cancelReasonLabel: string;
+  cancelReasonPlaceholder: string;
+  changeIntro: string;
+  dateLabel: string;
+  paxLabel: string;
+  noteLabel: string;
+  notePlaceholder: string;
+  loadingDates: string;
+  dateLoadError: string;
+  noDates: string;
+  submitChange: string;
+  submitCancel: string;
+  sending: string;
+  cancel: string;
+  detailsTitle: string;
+};
+
+type MyReservationsListProps = {
+  reservations: ReservationItem[];
+  lang: string;
+  labels: ReservationLabels;
+};
+
 export function MyReservationsList({
   reservations,
   lang,
-}: {
-  reservations: ReservationItem[];
-  lang: string;
-}) {
+  labels,
+}: MyReservationsListProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {reservations.map((res) => (
-        <ReservationCard key={res.id} reservation={res} lang={lang} />
+        <ReservationCard key={res.id} reservation={res} lang={lang} labels={labels} />
       ))}
     </div>
   );
 }
 
-function ReservationCard({ reservation, lang }: { reservation: ReservationItem; lang: string }) {
+function ReservationCard({
+  reservation,
+  lang,
+  labels,
+}: {
+  reservation: ReservationItem;
+  lang: string;
+  labels: MyReservationsListProps['labels'];
+}) {
   const currentDateStr = typeof reservation.date === 'string'
     ? reservation.date.slice(0, 10)
     : reservation.date.toISOString().split('T')[0];
+  const locale = lang === 'tr' ? 'tr' : lang === 'zh' ? 'zh' : 'en';
+  function getStatusLabel(status: string): string {
+    const labelsByLocale: Record<string, Record<string, string>> = {
+      tr: {
+        PENDING: 'Beklemede',
+        CONFIRMED: 'Onaylandi',
+        CANCELLED: 'Iptal',
+        COMPLETED: 'Geldi',
+        NO_SHOW: 'Gelmedi',
+      },
+      en: {
+        PENDING: 'Pending',
+        CONFIRMED: 'Confirmed',
+        CANCELLED: 'Cancelled',
+        COMPLETED: 'Completed',
+        NO_SHOW: 'No show',
+      },
+      zh: {
+        PENDING: '待处理',
+        CONFIRMED: '已确认',
+        CANCELLED: '已取消',
+        COMPLETED: '已完成',
+        NO_SHOW: '未到场',
+      },
+    };
+    return labelsByLocale[locale][status] ?? status;
+  }
+
 
   const [editOpen, setEditOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -124,11 +198,11 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
     const result = await requestUpdateByGuest(reservation.id, { date: selectedDate, pax, notes });
     setLoading(false);
     if (result.ok) {
-      setMessage({ type: 'ok', text: 'Değişiklik talebiniz alındı. Operasyon ekibimiz en kısa sürede size dönüş yapacaktır.' });
+      setMessage({ type: 'ok', text: labels.requestReceived });
       setEditOpen(false);
       setTimeout(() => window.location.reload(), 800);
     } else {
-      setMessage({ type: 'err', text: result.error ?? 'Talep gönderilemedi.' });
+      setMessage({ type: 'err', text: result.error ?? labels.requestFailed });
     }
   }
 
@@ -139,11 +213,11 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
     const result = await requestCancellationByGuest(reservation.id, cancelReason || undefined);
     setLoading(false);
     if (result.ok) {
-      setMessage({ type: 'ok', text: 'İptal talebiniz alındı. Operasyon ekibimiz en kısa sürede size dönüş yapacaktır.' });
+      setMessage({ type: 'ok', text: labels.cancelRequestReceived });
       setCancelOpen(false);
       setTimeout(() => window.location.reload(), 800);
     } else {
-      setMessage({ type: 'err', text: result.error ?? 'Talep gönderilemedi.' });
+      setMessage({ type: 'err', text: result.error ?? labels.requestFailed });
     }
   }
 
@@ -168,16 +242,16 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
     <div className="card" style={{ padding: 'var(--space-lg)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Link href={detailHref} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} title="Rezervasyon detayını gör">
+          <Link href={detailHref} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} title={labels.detailsTitle}>
             <h3 style={{ marginBottom: 'var(--space-xs)' }}>{reservation.tour?.titleEn ?? reservation.tourId}</h3>
             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              Tarih: {currentDateStr} · Kişi: {reservation.pax} · Toplam: <strong>€{Number(reservation.totalPrice).toFixed(2)}</strong>
+              {labels.date}: {currentDateStr} · {labels.pax}: {reservation.pax} · {labels.total}: <strong>€{Number(reservation.totalPrice).toFixed(2)}</strong>
             </div>
             {reservation.couponCode && reservation.originalPrice != null && reservation.discountAmount != null && (
               <div style={{ marginTop: 'var(--space-xs)', padding: 'var(--space-sm)', background: 'var(--color-bg-alt)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                🎟 {reservation.couponCode} uygulandı
+                🎟 {reservation.couponCode} {labels.couponApplied}
                 <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--space-xs)' }}>
-                  Orijinal: €{reservation.originalPrice.toFixed(2)} · İndirim: -€{reservation.discountAmount.toFixed(2)}
+                  {labels.original}: €{reservation.originalPrice.toFixed(2)} · {labels.discount}: -€{reservation.discountAmount.toFixed(2)}
                   {reservation.originalPrice > 0 && (
                     <span> (%{Math.round((reservation.discountAmount / reservation.originalPrice) * 100)})</span>
                   )}
@@ -199,12 +273,12 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
                 ...getReservationStatusStyle(reservation.status),
               }}
             >
-              {getReservationStatusLabel(reservation.status)}
+              {getStatusLabel(reservation.status)}
             </span>
             {(hasCancellationRequest || hasUpdateRequest) && (
               <span style={{ display: 'block', marginTop: 'var(--space-xs)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                {hasCancellationRequest && 'İptal talebiniz inceleniyor. '}
-                {hasUpdateRequest && 'Değişiklik talebiniz inceleniyor.'}
+                {hasCancellationRequest && `${labels.pendingCancellation} `}
+                {hasUpdateRequest && labels.pendingUpdate}
               </span>
             )}
           </Link>
@@ -212,10 +286,10 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-secondary" onClick={openEdit} disabled={hasUpdateRequest}>
-              {hasUpdateRequest ? 'Değişiklik talebi bekliyor' : 'Değişiklik talebi gönder'}
+              {hasUpdateRequest ? labels.changeRequestPending : labels.changeRequest}
             </button>
             <button type="button" className="btn btn-secondary" style={{ color: 'var(--color-error, #b91c1c)' }} onClick={() => { setCancelOpen(true); setEditOpen(false); setCancelReason(''); setMessage(null); }} disabled={hasCancellationRequest}>
-              {hasCancellationRequest ? 'İptal talebi bekliyor' : 'İptal talebi gönder'}
+              {hasCancellationRequest ? labels.cancelRequestPending : labels.cancelRequest}
             </button>
           </div>
         )}
@@ -229,9 +303,9 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
 
       {editOpen && (
         <form onSubmit={handleUpdate} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>
-          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>Değişiklik talebiniz operasyon ekibimiz tarafından onaylandıktan sonra uygulanacaktır. Tarih, rezervasyon alınan günler arasından seçilir.</p>
+          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>{labels.changeIntro}</p>
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Tur tarihi</label>
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>{labels.dateLabel}</label>
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -240,39 +314,39 @@ function ReservationCard({ reservation, lang }: { reservation: ReservationItem; 
               disabled={dateFetchState === 'loading'}
               required
             >
-              {dateFetchState === 'loading' && <option value={currentDateStr}>Yükleniyor...</option>}
-              {dateFetchState === 'error' && <option value={currentDateStr}>Tarihler yüklenemedi. Sayfayı yenileyin.</option>}
-              {dateFetchState === 'empty' && <option value={currentDateStr}>Müsait tarih bulunamadı.</option>}
+              {dateFetchState === 'loading' && <option value={currentDateStr}>{labels.loadingDates}</option>}
+              {dateFetchState === 'error' && <option value={currentDateStr}>{labels.dateLoadError}</option>}
+              {dateFetchState === 'empty' && <option value={currentDateStr}>{labels.noDates}</option>}
               {(dateFetchState === 'loaded' || dateFetchState === 'idle') && dateOptions.map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Kişi sayısı</label>
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>{labels.paxLabel}</label>
             <input type="number" min={1} value={pax} onChange={(e) => setPax(parseInt(e.target.value, 10) || 1)} className="input" style={{ width: '6rem' }} />
           </div>
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>Ek not (isteğe bağlı)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Özel istek veya not (max 500 karakter)" maxLength={500} />
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>{labels.noteLabel}</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder={labels.notePlaceholder} maxLength={500} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Gönderiliyor…' : 'Değişiklik talebi gönder'}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditOpen(false)}>Vazgeç</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? labels.sending : labels.submitChange}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditOpen(false)}>{labels.cancel}</button>
           </div>
         </form>
       )}
 
       {cancelOpen && (
         <form onSubmit={handleCancel} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>
-          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>İptal talebiniz operasyon ekibimiz tarafından değerlendirilecektir; onay sonrası rezervasyon iptal edilir ve size bilgi verilir. İptal nedeninizi yazmanız bizim için değerlidir.</p>
+          <p style={{ marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>{labels.cancelIntro}</p>
           <div style={{ marginBottom: 'var(--space-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>İptal nedeni (isteğe bağlı)</label>
-            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder="Örn: Plan değişikliği" maxLength={500} />
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontSize: '0.9rem' }}>{labels.cancelReasonLabel}</label>
+            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} className="input" style={{ width: '100%', resize: 'vertical' }} placeholder={labels.cancelReasonPlaceholder} maxLength={500} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--color-error, #b91c1c)' }} disabled={loading}>{loading ? 'Gönderiliyor…' : 'İptal talebi gönder'}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setCancelOpen(false)}>Vazgeç</button>
+            <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--color-error, #b91c1c)' }} disabled={loading}>{loading ? labels.sending : labels.submitCancel}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setCancelOpen(false)}>{labels.cancel}</button>
           </div>
         </form>
       )}

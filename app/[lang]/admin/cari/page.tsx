@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getCariRecords, getCariSummary, createCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
+import { getCariRecords, getCariSummary, createCariRecord, updateCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
 
 const CURRENCIES = ['EUR', 'TRY', 'USD'] as const;
 const PAYMENT_METHODS = [{ value: 'cash', label: 'Nakit' }, { value: 'transfer', label: 'Havale' }, { value: 'card', label: 'Kredi Kartı' }];
@@ -12,6 +12,16 @@ const PAID_TO_AGENCY = [{ value: 'paid', label: 'Ödendi' }, { value: 'pending',
 
 function formatDate(d: Date): string {
   return new Date(d).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function getStatusBadge(row: CariRecordRow): { label: string; color: string; bg: string } {
+  if (row.completionStatus === 'CANCELLED') {
+    return { label: '❌ İptal', color: '#991b1b', bg: '#fee2e2' };
+  }
+  if (row.completionStatus === 'COMPLETE') {
+    return { label: '✅ Tamamlandı', color: '#065f46', bg: '#d1fae5' };
+  }
+  return { label: '⚠️ EKS', color: '#92400e', bg: '#fef3c7' };
 }
 
 export default function AdminCariPage() {
@@ -24,6 +34,7 @@ export default function AdminCariPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<CreateCariInput>>({
     guestName: '',
     hotelName: '',
@@ -56,7 +67,22 @@ export default function AdminCariPage() {
     });
   };
 
-  useEffect(() => load(), [month]);
+  useEffect(() => {
+    let cancelled = false;
+    setTimeout(() => {
+      if (cancelled) return;
+      setLoading(true);
+      Promise.all([getCariRecords({ month }), getCariSummary(month)]).then(([list, sum]) => {
+        if (cancelled) return;
+        setRecords(list);
+        setSummary(sum);
+        setLoading(false);
+      });
+    }, 0);
+    return () => {
+      cancelled = true;
+    };
+  }, [month]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +128,68 @@ export default function AdminCariPage() {
     else alert(result.error);
   };
 
+  const startEdit = (row: CariRecordRow) => {
+    setEditingId(row.id);
+    setForm({
+      guestName: row.guestName,
+      hotelName: row.hotelName ?? '',
+      roomNumber: row.roomNumber ?? '',
+      activityType: row.activityType,
+      quantity: row.quantity,
+      activityDate: new Date(row.activityDate).toISOString().split('T')[0],
+      salePrice: row.salePrice,
+      saleCurrency: row.saleCurrency,
+      costAmount: row.costAmount,
+      costCurrency: row.costCurrency ?? 'EUR',
+      costDescription: row.costDescription ?? '',
+      agentName: row.agentName ?? '',
+      paymentMethod: row.paymentMethod,
+      paymentDestination: row.paymentDestination,
+      salesperson: row.salesperson ?? '',
+      paidToAgency: row.paidToAgency ?? null,
+      reservationConfirmed: row.reservationConfirmed,
+      confirmationReceived: row.confirmationReceived,
+      paymentReceived: row.paymentReceived,
+      notes: row.notes ?? '',
+    });
+    setShowForm(false);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSaving(true);
+    const result = await updateCariRecord(editingId, {
+      guestName: form.guestName,
+      hotelName: form.hotelName || null,
+      roomNumber: form.roomNumber || null,
+      activityType: form.activityType,
+      quantity: form.quantity,
+      activityDate: form.activityDate,
+      salePrice: form.salePrice != null ? Number(form.salePrice) : undefined,
+      saleCurrency: form.saleCurrency,
+      costAmount: form.costAmount != null ? Number(form.costAmount) : null,
+      costCurrency: form.costCurrency || null,
+      costDescription: form.costDescription || null,
+      agentName: form.agentName || null,
+      paymentMethod: form.paymentMethod,
+      paymentDestination: form.paymentDestination,
+      salesperson: form.salesperson || null,
+      paidToAgency: form.paidToAgency ?? null,
+      reservationConfirmed: form.reservationConfirmed,
+      confirmationReceived: form.confirmationReceived,
+      paymentReceived: form.paymentReceived,
+      notes: form.notes || null,
+    });
+    setSaving(false);
+    if (result.ok) {
+      setEditingId(null);
+      load();
+    } else {
+      alert(result.error);
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', marginBottom: 'var(--space-2xl)' }}>
@@ -139,9 +227,9 @@ export default function AdminCariPage() {
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
-          <h2 style={{ marginBottom: 'var(--space-lg)' }}>Yeni Cari Kayıt</h2>
+      {(showForm || editingId) && (
+        <form onSubmit={editingId ? handleUpdate : handleSubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
+          <h2 style={{ marginBottom: 'var(--space-lg)' }}>{editingId ? 'Cari Kayıt Düzenle' : 'Yeni Cari Kayıt'}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
             <Input label="Misafir Adı *" value={form.guestName ?? ''} onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))} required />
             <Input label="Otel" value={form.hotelName ?? ''} onChange={(e) => setForm((f) => ({ ...f, hotelName: e.target.value }))} />
@@ -169,6 +257,14 @@ export default function AdminCariPage() {
               </select>
             </div>
             <div>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Ödeme nereye</label>
+              <select value={form.paymentDestination ?? 'internal'} onChange={(e) => setForm((f) => ({ ...f, paymentDestination: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                {PAYMENT_DEST.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Firma ödendi</label>
               <select value={form.paidToAgency ?? ''} onChange={(e) => setForm((f) => ({ ...f, paidToAgency: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
                 <option value="">—</option>
@@ -183,7 +279,12 @@ export default function AdminCariPage() {
               <textarea value={form.notes ?? ''} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }} />
             </div>
           </div>
-          <Button type="submit" disabled={saving}>{saving ? 'Kaydediliyor...' : '💾 Kaydet'}</Button>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <Button type="submit" disabled={saving}>{saving ? 'Kaydediliyor...' : '💾 Kaydet'}</Button>
+            {editingId && (
+              <Button type="button" variant="secondary" onClick={() => setEditingId(null)}>İptal</Button>
+            )}
+          </div>
         </form>
       )}
 
@@ -203,6 +304,7 @@ export default function AdminCariPage() {
                 <th style={{ padding: 'var(--space-md)' }}>Satış</th>
                 <th style={{ padding: 'var(--space-md)' }}>Maliyet</th>
                 <th style={{ padding: 'var(--space-md)' }}>Ödeme</th>
+                <th style={{ padding: 'var(--space-md)' }}>Durum</th>
                 <th style={{ padding: 'var(--space-md)' }}>Kâr</th>
                 <th style={{ padding: 'var(--space-md)' }}>İşlem</th>
               </tr>
@@ -212,13 +314,24 @@ export default function AdminCariPage() {
                 <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: 'var(--space-md)' }}>{r.roomNumber ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.guestName}</td>
-                  <td style={{ padding: 'var(--space-md)' }}>{r.activityType} · {r.quantity} adet</td>
+                  <td style={{ padding: 'var(--space-md)' }}>{r.activityType} · {r.quantity} kişi · {formatDate(r.activityDate)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.agentName ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.saleCurrency} {r.salePrice.toFixed(2)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.costAmount != null ? `${r.costCurrency ?? 'EUR'} ${r.costAmount.toFixed(2)}` : '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.paymentMethod}</td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    {(() => {
+                      const status = getStatusBadge(r);
+                      return (
+                        <span style={{ background: status.bg, color: status.color, padding: '4px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700 }}>
+                          {status.label}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.profit != null ? `€${r.profit.toFixed(2)}` : '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>
+                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => startEdit(r)}>Düzenle</Button>
                     <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDelete(r.id)}>Sil</Button>
                   </td>
                 </tr>

@@ -133,7 +133,7 @@ export default function AdminDashboardClient({
           <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{stats.tomorrowReservations ?? 0}</div>
         </div>
         <div className="card" style={{ padding: 'var(--space-lg)', borderLeft: '4px solid #6366f1' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>💰 Bu Ay Gelir</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>💰 Bu Ay Gelir (Onaylı)</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>€{(stats.monthRevenue ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
         </div>
         <div className="card" style={{ padding: 'var(--space-lg)', borderLeft: '4px solid #ef4444' }}>
@@ -185,7 +185,7 @@ export default function AdminDashboardClient({
                   <Button variant="secondary" onClick={() => handleReject(r.id)} disabled={loadingId === r.id}>
                     ❌ Reddet
                   </Button>
-                  <Link href={`/${lang}/admin/reservations?highlight=${r.id}`}>
+                  <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${r.dateStr}`}>
                     <Button variant="secondary">👁 Detay</Button>
                   </Link>
                 </div>
@@ -229,8 +229,9 @@ export default function AdminDashboardClient({
                 )}
                 {r.requestType === 'update' && (r.pendingDate || r.pendingPax != null || r.pendingNotes) && (
                   <div style={{ fontSize: '0.85rem', marginBottom: 'var(--space-sm)' }}>
-                    Talep: {r.pendingDate && `Tarih → ${r.pendingDate.toISOString().split('T')[0]}`}
-                    {r.pendingPax != null && ` · Kişi → ${r.pendingPax}`}
+                    Talep:
+                    {r.pendingDate && ` Tarih: ${formatDateTr(r.dateStr)} → ${formatDateTr(r.pendingDate.toISOString().split('T')[0])}`}
+                    {r.pendingPax != null && ` · Kişi: ${r.pax} → ${r.pendingPax}`}
                     {r.pendingNotes && ` · Not: ${r.pendingNotes}`}
                   </div>
                 )}
@@ -254,7 +255,7 @@ export default function AdminDashboardClient({
                       </Button>
                     </>
                   )}
-                  <Link href={`/${lang}/admin/reservations?highlight=${r.id}`}>
+                  <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${r.dateStr}`}>
                     <Button variant="secondary">👁 Detay</Button>
                   </Link>
                 </div>
@@ -295,7 +296,7 @@ export default function AdminDashboardClient({
             {activities.map((a) => (
               <Link
                 key={a.id}
-                href={`/${lang}/admin/reservations?highlight=${a.id}`}
+                href={`/${lang}/admin/reservations?view=table&expand=${a.id}&tourDate=${a.dateStr}`}
                 style={{
                   display: 'block',
                   padding: 'var(--space-md)',

@@ -186,7 +186,7 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                   }}
                 >
                   <div style={{ marginBottom: 4 }}>
-                    <Link href={`/${lang}/admin/reservations?highlight=${r.id}&view=table`} style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                    <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${selectedDate}`} style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
                       {r.guestName}
                     </Link>
                     <span style={{ color: 'var(--color-text-muted)', marginLeft: 8 }}>
@@ -212,7 +212,7 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                     <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleSendConfirmation(r.id)} disabled={sendingEmailId === r.id}>
                       {sendingEmailId === r.id ? 'Gönderiliyor…' : '📧 Mail'}
                     </Button>
-                    <Link href={`/${lang}/admin/reservations?highlight=${r.id}&view=table`}>
+                    <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${selectedDate}`}>
                       <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>👁 Detay</Button>
                     </Link>
                   </div>

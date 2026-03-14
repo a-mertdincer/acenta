@@ -19,6 +19,7 @@ import type { TourWithVariantsResult } from '@/app/actions/variants';
 import enDict from '@/app/dictionaries/en.json';
 import trDict from '@/app/dictionaries/tr.json';
 import zhDict from '@/app/dictionaries/zh.json';
+import { resolveTierPrice } from '@/lib/pricingTiers';
 
 type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
@@ -68,6 +69,8 @@ export function ProductVariantBookingCard({
   const [flightDeparture, setFlightDeparture] = useState('');
   const [flightsArrival, setFlightsArrival] = useState<{ id: string; code: string; airline: string }[]>([]);
   const [flightsDeparture, setFlightsDeparture] = useState<{ id: string; code: string; airline: string }[]>([]);
+  const [cartToastOpen, setCartToastOpen] = useState(false);
+  const [cartToastTitle, setCartToastTitle] = useState('');
 
   useEffect(() => {
     if (!data.hasAirportSelect) return;
@@ -79,6 +82,12 @@ export function ProductVariantBookingCard({
       setFlightsDeparture(list.map((f) => ({ id: f.id, code: f.code, airline: f.airline })))
     );
   }, [data.hasAirportSelect, selection.airport]);
+
+  useEffect(() => {
+    if (!cartToastOpen) return;
+    const timer = setTimeout(() => setCartToastOpen(false), 4000);
+    return () => clearTimeout(timer);
+  }, [cartToastOpen]);
 
   const activeVariant = useMemo(
     () => getActiveVariant(data.variants, selection),
@@ -95,9 +104,30 @@ export function ProductVariantBookingCard({
 
   const total = useMemo(() => {
     if (!activeVariant) return 0;
+    const totalPax = Math.max(1, adults + children + infants);
+    const transferAirportTiers = data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null;
+    const effectivePrivateTiers =
+      activeVariant.reservationType === 'private'
+        ? (activeVariant.privatePriceTiers && activeVariant.privatePriceTiers.length > 0
+          ? activeVariant.privatePriceTiers
+          : transferAirportTiers)
+        : null;
+    const tieredVariant =
+      effectivePrivateTiers && effectivePrivateTiers.length > 0
+        ? { ...activeVariant, privatePriceTiers: effectivePrivateTiers }
+        : activeVariant;
     const direction = data.hasAirportSelect ? selectedDirection : undefined;
-    return calculateVariantTotal(activeVariant, adults, children, infants, direction);
-  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection]);
+    const baseTotal = calculateVariantTotal(tieredVariant, adults, children, infants, direction);
+    // Per-person private tiers can still override base adult price by pax bracket.
+    if (activeVariant.pricingType === 'per_person' && effectivePrivateTiers && effectivePrivateTiers.length > 0) {
+      const tierPrice = resolveTierPrice(effectivePrivateTiers, totalPax);
+      if (tierPrice != null) {
+        const multiplier = direction === 'roundtrip' ? 2 * 0.9 : 1;
+        return tierPrice * multiplier;
+      }
+    }
+    return baseTotal;
+  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, data.transferAirportTiers, selection.airport]);
 
   const variantTitle = activeVariant
     ? lang === 'tr'
@@ -129,7 +159,8 @@ export function ProductVariantBookingCard({
       }),
       childCount: children,
     });
-    router.push(`/${lang}/cart`);
+    setCartToastTitle(variantTitle);
+    setCartToastOpen(true);
   };
 
   if (data.variants.length === 0) return null;
@@ -328,6 +359,12 @@ export function ProductVariantBookingCard({
           <button type="button" className="stepper-btn" onClick={() => setInfants((i) => i + 1)}>+</button>
         </div>
       </div>
+      <div style={{ marginTop: 'var(--space-sm)', marginBottom: 'var(--space-md)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+        <strong>{t.agePolicyTitle}</strong><br />
+        {t.agePolicyInfant}<br />
+        {t.agePolicyChild}<br />
+        {t.agePolicyAdult}
+      </div>
 
       <div style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-md)', backgroundColor: 'var(--color-bg-alt)', borderRadius: '8px' }}>
         {activeVariant && (
@@ -364,13 +401,13 @@ export function ProductVariantBookingCard({
             {activeVariant.pricingType === 'per_vehicle' && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>{adults + children} pax (vehicle)</span>
-                  <span>€{activeVariant.adultPrice.toFixed(2)}</span>
+                  <span>{adults + children + infants} pax (vehicle)</span>
+                  <span>€{total.toFixed(2)}</span>
                 </div>
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                     <span>{t.roundtrip} ({t.roundtripOff})</span>
-                    <span>€{(activeVariant.adultPrice * 2 * 0.9).toFixed(2)}</span>
+                    <span>Uygulandı</span>
                   </div>
                 )}
               </>
@@ -388,6 +425,42 @@ export function ProductVariantBookingCard({
           {t.askWhatsApp}
         </p>
       </div>
+
+      {cartToastOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 16,
+            width: 'min(92vw, 360px)',
+            background: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-lg)',
+            padding: 'var(--space-md)',
+            zIndex: 999,
+          }}
+        >
+          <p style={{ marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+            ✅ {cartToastTitle} {t.addedToCart}
+          </p>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setCartToastOpen(false);
+                router.push(`/${lang}/cart`);
+              }}
+            >
+              {t.goToCart}
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
+              {t.continueShopping}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,11 +28,7 @@ interface HeaderProps {
     myCoupons: string;
     myReservations: string;
     contact: string;
-    adminAccount: string;
-    adminDashboard: string;
-    adminReservations: string;
-    adminUsers: string;
-    adminCoupons: string;
+    managementPanel: string;
   };
   isLoggedIn?: boolean;
   isAdmin?: boolean;
@@ -213,37 +209,23 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
                         👤 {menu.signedInAs}: {userName ?? nav.account}
                       </div>
                       <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
-                      {isAdmin ? (
+                      <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                        📋 {menu.profile}
+                      </Link>
+                      <Link href={`/${lang}/account/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                        🎟 {menu.myCoupons} {activeCouponCount > 0 ? `(${activeCouponCount})` : ''}
+                      </Link>
+                      <Link href={`/${lang}/account/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                        📅 {menu.myReservations}
+                      </Link>
+                      <Link href={`/${lang}/account/contact`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
+                        📞 {menu.contact}
+                      </Link>
+                      {isAdmin && (
                         <>
-                          <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            🛠 {menu.adminAccount}
-                          </Link>
+                          <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
                           <Link href={`/${lang}/admin`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            📊 {menu.adminDashboard}
-                          </Link>
-                          <Link href={`/${lang}/admin/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            📅 {menu.adminReservations}
-                          </Link>
-                          <Link href={`/${lang}/admin/users`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            👥 {menu.adminUsers}
-                          </Link>
-                          <Link href={`/${lang}/admin/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            🎟 {menu.adminCoupons}
-                          </Link>
-                        </>
-                      ) : (
-                        <>
-                          <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            📋 {menu.profile}
-                          </Link>
-                          <Link href={`/${lang}/account/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            🎟 {menu.myCoupons} {activeCouponCount > 0 ? `(${activeCouponCount})` : ''}
-                          </Link>
-                          <Link href={`/${lang}/account/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            📅 {menu.myReservations}
-                          </Link>
-                          <Link href={`/${lang}/account/contact`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            📞 {menu.contact}
+                            ⚙️ {menu.managementPanel}
                           </Link>
                         </>
                       )}

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 export type CariRecordRow = {
   id: string;
   reservationId: string | null;
+  reservationStatus: string | null;
   guestName: string;
   hotelName: string | null;
   roomNumber: string | null;
@@ -27,6 +28,7 @@ export type CariRecordRow = {
   paymentReceived: boolean;
   profit: number | null;
   notes: string | null;
+  completionStatus: 'MISSING' | 'COMPLETE' | 'CANCELLED';
   createdAt: Date;
   updatedAt: Date;
 };
@@ -34,6 +36,42 @@ export type CariRecordRow = {
 function computeProfit(salePrice: number, quantity: number, costAmount: number | null): number | null {
   if (costAmount == null) return null;
   return salePrice * quantity - costAmount * quantity;
+}
+
+function extractHotelRoomFromReservationNotes(notes: string | null): { hotelName: string | null; roomNumber: string | null } {
+  if (!notes) return { hotelName: null, roomNumber: null };
+  const [hotel, room] = notes.split('|').map((part) => part?.trim() ?? '');
+  return {
+    hotelName: hotel || null,
+    roomNumber: room || null,
+  };
+}
+
+function computeCompletionStatus(row: {
+  reservationStatus: string | null;
+  costAmount: number | null;
+  costDescription: string | null;
+  paymentReceived: boolean;
+  salesperson: string | null;
+  paymentDestination: string;
+  paidToAgency: string | null;
+}): 'MISSING' | 'COMPLETE' | 'CANCELLED' {
+  if (row.reservationStatus === 'CANCELLED') return 'CANCELLED';
+  const hasCost = row.costAmount != null || Boolean(row.costDescription?.trim());
+  const hasSalesperson = Boolean(row.salesperson?.trim());
+  const agencyStateOk = row.paymentDestination !== 'agency_direct' || Boolean(row.paidToAgency);
+  if (hasCost && hasSalesperson && row.paymentReceived && agencyStateOk) return 'COMPLETE';
+  return 'MISSING';
+}
+
+async function getReservationStatusMap(reservationIds: string[]): Promise<Map<string, string>> {
+  if (reservationIds.length === 0) return new Map();
+  // Adapter issue with `in` filters: fetch minimal list and map in-memory.
+  const wanted = new Set(reservationIds);
+  const rows = await prisma.reservation.findMany({
+    select: { id: true, status: true },
+  });
+  return new Map(rows.filter((r) => wanted.has(r.id)).map((r) => [r.id, r.status]));
 }
 
 export async function getCariRecords(filters?: { month?: string; agent?: string }): Promise<CariRecordRow[]> {
@@ -53,9 +91,16 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
       where: Object.keys(where).length ? where : undefined,
       orderBy: { activityDate: 'desc' },
     });
+    const reservationStatusMap = await getReservationStatusMap(
+      (list ?? [])
+        .map((r) => r.reservationId)
+        .filter((id): id is string => Boolean(id))
+    );
     return (list ?? []).map((r: Record<string, unknown>) => ({
       id: String(r.id),
       reservationId: r.reservationId != null ? String(r.reservationId) : null,
+      reservationStatus:
+        r.reservationId != null ? reservationStatusMap.get(String(r.reservationId)) ?? null : null,
       guestName: String(r.guestName),
       hotelName: r.hotelName != null ? String(r.hotelName) : null,
       roomNumber: r.roomNumber != null ? String(r.roomNumber) : null,
@@ -77,6 +122,15 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
       paymentReceived: Boolean(r.paymentReceived),
       profit: r.profit != null ? Number(r.profit) : null,
       notes: r.notes != null ? String(r.notes) : null,
+      completionStatus: computeCompletionStatus({
+        reservationStatus: r.reservationId != null ? reservationStatusMap.get(String(r.reservationId)) ?? null : null,
+        costAmount: r.costAmount != null ? Number(r.costAmount) : null,
+        costDescription: r.costDescription != null ? String(r.costDescription) : null,
+        paymentReceived: Boolean(r.paymentReceived),
+        salesperson: r.salesperson != null ? String(r.salesperson) : null,
+        paymentDestination: String(r.paymentDestination ?? 'internal'),
+        paidToAgency: r.paidToAgency != null ? String(r.paidToAgency) : null,
+      }),
       createdAt: r.createdAt as Date,
       updatedAt: r.updatedAt as Date,
     }));
@@ -93,10 +147,20 @@ export async function getCariSummary(month: string): Promise<{ totalRevenue: num
     const list = await prisma.cariRecord.findMany({
       where: { activityDate: { gte: start, lte: end } },
     });
+    const reservationStatusMap = await getReservationStatusMap(
+      (list ?? [])
+        .map((r) => r.reservationId)
+        .filter((id): id is string => Boolean(id))
+    );
     let totalRevenue = 0;
     let totalCost = 0;
     let pendingPayment = 0;
     for (const r of list ?? []) {
+      const isCancelled =
+        r.reservationId != null
+          ? reservationStatusMap.get(r.reservationId) === 'CANCELLED'
+          : false;
+      if (isCancelled) continue;
       totalRevenue += Number(r.salePrice) * Number(r.quantity);
       if (r.costAmount != null) totalCost += Number(r.costAmount) * Number(r.quantity);
       if (r.paidToAgency === 'pending') pendingPayment += (r.costAmount ?? 0) * (r.quantity ?? 1);
@@ -220,5 +284,87 @@ export async function deleteCariRecord(id: string): Promise<{ ok: boolean; error
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Silinemedi' };
+  }
+}
+
+/**
+ * Reservation lifecycle hook:
+ * - CONFIRMED => create/update cari row (idempotent, reservationId unique key)
+ * - CANCELLED => keep row, only mark reservationConfirmed false
+ */
+export async function syncCariWithReservation(
+  reservationId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { tour: true, variant: true },
+    });
+    if (!reservation) return { ok: false, error: 'Reservation not found' };
+
+    const linked = await prisma.cariRecord.findFirst({
+      where: { reservationId },
+    });
+
+    if (reservation.status === 'CANCELLED') {
+      if (linked) {
+        await prisma.cariRecord.update({
+          where: { id: linked.id },
+          data: {
+            reservationConfirmed: false,
+            notes: [linked.notes, '[Otomatik] Rezervasyon iptal edildi.']
+              .filter(Boolean)
+              .join(' ')
+              .slice(0, 2000),
+          },
+        });
+      }
+      return { ok: true };
+    }
+
+    if (reservation.status !== 'CONFIRMED') return { ok: true };
+
+    const { hotelName, roomNumber } = extractHotelRoomFromReservationNotes(reservation.notes);
+    const quantity = Math.max(1, reservation.pax ?? 1);
+    const salePrice = Number(reservation.totalPrice ?? 0);
+    const payload = {
+      guestName: reservation.guestName,
+      hotelName: reservation.transferHotelName ?? hotelName,
+      roomNumber,
+      activityType:
+        reservation.variant?.titleTr ||
+        reservation.variant?.titleEn ||
+        reservation.tour?.titleTr ||
+        reservation.tour?.titleEn ||
+        reservation.tourId,
+      quantity,
+      activityDate: reservation.date,
+      salePrice,
+      saleCurrency: 'EUR',
+      reservationConfirmed: true,
+      profit: computeProfit(salePrice, quantity, linked?.costAmount ?? null),
+    };
+
+    if (linked) {
+      await prisma.cariRecord.update({
+        where: { id: linked.id },
+        data: payload,
+      });
+      return { ok: true };
+    }
+
+    await prisma.cariRecord.create({
+      data: {
+        reservationId,
+        ...payload,
+        paymentMethod: 'cash',
+        paymentDestination: 'internal',
+        confirmationReceived: false,
+        paymentReceived: false,
+      },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Cari sync failed' };
   }
 }

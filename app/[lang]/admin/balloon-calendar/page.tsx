@@ -4,44 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { getTours, getTourDatePricesInRange, setTourDatePrice, type DatePriceEntry } from '../../../actions/tours';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-
-function toLocalDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function getDaysInMonth(year: number, month: number): { dateStr: string; day: number; isCurrentMonth: boolean }[] {
-  const first = new Date(year, month - 1, 1);
-  const last = new Date(year, month, 0);
-  const firstWeekday = first.getDay();
-  const lastDay = last.getDate();
-  const cells: { dateStr: string; day: number; isCurrentMonth: boolean }[] = [];
-  const startPadding = firstWeekday;
-  for (let i = 0; i < startPadding; i++) {
-    const d = new Date(year, month - 1, -startPadding + i + 1);
-    cells.push({
-      dateStr: toLocalDateStr(d),
-      day: d.getDate(),
-      isCurrentMonth: false,
-    });
-  }
-  for (let d = 1; d <= lastDay; d++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    cells.push({ dateStr, day: d, isCurrentMonth: true });
-  }
-  const remaining = 42 - cells.length;
-  for (let i = 0; i < remaining; i++) {
-    const d = new Date(year, month, i + 1);
-    cells.push({
-      dateStr: toLocalDateStr(d),
-      day: d.getDate(),
-      isCurrentMonth: false,
-    });
-  }
-  return cells;
-}
+import { getDaysInMonth } from '@/lib/adminCalendar';
 
 export default function AdminBalloonCalendarPage() {
   const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; capacity: number }[]>([]);
@@ -70,7 +33,7 @@ export default function AdminBalloonCalendarPage() {
     getTours().then((list) => {
       const balloon = list.filter((t) => t.type === 'BALLOON').map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, capacity: t.capacity }));
       setTours(balloon);
-      if (balloon.length > 0 && !balloonTourId) setBalloonTourId(balloon[0].id);
+      if (balloon.length > 0) setBalloonTourId((prev) => prev || balloon[0].id);
       setLoading(false);
     });
   }, []);
@@ -81,11 +44,15 @@ export default function AdminBalloonCalendarPage() {
     const from = `${y}-${String(m).padStart(2, '0')}-01`;
     const lastDay = new Date(y, m, 0).getDate();
     const to = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-    setLoading(true);
+    let cancelled = false;
     getTourDatePricesInRange(balloonTourId, from, to).then((res) => {
+      if (cancelled) return;
       setData(res ?? null);
       setLoading(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [balloonTourId, month]);
 
   const [year, monthNum] = month.split('-').map(Number);
@@ -240,7 +207,7 @@ export default function AdminBalloonCalendarPage() {
 
       {tours.length === 0 ? (
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
-          <p style={{ color: 'var(--color-text-muted)' }}>Henüz BALLOON tipinde tur yok. Önce Turlar ve Fiyatlandırma üzerinden balon turu ekleyin.</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>Henüz BALLOON tipinde tur yok. Önce Ürünler ekranından balon turu ekleyin.</p>
         </div>
       ) : (
         <>

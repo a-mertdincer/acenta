@@ -97,6 +97,7 @@ function ReservationCard({
       tr: {
         PENDING: 'Beklemede',
         CONFIRMED: 'Onaylandi',
+        CHANGE_REQUESTED: 'Degisiklik bekliyor',
         CANCELLED: 'Iptal',
         COMPLETED: 'Geldi',
         NO_SHOW: 'Gelmedi',
@@ -104,6 +105,7 @@ function ReservationCard({
       en: {
         PENDING: 'Pending',
         CONFIRMED: 'Confirmed',
+        CHANGE_REQUESTED: 'Change requested',
         CANCELLED: 'Cancelled',
         COMPLETED: 'Completed',
         NO_SHOW: 'No show',
@@ -111,6 +113,7 @@ function ReservationCard({
       zh: {
         PENDING: '待处理',
         CONFIRMED: '已确认',
+        CHANGE_REQUESTED: '变更处理中',
         CANCELLED: '已取消',
         COMPLETED: '已完成',
         NO_SHOW: '未到场',

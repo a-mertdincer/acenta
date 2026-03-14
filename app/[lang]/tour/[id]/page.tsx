@@ -85,6 +85,13 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   airport: string;
   airportASR: string;
   airportNAV: string;
+  addedToCart: string;
+  goToCart: string;
+  continueShopping: string;
+  agePolicyTitle: string;
+  agePolicyInfant: string;
+  agePolicyChild: string;
+  agePolicyAdult: string;
 }> = {
   en: {
     description: 'Description',
@@ -107,6 +114,13 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     airport: 'Airport',
     airportASR: 'Kayseri (ASR)',
     airportNAV: 'Nevşehir (NAV)',
+    addedToCart: 'added to cart!',
+    goToCart: 'Go to cart',
+    continueShopping: 'Continue shopping',
+    agePolicyTitle: 'Age policy:',
+    agePolicyInfant: '0-3 years: Free',
+    agePolicyChild: '4-7 years: Child price',
+    agePolicyAdult: '7+ years: Adult price',
   },
   tr: {
     description: 'Açıklama',
@@ -129,6 +143,13 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     airport: 'Havalimanı',
     airportASR: 'Kayseri (ASR)',
     airportNAV: 'Nevşehir (NAV)',
+    addedToCart: 'sepete eklendi!',
+    goToCart: 'Sepete Git',
+    continueShopping: 'Alışverişe Devam Et',
+    agePolicyTitle: 'Yaş politikası:',
+    agePolicyInfant: '0-3 yaş: Ücretsiz',
+    agePolicyChild: '4-7 yaş: Çocuk fiyatı',
+    agePolicyAdult: '7+ yaş: Yetişkin fiyatı',
   },
   zh: {
     description: '描述',
@@ -151,6 +172,13 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     airport: '机场',
     airportASR: '开塞利 (ASR)',
     airportNAV: '内夫谢希尔 (NAV)',
+    addedToCart: '已加入购物车！',
+    goToCart: '前往购物车',
+    continueShopping: '继续购物',
+    agePolicyTitle: '年龄政策：',
+    agePolicyInfant: '0-3岁：免费',
+    agePolicyChild: '4-7岁：儿童价格',
+    agePolicyAdult: '7岁以上：成人价格',
   },
 };
 
@@ -224,6 +252,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
     const [selectedAirport, setSelectedAirport] = useState<TransferAirport>('ASR');
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
+    const [cartToastOpen, setCartToastOpen] = useState(false);
+    const [cartToastTitle, setCartToastTitle] = useState('');
 
     useEffect(() => {
         const d = new Date();
@@ -256,6 +286,12 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             else setDatePrice(null);
         });
     }, [tour?.id, selectedDate, id]);
+
+    useEffect(() => {
+      if (!cartToastOpen) return;
+      const timer = setTimeout(() => setCartToastOpen(false), 4000);
+      return () => clearTimeout(timer);
+    }, [cartToastOpen]);
 
     if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>Loading...</div>;
 
@@ -427,6 +463,12 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         <select value={pax} onChange={(e) => setPax(Number(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Passenger{n > 1 ? 's' : ''}</option>)}
                         </select>
+                        <div style={{ marginTop: 'var(--space-sm)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                            <strong>{t.agePolicyTitle}</strong><br />
+                            {t.agePolicyInfant}<br />
+                            {t.agePolicyChild}<br />
+                            {t.agePolicyAdult}
+                        </div>
                     </div>
 
                     {isClosed && (
@@ -466,10 +508,11 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
 
                     <Button style={{ width: '100%' }} disabled={isClosed} onClick={() => {
                         if (isClosed) return;
+                        const itemTitle = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
                         addItem({
                             tourId: tour.id,
                             tourType: tour.type,
-                            title: lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn,
+                            title: itemTitle,
                             date: selectedDate,
                             pax,
                             basePrice: isTransferWithTiers ? unitPrice : basePrice,
@@ -480,12 +523,48 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             totalPrice: total,
                             ...(tour.type === 'TRANSFER' && { transferAirport: selectedAirport }),
                         });
-                        router.push(`/${lang}/cart`);
+                        setCartToastTitle(itemTitle);
+                        setCartToastOpen(true);
                     }}>{t.addToCart}</Button>
                 </div>
             </div>
                 </>
                 )}
+            {cartToastOpen && (
+              <div
+                style={{
+                  position: 'fixed',
+                  right: 16,
+                  bottom: 16,
+                  width: 'min(92vw, 360px)',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: 'var(--space-md)',
+                  zIndex: 999,
+                }}
+              >
+                <p style={{ marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                  ✅ {cartToastTitle} {t.addedToCart}
+                </p>
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setCartToastOpen(false);
+                      router.push(`/${lang}/cart`);
+                    }}
+                  >
+                    {t.goToCart}
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
+                    {t.continueShopping}
+                  </button>
+                </div>
+              </div>
+            )}
         </div>
     );
 }

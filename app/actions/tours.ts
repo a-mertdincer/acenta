@@ -9,6 +9,7 @@ function revalidateTours() {
     revalidatePath(`/${lang}/tours`);
     revalidatePath(`/${lang}/tour`);
     revalidatePath(`/${lang}/admin/tours`);
+    revalidatePath(`/${lang}/admin/pricing`);
     revalidatePath(`/${lang}/admin/balloon-calendar`);
   });
 }
@@ -53,10 +54,9 @@ export async function getTours(filters?: { destination?: string; category?: stri
     if (filters?.category !== undefined) where.category = filters.category || null;
     const tours = await prisma.tour.findMany({
       where: Object.keys(where).length ? where : undefined,
-      include: { options: true },
       orderBy: { createdAt: 'asc' },
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[] }) => {
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
@@ -73,13 +73,8 @@ export async function getTours(filters?: { destination?: string; category?: stri
         hasAirportSelect: Boolean((t as { hasAirportSelect?: boolean }).hasAirportSelect),
         transferTiers,
         transferAirportTiers,
-        options: t.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
-          id: o.id,
-          titleTr: o.titleTr,
-          titleEn: o.titleEn,
-          titleZh: o.titleZh,
-          priceAdd: o.priceAdd,
-        })),
+        // NOTE: Tour list API is used for catalog/listing contexts; options are fetched by getTourById.
+        options: [],
       };
     });
   } catch {
@@ -127,9 +122,12 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
   try {
     const tour = await prisma.tour.findUnique({
       where: { id },
-      include: { options: true },
     });
     if (!tour) return null;
+    const options = await prisma.tourOption.findMany({
+      where: { tourId: id },
+      orderBy: { createdAt: 'asc' },
+    });
     const raw = tour as { transferAirportTiers?: unknown };
     const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
     const t = tour as { destination?: string; category?: string | null };
@@ -151,7 +149,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
       transferTiers,
       transferAirportTiers,
-      options: tour.options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
+      options: options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
         titleEn: o.titleEn,
@@ -241,6 +239,67 @@ export async function setTourDatePrice(
     }
     revalidateTours();
     return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
+  }
+}
+
+export async function setTourDatePricesBulk(
+  tourId: string,
+  dateStrs: string[],
+  data: { price: number; capacityOverride?: number; isClosed?: boolean }
+): Promise<{ ok: boolean; updatedCount?: number; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
+  try {
+    const dates = Array.from(
+      new Set(
+        dateStrs
+          .map((date) => date.trim())
+          .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+      )
+    );
+    if (dates.length === 0) return { ok: false, error: 'Tarih seçimi boş olamaz.' };
+    const isClosed = data.isClosed === true;
+    const capacityOverride =
+      data.capacityOverride != null && Number.isInteger(data.capacityOverride)
+        ? data.capacityOverride
+        : null;
+    let updatedCount = 0;
+    for (const dateStr of dates) {
+      const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+      const existing = await prisma.tourDatePrice.findFirst({
+        where: {
+          tourId,
+          date: { gte: dayStart, lt: dayEnd },
+        },
+      });
+      if (existing) {
+        await prisma.tourDatePrice.update({
+          where: { id: existing.id },
+          data: {
+            price: data.price,
+            capacityOverride,
+            isClosed,
+          },
+        });
+      } else {
+        await prisma.tourDatePrice.create({
+          data: {
+            tourId,
+            date: dayStart,
+            price: data.price,
+            capacityOverride,
+            isClosed,
+          },
+        });
+      }
+      updatedCount += 1;
+    }
+    revalidateTours();
+    return { ok: true, updatedCount };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
   }
@@ -391,6 +450,22 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Tur güncellenemedi' };
+  }
+}
+
+export async function deleteTour(tourId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const reservationCount = await prisma.reservation.count({ where: { tourId } });
+    if (reservationCount > 0) {
+      return { ok: false, error: 'Bu ürüne bağlı rezervasyonlar olduğu için silinemez.' };
+    }
+    await prisma.tour.delete({ where: { id: tourId } });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Ürün silinemedi' };
   }
 }
 

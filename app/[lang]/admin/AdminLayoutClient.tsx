@@ -16,7 +16,8 @@ const SIDEBAR_SECTIONS = [
   {
     title: 'ÜRÜN YÖNETİMİ',
     items: [
-      { path: 'admin/tours', label: 'Turlar ve Fiyatlandırma', icon: '🗺' },
+      { path: 'admin/tours', label: 'Ürünler', icon: '📦' },
+      { path: 'admin/pricing', label: 'Fiyatlandırma ve Müsaitlik', icon: '💰' },
       { path: 'admin/balloon-calendar', label: 'Balon Fiyat Takvimi', icon: '🎈' },
       { path: 'admin/flights', label: 'Uçuş Listesi', icon: '✈️' },
     ],
@@ -63,7 +64,7 @@ export default function AdminLayoutClient(props: {
   const base = `/${lang}`;
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)', backgroundColor: 'var(--color-bg-light)' }}>
+    <div className="admin-shell" style={{ display: 'flex', minHeight: 'calc(100vh - 60px)', backgroundColor: 'var(--color-bg-light)' }}>
       <aside
         className="admin-sidebar"
         style={{
@@ -145,7 +146,7 @@ export default function AdminLayoutClient(props: {
         </nav>
       </aside>
 
-      <main style={{ flex: 1, padding: 'var(--space-2xl)' }}>
+      <main className="admin-content" style={{ flex: 1, padding: '24px' }}>
         {props.children}
       </main>
     </div>

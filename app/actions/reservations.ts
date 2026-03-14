@@ -7,6 +7,25 @@ import { sanitizeGuestInput } from '@/lib/guestNotes';
 import { getTourDatePrice } from './tours';
 import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 
+type TourSummary = { id: string; titleEn: string; titleTr: string };
+type VariantSummary = { id: string; titleEn: string; titleTr: string };
+
+async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSummary>> {
+  if (tourIds.length === 0) return new Map();
+  const wanted = new Set(tourIds);
+  const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true, titleTr: true } });
+  const filtered = tours.filter((t) => wanted.has(t.id));
+  return new Map(filtered.map((t) => [t.id, t]));
+}
+
+async function getVariantSummaryMap(variantIds: string[]): Promise<Map<string, VariantSummary>> {
+  if (variantIds.length === 0) return new Map();
+  const wanted = new Set(variantIds);
+  const variants = await prisma.tourVariant.findMany({ select: { id: true, titleEn: true, titleTr: true } });
+  const filtered = variants.filter((v) => wanted.has(v.id));
+  return new Map(filtered.map((v) => [v.id, v]));
+}
+
 export interface CreateReservationItem {
   tourId: string;
   date: string;
@@ -75,7 +94,7 @@ export async function createReservations(input: CreateReservationInput): Promise
     for (const item of input.items) {
       let itemTotalPrice = item.totalPrice;
       let itemDiscount = 0;
-      let itemOriginalPrice = item.totalPrice;
+      const itemOriginalPrice = item.totalPrice;
       if (couponId && totalDiscount > 0 && subtotal > 0) {
         itemDiscount = (item.totalPrice / subtotal) * totalDiscount;
         itemTotalPrice = Math.max(0, item.totalPrice - itemDiscount);
@@ -123,11 +142,9 @@ export async function createReservations(input: CreateReservationInput): Promise
     if (couponId && couponUsages.length > 0) {
       const { recordCouponUsage } = await import('./coupons');
       const tourIds = [...new Set(couponUsages.map(u => u.tourId))];
-      const tours = await prisma.tour.findMany({
-        where: { id: { in: tourIds } },
-        select: { id: true, titleEn: true },
-      });
-      const tourMap = new Map(tours.map(t => [t.id, t.titleEn]));
+      const wantedTours = new Set(tourIds);
+      const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true } });
+      const tourMap = new Map(tours.filter((t) => wantedTours.has(t.id)).map(t => [t.id, t.titleEn]));
       await recordCouponUsage({
         couponId,
         usages: couponUsages.map(u => ({
@@ -158,10 +175,15 @@ export async function getReservations(filters?: { from?: Date; to?: Date; status
     if (filters?.status) where.status = filters.status;
     const list = await prisma.reservation.findMany({
       where: Object.keys(where).length ? where : undefined,
-      include: { tour: true, variant: { select: { titleEn: true, titleTr: true } } },
       orderBy: { date: 'asc' },
     });
-    return list;
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    const variantMap = await getVariantSummaryMap([...new Set(list.map((r) => r.variantId).filter((v): v is string => Boolean(v)))]);
+    return list.map((r) => ({
+      ...r,
+      tour: tourMap.get(r.tourId) ?? null,
+      variant: r.variantId ? variantMap.get(r.variantId) ?? null : null,
+    }));
   } catch {
     return [];
   }
@@ -171,12 +193,13 @@ export async function getReservations(filters?: { from?: Date; to?: Date; status
 export async function getReservationDetailsByIds(ids: string[]) {
   if (!ids?.length) return [];
   try {
-    const list = await prisma.reservation.findMany({
-      where: { id: { in: ids } },
-      include: { tour: true },
-      orderBy: { date: 'asc' },
-    });
-    return list;
+    const rows = await Promise.all(ids.map((id) => prisma.reservation.findUnique({ where: { id } })));
+    const list = rows.filter((r): r is NonNullable<typeof r> => Boolean(r)).sort((a, b) => a.date.getTime() - b.date.getTime());
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    return list.map((r) => ({
+      ...r,
+      tour: tourMap.get(r.tourId) ?? null,
+    }));
   } catch {
     return [];
   }
@@ -192,6 +215,14 @@ export async function updateReservationStatus(id: string, status: string): Promi
     if (status === 'CANCELLED' && prev?.couponId && prev.status !== 'CANCELLED') {
       const { decrementCouponUsage } = await import('./coupons');
       await decrementCouponUsage(prev.couponId);
+    }
+    if (status === 'CONFIRMED' || status === 'CANCELLED') {
+      try {
+        const { syncCariWithReservation } = await import('./cari');
+        await syncCariWithReservation(id);
+      } catch {
+        // Cari sync should not block reservation status update.
+      }
     }
     return { ok: true };
   } catch (e) {
@@ -215,11 +246,15 @@ export async function updateReservationDeposit(id: string, depositPaid: number):
 
 export async function getReservationsByUserId(userId: string) {
   try {
-    return await prisma.reservation.findMany({
+    const list = await prisma.reservation.findMany({
       where: { userId },
-      include: { tour: true },
       orderBy: { date: 'desc' },
     });
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    return list.map((r) => ({
+      ...r,
+      tour: tourMap.get(r.tourId) ?? null,
+    }));
   } catch {
     return [];
   }
@@ -279,7 +314,7 @@ export async function requestUpdateByGuest(
     if (Object.keys(payload).length <= 1) return { ok: false, error: 'En az bir alan değiştirmelisiniz' };
     await prisma.reservation.update({
       where: { id: reservationId },
-      data: payload,
+      data: { ...payload, status: 'CHANGE_REQUESTED' },
     });
     return { ok: true };
   } catch (e) {
@@ -292,7 +327,7 @@ export async function approveGuestCancellationRequest(reservationId: string, sen
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
-    const res = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { tour: true } });
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!res) return { ok: false, error: 'Reservation not found' };
     if (!res.cancellationRequestedAt) return { ok: false, error: 'İptal talebi bulunamadı' };
     await prisma.reservation.update({
@@ -303,6 +338,12 @@ export async function approveGuestCancellationRequest(reservationId: string, sen
         cancellationRequestReason: null,
       },
     });
+    try {
+      const { syncCariWithReservation } = await import('./cari');
+      await syncCariWithReservation(reservationId);
+    } catch {
+      // Cari sync should not block cancellation approval.
+    }
     if (res.couponId) {
       const { decrementCouponUsage } = await import('./coupons');
       await decrementCouponUsage(res.couponId);
@@ -346,11 +387,12 @@ async function recalculateReservationPrice(
   newPax: number
 ): Promise<{ subtotal: number; tourType: string } | null> {
   const dateStr = newDate.toISOString().split('T')[0];
-  const tour = await prisma.tour.findUnique({
-    where: { id: res.tourId },
-    include: { options: true, variants: true },
-  });
+  const tour = await prisma.tour.findUnique({ where: { id: res.tourId } });
   if (!tour) return null;
+  const [options, variants] = await Promise.all([
+    prisma.tourOption.findMany({ where: { tourId: res.tourId } }),
+    prisma.tourVariant.findMany({ where: { tourId: res.tourId } }),
+  ]);
 
   const datePrice = await getTourDatePrice(res.tourId, dateStr);
   const basePrice = datePrice?.price ?? tour.basePrice;
@@ -358,7 +400,7 @@ async function recalculateReservationPrice(
   let subtotal = 0;
 
   if (res.variantId) {
-    const variant = tour.variants.find((v) => v.id === res.variantId);
+    const variant = variants.find((v) => v.id === res.variantId);
     if (variant) {
       const children = res.childCount ?? 0;
       const adults = Math.max(0, newPax - children);
@@ -392,7 +434,7 @@ async function recalculateReservationPrice(
       for (const o of opts) {
         if (typeof o?.price === 'number') subtotal += o.price * newPax;
         else {
-          const tourOpt = tour.options.find((to) => String(to.id) === String(o?.id));
+          const tourOpt = options.find((to) => String(to.id) === String(o?.id));
           if (tourOpt) subtotal += tourOpt.priceAdd * newPax;
         }
       }
@@ -470,8 +512,14 @@ export async function approveGuestUpdateRequest(reservationId: string, sendEmail
 
     await prisma.reservation.update({
       where: { id: reservationId },
-      data,
+      data: { ...data, status: 'CONFIRMED' },
     });
+    try {
+      const { syncCariWithReservation } = await import('./cari');
+      await syncCariWithReservation(reservationId);
+    } catch {
+      // Cari sync should not block update request approval.
+    }
     if (sendEmail) await sendGuestRequestResponseEmail(reservationId, 'update_approved');
     return { ok: true };
   } catch (e) {
@@ -492,6 +540,7 @@ export async function rejectGuestUpdateRequest(reservationId: string, adminNote?
     await prisma.reservation.update({
       where: { id: reservationId },
       data: {
+        status: 'CONFIRMED',
         updateRequestedAt: null,
         pendingDate: null,
         pendingPax: null,
@@ -515,25 +564,29 @@ export async function sendGuestRequestResponseEmail(
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: true };
   try {
-    const res = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { tour: true } });
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!res) return { ok: false, error: 'Reservation not found' };
+    const tour = await prisma.tour.findUnique({
+      where: { id: res.tourId },
+      select: { titleEn: true, titleTr: true },
+    });
     const from = process.env.RESEND_FROM ?? 'onboarding@resend.dev';
     const resend = new Resend(apiKey);
     const dateStr = new Date(res.date).toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     let subject: string;
     let body: string;
     if (outcome === 'cancellation_approved') {
-      subject = `Rezervasyonunuz iptal edildi – ${res.tour?.titleEn ?? 'Tur'}`;
-      body = `<p>Sayın ${res.guestName},</p><p>İptal talebiniz onaylandı. Rezervasyonunuz iptal edilmiştir.</p><p><strong>Tur:</strong> ${res.tour?.titleEn ?? res.tourId}<br/><strong>Tarih:</strong> ${dateStr}</p><p>Sorularınız için bize ulaşabilirsiniz.</p><p>Kısmet Göreme Travel</p>`;
+      subject = `Rezervasyonunuz iptal edildi – ${tour?.titleEn ?? 'Tur'}`;
+      body = `<p>Sayın ${res.guestName},</p><p>İptal talebiniz onaylandı. Rezervasyonunuz iptal edilmiştir.</p><p><strong>Tur:</strong> ${tour?.titleEn ?? res.tourId}<br/><strong>Tarih:</strong> ${dateStr}</p><p>Sorularınız için bize ulaşabilirsiniz.</p><p>Kısmet Göreme Travel</p>`;
     } else if (outcome === 'cancellation_rejected') {
-      subject = `İptal talebiniz – ${res.tour?.titleEn ?? 'Tur'}`;
+      subject = `İptal talebiniz – ${tour?.titleEn ?? 'Tur'}`;
       body = `<p>Sayın ${res.guestName},</p><p>İptal talebiniz şu an için onaylanmadı. Rezervasyonunuz geçerliliğini korumaktadır.</p>${adminNote ? `<p><em>Not: ${adminNote}</em></p>` : ''}<p>Lütfen bizimle iletişime geçin; size daha uygun bir çözüm sunabiliriz.</p><p>Kısmet Göreme Travel</p>`;
     } else if (outcome === 'update_approved') {
       const newDateStr = new Date(res.date).toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      subject = `Rezervasyonunuz güncellendi – ${res.tour?.titleEn ?? 'Tur'}`;
-      body = `<p>Sayın ${res.guestName},</p><p>Değişiklik talebiniz onaylandı. Rezervasyonunuz güncellenmiştir.</p><p><strong>Tur:</strong> ${res.tour?.titleEn ?? res.tourId}<br/><strong>Yeni tarih:</strong> ${newDateStr}<br/><strong>Kişi sayısı:</strong> ${res.pax}</p><p>Kısmet Göreme Travel</p>`;
+      subject = `Rezervasyonunuz güncellendi – ${tour?.titleEn ?? 'Tur'}`;
+      body = `<p>Sayın ${res.guestName},</p><p>Değişiklik talebiniz onaylandı. Rezervasyonunuz güncellenmiştir.</p><p><strong>Tur:</strong> ${tour?.titleEn ?? res.tourId}<br/><strong>Yeni tarih:</strong> ${newDateStr}<br/><strong>Kişi sayısı:</strong> ${res.pax}</p><p>Kısmet Göreme Travel</p>`;
     } else {
-      subject = `Değişiklik talebiniz – ${res.tour?.titleEn ?? 'Tur'}`;
+      subject = `Değişiklik talebiniz – ${tour?.titleEn ?? 'Tur'}`;
       body = `<p>Sayın ${res.guestName},</p><p>Değişiklik talebiniz şu an için onaylanmadı.</p>${adminNote ? `<p><em>Not: ${adminNote}</em></p>` : ''}<p>Lütfen bizimle iletişime geçin.</p><p>Kısmet Göreme Travel</p>`;
     }
     const { error } = await resend.emails.send({
@@ -610,16 +663,16 @@ export async function getGuestRequestReservations(): Promise<GuestRequestItem[]>
           { updateRequestedAt: { not: null } },
         ],
       },
-      include: { tour: true },
       orderBy: { updatedAt: 'desc' },
     });
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
     return list.map((r) => {
       const requestedAt = (r.cancellationRequestedAt ?? r.updateRequestedAt)!;
       return {
         id: r.id,
         guestName: r.guestName,
         guestEmail: r.guestEmail,
-        tourTitle: r.tour?.titleEn ?? r.tourId,
+        tourTitle: tourMap.get(r.tourId)?.titleEn ?? r.tourId,
         dateStr: r.date.toISOString().split('T')[0],
         pax: r.pax,
         totalPrice: r.totalPrice,
@@ -687,7 +740,8 @@ export async function getAdminDashboardStats(): Promise<DashboardStats> {
     const [tomorrowRes, monthAgg, cancelledCount] = await Promise.all([
       prisma.reservation.count({ where: { date: { gte: tomorrowStart, lt: tomorrowEnd } } }),
       prisma.reservation.aggregate({
-        where: { date: { gte: monthStart, lte: monthEnd }, status: { not: 'CANCELLED' } },
+        // Cari otomasyonu CONFIRMED rezervasyonlarda çalıştığı için dashboard gelirini de CONFIRMED ile hizalıyoruz.
+        where: { date: { gte: monthStart, lte: monthEnd }, status: 'CONFIRMED' },
         _sum: { totalPrice: true },
       }),
       prisma.reservation.count({ where: { status: 'CANCELLED' } }),
@@ -720,17 +774,18 @@ export async function getPendingReservationsForDashboard(): Promise<PendingReser
     const list = await prisma.reservation.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
-      include: { tour: true, variant: { select: { titleEn: true } } },
     });
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    const variantMap = await getVariantSummaryMap([...new Set(list.map((r) => r.variantId).filter((v): v is string => Boolean(v)))]);
     return list.map((r: {
       id: string; guestName: string; createdAt: Date; date: Date; pax: number; totalPrice: number; depositPaid: number; notes: string | null;
-      tour?: { titleEn: string } | null;
-      variant?: { titleEn: string } | null;
+      tourId: string;
+      variantId: string | null;
     }) => ({
       id: r.id,
       guestName: r.guestName,
-      tourTitle: r.tour?.titleEn ?? 'Tur',
-      variantTitle: r.variant?.titleEn ?? null,
+      tourTitle: tourMap.get(r.tourId)?.titleEn ?? 'Tur',
+      variantTitle: r.variantId ? variantMap.get(r.variantId)?.titleEn ?? null : null,
       dateStr: r.date.toISOString().split('T')[0],
       pax: r.pax,
       totalPrice: r.totalPrice,
@@ -752,12 +807,13 @@ export async function getTodayReservationsForDashboard(): Promise<TodayReservati
     const list = await prisma.reservation.findMany({
       where: { date: { gte: start, lt: end }, status: { not: 'CANCELLED' } },
       orderBy: { date: 'asc' },
-      include: { tour: true, variant: { select: { titleEn: true } } },
     });
-    return list.map((r: { id: string; pax: number; tour?: { titleEn: string } | null; variant?: { titleEn: string } | null }) => ({
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    const variantMap = await getVariantSummaryMap([...new Set(list.map((r) => r.variantId).filter((v): v is string => Boolean(v)))]);
+    return list.map((r: { id: string; pax: number; tourId: string; variantId: string | null }) => ({
       id: r.id,
-      tourTitle: r.tour?.titleEn ?? 'Tur',
-      variantTitle: r.variant?.titleEn ?? null,
+      tourTitle: tourMap.get(r.tourId)?.titleEn ?? 'Tur',
+      variantTitle: r.variantId ? variantMap.get(r.variantId)?.titleEn ?? null : null,
       pax: r.pax,
     }));
   } catch {
@@ -791,18 +847,19 @@ export async function getRecentActivities(limit = 10): Promise<RecentActivity[]>
     const list = await prisma.reservation.findMany({
       orderBy: { updatedAt: 'desc' },
       take: limit,
-      include: { tour: true },
     });
-    return list.map((r: { id: string; guestName: string; tour?: { titleTr: string; titleEn: string } | null; depositPaid: number; createdAt: Date; updatedAt: Date; date: Date; pax: number; totalPrice: number; status: string }) => {
+    const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
+    return list.map((r: { id: string; guestName: string; tourId: string; depositPaid: number; createdAt: Date; updatedAt: Date; date: Date; pax: number; totalPrice: number; status: string }) => {
       const wasUpdated = r.updatedAt.getTime() - r.createdAt.getTime() > 60_000; // > 1 min
       let description: string;
       if (wasUpdated) description = 'misafir rezervasyonu güncelledi.';
       else if (r.depositPaid > 0) description = 'havale ile depozit ödedi.';
       else description = 'rezervasyon talebi gönderdi.';
+      const tour = tourMap.get(r.tourId);
       return {
         id: r.id,
         guestName: r.guestName,
-        tourTitle: r.tour?.titleTr ?? r.tour?.titleEn ?? 'Tur',
+        tourTitle: tour?.titleTr ?? tour?.titleEn ?? 'Tur',
         description,
         timeAgo: formatTimeAgo(wasUpdated ? r.updatedAt : r.createdAt),
         dateStr: r.date.toISOString().split('T')[0],
@@ -823,11 +880,12 @@ export async function sendReservationConfirmationEmail(reservationId: string): P
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, error: 'Email not configured (RESEND_API_KEY missing)' };
   try {
-    const res = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-      include: { tour: true },
-    });
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!res) return { ok: false, error: 'Reservation not found' };
+    const tour = await prisma.tour.findUnique({
+      where: { id: res.tourId },
+      select: { titleEn: true, titleTr: true },
+    });
     const from = process.env.RESEND_FROM ?? 'onboarding@resend.dev';
     const resend = new Resend(apiKey);
     const dateStr = new Date(res.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -836,7 +894,7 @@ export async function sendReservationConfirmationEmail(reservationId: string): P
       <p>Dear ${res.guestName},</p>
       <p>Your reservation with Kısmet Göreme Travel has been confirmed.</p>
       <ul>
-        <li><strong>Tour / Service:</strong> ${res.tour?.titleEn ?? res.tourId}</li>
+        <li><strong>Tour / Service:</strong> ${tour?.titleEn ?? res.tourId}</li>
         <li><strong>Date:</strong> ${dateStr}</li>
         <li><strong>Guests:</strong> ${res.pax}</li>
         <li><strong>Total:</strong> €${res.totalPrice}</li>
@@ -847,7 +905,7 @@ export async function sendReservationConfirmationEmail(reservationId: string): P
     const { error } = await resend.emails.send({
       from,
       to: res.guestEmail,
-      subject: `Reservation confirmed – ${res.tour?.titleEn ?? 'Tour'}`,
+      subject: `Reservation confirmed – ${tour?.titleEn ?? 'Tour'}`,
       html,
     });
     if (error) return { ok: false, error: error.message };

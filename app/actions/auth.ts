@@ -5,19 +5,42 @@ import { redirect } from 'next/navigation';
 import { hashPassword, verifyPassword } from '../../lib/auth';
 
 const SESSION_COOKIE = 'kismet-user';
+const SESSION_CACHE_TTL_MS = 30_000;
+const sessionCache = new Map<string, { value: { id: string; email: string; name: string; role: string } | null; expiresAt: number }>();
+
+function readSessionCache(userId: string) {
+  const cached = sessionCache.get(userId);
+  if (!cached) return null;
+  if (cached.expiresAt < Date.now()) {
+    sessionCache.delete(userId);
+    return null;
+  }
+  return cached.value;
+}
+
+function writeSessionCache(userId: string, value: { id: string; email: string; name: string; role: string } | null) {
+  sessionCache.set(userId, {
+    value,
+    expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+  });
+}
 
 export async function getSession(): Promise<{ id: string; email: string; name: string; role: string } | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!userId) return null;
+  const cached = readSessionCache(userId);
+  if (cached) return cached;
   try {
     const { prisma } = await import('../../lib/prisma');
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true, role: true },
     });
+    writeSessionCache(userId, user);
     return user;
   } catch {
+    writeSessionCache(userId, null);
     return null;
   }
 }
@@ -75,6 +98,7 @@ export async function updateMyProfile(input: {
         country: input.country?.trim() || null,
       },
     });
+    sessionCache.delete(session.id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Update failed' };
@@ -131,6 +155,7 @@ export async function login(email: string, password: string): Promise<{ ok: bool
         });
       }
       cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+      sessionCache.delete(user.id);
       return { ok: true };
     }
 
@@ -139,6 +164,7 @@ export async function login(email: string, password: string): Promise<{ ok: bool
       return { ok: false, error: 'Invalid email or password' };
     }
     cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    sessionCache.delete(user.id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Login failed' };
@@ -160,6 +186,7 @@ export async function register(name: string, email: string, password: string): P
     });
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    sessionCache.delete(user.id);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Registration failed' };
@@ -168,6 +195,8 @@ export async function register(name: string, email: string, password: string): P
 
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();
+  const userId = cookieStore.get(SESSION_COOKIE)?.value;
+  if (userId) sessionCache.delete(userId);
   cookieStore.delete(SESSION_COOKIE);
   redirect('/en/login');
 }

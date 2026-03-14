@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 
 const ADMIN_PATHS = ['en', 'tr', 'zh'].flatMap(lang => [`/${lang}/admin/coupons`]);
+const activeCouponCountCache = new Map<string, { count: number; expiresAt: number }>();
 
 function revalidateAdmin() {
   ADMIN_PATHS.forEach(p => revalidatePath(p));
@@ -402,8 +403,10 @@ export async function assignCouponToUser(input: { userId: string; couponId: stri
 
 export async function getActiveCouponCountForUser(userId: string): Promise<number> {
   try {
+    const cached = activeCouponCountCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) return cached.count;
     const today = new Date();
-    return await prisma.coupon.count({
+    const count = await prisma.coupon.count({
       where: {
         userId,
         isActive: true,
@@ -411,6 +414,8 @@ export async function getActiveCouponCountForUser(userId: string): Promise<numbe
         bookingEnd: { gte: today },
       },
     });
+    activeCouponCountCache.set(userId, { count, expiresAt: Date.now() + 30_000 });
+    return count;
   } catch {
     return 0;
   }

@@ -72,6 +72,7 @@ model TourVariant {
   adultPrice         Float
   childPrice         Float?   // 4-7 yaş; null = same as adult
   pricingType        String   // "per_person" | "per_vehicle"
+  privatePriceTiers  Json?    // [{ minPax, maxPax, price }] for reservationType=private
   sortOrder          Int      @default(0)
   isActive           Boolean  @default(true)
   isRecommended     Boolean  @default(false)
@@ -213,7 +214,7 @@ model CouponUsage {
 
 model CariRecord {
   id                    String    @id @default(uuid())
-  reservationId         String?
+  reservationId         String?   @unique
   reservation           Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   guestName             String
   hotelName             String?

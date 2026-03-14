@@ -3,6 +3,19 @@
 import { getSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import type { TourVariantDisplay } from '@/lib/types/variant';
+import { parsePriceTiers, validateContinuousPriceTiers } from '@/lib/pricingTiers';
+import type { TransferAirportTiers } from '@/app/actions/tours';
+
+type PrismaWithTourVariant = typeof prisma & {
+  tourVariant: {
+    findMany: (args: unknown) => Promise<unknown[]>;
+    create: (args: unknown) => Promise<unknown>;
+    update: (args: unknown) => Promise<unknown>;
+    delete: (args: unknown) => Promise<unknown>;
+  };
+};
+
+const prismaWithTourVariant = prisma as PrismaWithTourVariant;
 
 export type TourWithVariantsResult = {
   id: string;
@@ -12,12 +25,30 @@ export type TourWithVariantsResult = {
   titleZh: string;
   hasTourType: boolean;
   hasAirportSelect: boolean;
+  transferAirportTiers: TransferAirportTiers | null;
   variants: TourVariantDisplay[];
 };
 
 function parseJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((x): x is string => typeof x === 'string');
   return [];
+}
+
+function parseTierArray(value: unknown): { minPax: number; maxPax: number; price: number }[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const rec = item as Record<string, unknown>;
+      return {
+        minPax: Number(rec.minPax),
+        maxPax: Number(rec.maxPax),
+        price: Number(rec.price),
+      };
+    })
+    .filter((item): item is { minPax: number; maxPax: number; price: number } => {
+      return Boolean(item) && Number.isFinite(item.minPax) && Number.isFinite(item.maxPax) && Number.isFinite(item.price);
+    });
 }
 
 function mapVariantToDisplay(v: Record<string, unknown>): TourVariantDisplay {
@@ -43,6 +74,7 @@ function mapVariantToDisplay(v: Record<string, unknown>): TourVariantDisplay {
     adultPrice: Number(v.adultPrice),
     childPrice: v.childPrice != null ? Number(v.childPrice) : null,
     pricingType: v.pricingType === 'per_vehicle' ? 'per_vehicle' : 'per_person',
+    privatePriceTiers: v.privatePriceTiers != null ? parsePriceTiers(v.privatePriceTiers) : null,
     sortOrder: Number(v.sortOrder ?? 0),
     isActive: Boolean(v.isActive),
     isRecommended: Boolean(v.isRecommended),
@@ -61,7 +93,7 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
     let variants: TourVariantDisplay[] = [];
 
     try {
-      const variantRows = await (prisma as any).tourVariant.findMany({
+      const variantRows = await prismaWithTourVariant.tourVariant.findMany({
         where: { tourId, isActive: true },
         orderBy: { sortOrder: 'asc' },
       });
@@ -70,6 +102,21 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
       // TourVariant tablosu veya relation yoksa boş dön
     }
 
+    const rawByAirport = tourRecord.transferAirportTiers as Record<string, unknown> | undefined;
+    const byAirport: TransferAirportTiers | null =
+      rawByAirport && typeof rawByAirport === 'object'
+        ? {
+            ASR: parseTierArray(rawByAirport.ASR),
+            NAV: parseTierArray(rawByAirport.NAV),
+          }
+        : null;
+    const legacy = parseTierArray(tourRecord.transferTiers);
+    const normalizedByAirport =
+      byAirport && ((byAirport.ASR?.length ?? 0) > 0 || (byAirport.NAV?.length ?? 0) > 0)
+        ? byAirport
+        : legacy.length > 0
+          ? { ASR: legacy, NAV: [] }
+          : null;
     return {
       id: tour.id,
       type: tour.type,
@@ -78,6 +125,7 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
       titleZh: tour.titleZh,
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
+      transferAirportTiers: normalizedByAirport,
       variants,
     };
   } catch {
@@ -88,7 +136,7 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
 /** Admin: get all variants for a tour (including inactive). */
 export async function getTourVariantsForAdmin(tourId: string): Promise<TourVariantDisplay[]> {
   try {
-    const rows = await (prisma as any).tourVariant.findMany({
+    const rows = await prismaWithTourVariant.tourVariant.findMany({
       where: { tourId },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
@@ -119,6 +167,7 @@ export type CreateVariantInput = {
   adultPrice: number;
   childPrice: number | null;
   pricingType: 'per_person' | 'per_vehicle';
+  privatePriceTiers?: { minPax: number; maxPax: number; price: number }[] | null;
   sortOrder?: number;
   isActive?: boolean;
   isRecommended?: boolean;
@@ -128,7 +177,11 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
-    await (prisma as any).tourVariant.create({
+    if (data.privatePriceTiers && data.privatePriceTiers.length > 0) {
+      const valid = validateContinuousPriceTiers(data.privatePriceTiers);
+      if (!valid.ok) return { ok: false, error: valid.error };
+    }
+    await prismaWithTourVariant.tourVariant.create({
       data: {
         tourId: data.tourId,
         tourType: data.tourType || null,
@@ -150,6 +203,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
         adultPrice: Number(data.adultPrice),
         childPrice: data.childPrice != null ? Number(data.childPrice) : null,
         pricingType: data.pricingType,
+        privatePriceTiers: data.privatePriceTiers ?? null,
         sortOrder: data.sortOrder ?? 0,
         isActive: data.isActive !== false,
         isRecommended: Boolean(data.isRecommended),
@@ -164,6 +218,10 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
 export type UpdateVariantInput = Partial<Omit<CreateVariantInput, 'tourId'>>;
 
 export async function updateVariant(variantId: string, data: UpdateVariantInput): Promise<{ ok: boolean; error?: string }> {
+    if (data.privatePriceTiers !== undefined && data.privatePriceTiers && data.privatePriceTiers.length > 0) {
+      const valid = validateContinuousPriceTiers(data.privatePriceTiers);
+      if (!valid.ok) return { ok: false, error: valid.error };
+    }
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
@@ -187,10 +245,11 @@ export async function updateVariant(variantId: string, data: UpdateVariantInput)
     if (data.adultPrice !== undefined) payload.adultPrice = Number(data.adultPrice);
     if (data.childPrice !== undefined) payload.childPrice = data.childPrice != null ? Number(data.childPrice) : null;
     if (data.pricingType !== undefined) payload.pricingType = data.pricingType;
+    if (data.privatePriceTiers !== undefined) payload.privatePriceTiers = data.privatePriceTiers;
     if (data.sortOrder !== undefined) payload.sortOrder = data.sortOrder;
     if (data.isActive !== undefined) payload.isActive = data.isActive;
     if (data.isRecommended !== undefined) payload.isRecommended = data.isRecommended;
-    await (prisma as any).tourVariant.update({ where: { id: variantId }, data: payload });
+    await prismaWithTourVariant.tourVariant.update({ where: { id: variantId }, data: payload });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Varyant güncellenemedi' };
@@ -201,7 +260,7 @@ export async function deleteVariant(variantId: string): Promise<{ ok: boolean; e
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
-    await (prisma as any).tourVariant.delete({ where: { id: variantId } });
+    await prismaWithTourVariant.tourVariant.delete({ where: { id: variantId } });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Varyant silinemedi' };

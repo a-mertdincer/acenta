@@ -16,11 +16,7 @@
     "myCoupons": "Kuponlarım",
     "myReservations": "Rezervasyonlarım",
     "contact": "İletişim",
-    "adminAccount": "Admin Hesabım",
-    "adminDashboard": "Admin Pano",
-    "adminReservations": "Rezervasyon Takvimi",
-    "adminUsers": "Kullanıcılar",
-    "adminCoupons": "Kuponlar"
+    "managementPanel": "Yönetim Paneli"
   },
   "home": {
     "title": "Kapadokya'nın Büyüsünü Yaşayın",
@@ -214,7 +210,14 @@
     "flightNumber": "Uçuş numarası",
     "flightArrival": "Varış uçuşu",
     "flightDeparture": "Kalkış uçuşu",
-    "free": "Ücretsiz"
+    "free": "Ücretsiz",
+    "agePolicyTitle": "Yaş politikası:",
+    "agePolicyInfant": "0-3 yaş: Ücretsiz",
+    "agePolicyChild": "4-7 yaş: Çocuk fiyatı",
+    "agePolicyAdult": "7+ yaş: Yetişkin fiyatı",
+    "addedToCart": "sepete eklendi!",
+    "goToCart": "Sepete Git",
+    "continueShopping": "Alışverişe Devam Et"
   },
   "tourDetail": {
     "description": "Açıklama",

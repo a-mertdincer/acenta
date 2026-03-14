@@ -2,9 +2,10 @@ import { redirect } from 'next/navigation';
 import { getSession, getUsers } from '../../../actions/auth';
 import { assignCouponToUser, getCoupons } from '../../../actions/coupons';
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage(props: { params: Promise<{ lang: string }> }) {
+  const { lang } = await props.params;
   const session = await getSession();
-  if (!session || session.role !== 'ADMIN') redirect('/en/login');
+  if (!session || session.role !== 'ADMIN') redirect(`/${lang}/login?from=admin`);
 
   const usersRes = await getUsers();
   const users = usersRes.ok ? usersRes.users ?? [] : [];

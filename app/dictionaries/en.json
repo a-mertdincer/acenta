@@ -16,11 +16,7 @@
     "myCoupons": "My Coupons",
     "myReservations": "My Reservations",
     "contact": "Contact",
-    "adminAccount": "Admin Account",
-    "adminDashboard": "Admin Dashboard",
-    "adminReservations": "Reservation Calendar",
-    "adminUsers": "Users",
-    "adminCoupons": "Coupons"
+    "managementPanel": "Management Panel"
   },
   "home": {
     "title": "Experience the Magic of Cappadocia",
@@ -214,7 +210,14 @@
     "flightNumber": "Flight number",
     "flightArrival": "Arrival flight",
     "flightDeparture": "Departure flight",
-    "free": "Free"
+    "free": "Free",
+    "agePolicyTitle": "Age policy:",
+    "agePolicyInfant": "0-3 years: Free",
+    "agePolicyChild": "4-7 years: Child price",
+    "agePolicyAdult": "7+ years: Adult price",
+    "addedToCart": "added to cart!",
+    "goToCart": "Go to Cart",
+    "continueShopping": "Continue Shopping"
   },
   "tourDetail": {
     "description": "Description",

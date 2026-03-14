@@ -2,24 +2,24 @@
   "name": "acenta",
   "version": "0.1.0",
   "private": true,
-"scripts": {
-        "dev": "next dev",
-        "build": "prisma generate && next build",
-        "start": "next start",
-        "lint": "eslint",
-        "seed": "prisma db seed",
-        "db:up": "docker-compose up -d",
-        "db:down": "docker-compose down",
-        "db:migrate": "prisma migrate deploy",
-        "setup": "prisma migrate deploy && npm run seed"
-    },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "prisma db seed",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:migrate": "prisma migrate deploy",
+    "setup": "prisma migrate deploy && npm run seed"
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.8.1",
     "@prisma/adapter-pg": "^7.4.1",
-    "@prisma/client": "^7.4.1",
+    "@prisma/client": "^7.5.0",
     "negotiator": "^1.0.0",
     "next": "16.1.6",
     "pg": "^8.18.0",
@@ -38,7 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "playwright": "^1.58.2",
-    "prisma": "^7.4.1",
+    "prisma": "^7.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

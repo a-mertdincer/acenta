@@ -9,6 +9,10 @@ import {
   updateReservationStatus,
   sendReservationConfirmationEmail,
   updateReservationDeposit,
+  approveGuestCancellationRequest,
+  rejectGuestCancellationRequest,
+  approveGuestUpdateRequest,
+  rejectGuestUpdateRequest,
 } from '../../../actions/reservations';
 import {
   getReservationStatusLabel,
@@ -62,6 +66,12 @@ interface ResRow {
   couponCode: string | null;
   originalPrice: number | null;
   discountAmount: number | null;
+  cancellationRequestedAt: string | null;
+  cancellationRequestReason: string | null;
+  updateRequestedAt: string | null;
+  pendingDate: string | null;
+  pendingPax: number | null;
+  pendingNotes: string | null;
 }
 
 type SortKey = 'tourDate' | 'createdAt' | 'customer' | 'tour' | 'totalPrice' | 'status';
@@ -78,10 +88,17 @@ export default function AdminReservationsPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const highlightId = searchParams.get('highlight');
+  const expandId = searchParams.get('expand');
+  const focusId = expandId ?? highlightId;
+  const urlTourDate = searchParams.get('tourDate');
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
   const lang = (pathname?.split('/')[1] ?? 'tr') as string;
 
-  const [viewMode, setViewMode] = useState<'calendar' | 'table'>(() => (searchParams.get('view') === 'table' || searchParams.get('status') ? 'table' : 'calendar'));
+  const [viewMode, setViewMode] = useState<'calendar' | 'table'>(() => (
+    searchParams.get('view') === 'table' || searchParams.get('status') || searchParams.get('expand')
+      ? 'table'
+      : 'calendar'
+  ));
   const [reservations, setReservations] = useState<ResRow[]>([]);
   const urlStatus = searchParams.get('status');
   const [loading, setLoading] = useState(true);
@@ -100,25 +117,33 @@ export default function AdminReservationsPage() {
   const [depositValue, setDepositValue] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const [filterDate, setFilterDate] = useState<string>(() => urlTourDate ?? '');
   const statusPopoverRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (highlightId) setExpandedId(highlightId);
-  }, [highlightId]);
+    if (focusId) {
+      setExpandedId(focusId);
+      setFlashId(focusId);
+      const timer = setTimeout(() => setFlashId(null), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [focusId]);
 
   useEffect(() => {
-    if (searchParams.get('view') === 'table') setViewMode('table');
+    if (searchParams.get('view') === 'table' || searchParams.get('expand')) setViewMode('table');
     const s = searchParams.get('status');
     if (s) setFilterStatus(s);
+    setFilterDate(searchParams.get('tourDate') ?? '');
   }, [searchParams]);
 
   useEffect(() => {
-    if (highlightId && reservations.length > 0) {
-      const row = rowRefs.current[highlightId];
+    if (focusId && reservations.length > 0) {
+      const row = rowRefs.current[focusId];
       if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [highlightId, reservations]);
+  }, [focusId, reservations]);
 
   useEffect(() => {
     getReservations().then((list) => {
@@ -141,6 +166,12 @@ export default function AdminReservationsPage() {
             notes: string | null;
             options: string;
             transferAirport?: string | null;
+            cancellationRequestedAt?: Date | null;
+            cancellationRequestReason?: string | null;
+            updateRequestedAt?: Date | null;
+            pendingDate?: Date | null;
+            pendingPax?: number | null;
+            pendingNotes?: string | null;
           }) => ({
             id: r.id,
             customer: r.guestName,
@@ -162,6 +193,12 @@ export default function AdminReservationsPage() {
             couponCode: (r as { couponCode?: string | null }).couponCode ?? null,
             originalPrice: (r as { originalPrice?: number | null }).originalPrice ?? null,
             discountAmount: (r as { discountAmount?: number | null }).discountAmount ?? null,
+            cancellationRequestedAt: r.cancellationRequestedAt ? r.cancellationRequestedAt.toISOString() : null,
+            cancellationRequestReason: r.cancellationRequestReason ?? null,
+            updateRequestedAt: r.updateRequestedAt ? r.updateRequestedAt.toISOString() : null,
+            pendingDate: r.pendingDate ? r.pendingDate.toISOString() : null,
+            pendingPax: r.pendingPax ?? null,
+            pendingNotes: r.pendingNotes ?? null,
           })
         )
       );
@@ -193,6 +230,7 @@ export default function AdminReservationsPage() {
     }
     if (filterStatus) list = list.filter((r) => r.status === filterStatus);
     if (filterTour) list = list.filter((r) => r.tour === filterTour);
+    if (filterDate) list = list.filter((r) => r.date === filterDate);
 
     list = [...list].sort((a, b) => {
       let cmp = 0;
@@ -221,7 +259,7 @@ export default function AdminReservationsPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return list;
-  }, [reservations, searchDebounced, filterStatus, filterTour, sortKey, sortDir]);
+  }, [reservations, searchDebounced, filterStatus, filterTour, filterDate, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / perPage));
   const paginated = useMemo(
@@ -292,6 +330,63 @@ export default function AdminReservationsPage() {
       setDepositEditId(null);
       setDepositValue('');
     } else alert(result.error);
+  };
+
+  const refreshSingleReservation = async (id: string) => {
+    const list = await getReservations();
+    const next = list.find((r) => r.id === id);
+    if (!next) return;
+    setReservations((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              status: next.status,
+              date: next.date.toISOString().split('T')[0],
+              pax: next.pax,
+              total: `€${next.totalPrice}`,
+              totalPrice: next.totalPrice,
+              notes: next.notes ?? null,
+              displayNotes: formatNotesForDisplay(next.notes),
+              cancellationRequestedAt: next.cancellationRequestedAt ? next.cancellationRequestedAt.toISOString() : null,
+              cancellationRequestReason: next.cancellationRequestReason ?? null,
+              updateRequestedAt: next.updateRequestedAt ? next.updateRequestedAt.toISOString() : null,
+              pendingDate: next.pendingDate ? next.pendingDate.toISOString() : null,
+              pendingPax: next.pendingPax ?? null,
+              pendingNotes: next.pendingNotes ?? null,
+              couponCode: (next as { couponCode?: string | null }).couponCode ?? null,
+              originalPrice: (next as { originalPrice?: number | null }).originalPrice ?? null,
+              discountAmount: (next as { discountAmount?: number | null }).discountAmount ?? null,
+            }
+          : p
+      )
+    );
+  };
+
+  const handleApproveCancellationRequest = async (id: string) => {
+    const result = await approveGuestCancellationRequest(id, true);
+    if (!result.ok) return alert(result.error ?? 'Onaylama başarısız');
+    await refreshSingleReservation(id);
+  };
+
+  const handleRejectCancellationRequest = async (id: string) => {
+    const note = window.prompt('Misafire iletilecek not (isteğe bağlı):');
+    const result = await rejectGuestCancellationRequest(id, note ?? undefined, true);
+    if (!result.ok) return alert(result.error ?? 'Reddetme başarısız');
+    await refreshSingleReservation(id);
+  };
+
+  const handleApproveUpdateRequest = async (id: string) => {
+    const result = await approveGuestUpdateRequest(id, true);
+    if (!result.ok) return alert(result.error ?? 'Onaylama başarısız');
+    await refreshSingleReservation(id);
+  };
+
+  const handleRejectUpdateRequest = async (id: string) => {
+    const note = window.prompt('Misafire iletilecek not (isteğe bağlı):');
+    const result = await rejectGuestUpdateRequest(id, note ?? undefined, true);
+    if (!result.ok) return alert(result.error ?? 'Reddetme başarısız');
+    await refreshSingleReservation(id);
   };
 
   const exportCsv = () => {
@@ -421,6 +516,19 @@ export default function AdminReservationsPage() {
             </option>
           ))}
         </select>
+        <input
+          type="date"
+          className="admin-search-input"
+          style={{ minWidth: 170 }}
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          title="Tur tarihine göre filtrele"
+        />
+        {filterDate && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFilterDate('')}>
+            Tarih filtresini temizle
+          </button>
+        )}
         <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
           {filteredAndSorted.length} kayıt
         </span>
@@ -490,7 +598,7 @@ export default function AdminReservationsPage() {
                       ref={(el) => {
                         rowRefs.current[res.id] = el;
                       }}
-                      className={isExpanded ? 'admin-row-expanded' : ''}
+                      className={`${isExpanded ? 'admin-row-expanded' : ''} ${flashId === res.id ? 'admin-row-expanded' : ''}`.trim()}
                     >
                       <td className="admin-td-check">
                         <input
@@ -702,6 +810,37 @@ export default function AdminReservationsPage() {
                                   : '—'}
                               </p>
                             </div>
+                            {(res.cancellationRequestedAt || res.updateRequestedAt) && (
+                              <div className="admin-expand-section" style={{ gridColumn: '1 / -1', border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)', background: '#fff7ed' }}>
+                                <h4>Aktif Talep</h4>
+                                {res.cancellationRequestedAt ? (
+                                  <>
+                                    <p style={{ fontWeight: 700, color: '#b91c1c' }}>⚠️ İPTAL TALEBİ</p>
+                                    <p>Talep tarihi: {formatDate(res.cancellationRequestedAt)}</p>
+                                    <p>İptal nedeni: {res.cancellationRequestReason || '—'}</p>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                                      <Button onClick={() => handleApproveCancellationRequest(res.id)}>✅ İptali Onayla</Button>
+                                      <Button variant="secondary" onClick={() => handleRejectCancellationRequest(res.id)}>❌ Talebi Reddet</Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p style={{ fontWeight: 700, color: '#92400e' }}>⚠️ DEĞİŞİKLİK TALEBİ</p>
+                                    <p>Talep tarihi: {res.updateRequestedAt ? formatDate(res.updateRequestedAt) : '—'}</p>
+                                    <p>
+                                      İstenen değişiklik:
+                                      {res.pendingDate ? ` Tarih: ${formatDate(res.date)} → ${formatDate(res.pendingDate)}` : ''}
+                                      {res.pendingPax != null ? `, Kişi: ${res.pax} → ${res.pendingPax}` : ''}
+                                      {res.pendingNotes ? `, Not: ${res.pendingNotes}` : ''}
+                                    </p>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                                      <Button onClick={() => handleApproveUpdateRequest(res.id)}>✅ Değişikliği Onayla</Button>
+                                      <Button variant="secondary" onClick={() => handleRejectUpdateRequest(res.id)}>❌ Talebi Reddet</Button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div style={{ marginTop: 12 }}>
                             <Button

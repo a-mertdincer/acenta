@@ -16,11 +16,7 @@
     "myCoupons": "我的优惠券",
     "myReservations": "我的预订",
     "contact": "联系",
-    "adminAccount": "管理员账户",
-    "adminDashboard": "管理面板",
-    "adminReservations": "预订日历",
-    "adminUsers": "用户",
-    "adminCoupons": "优惠券"
+    "managementPanel": "管理面板"
   },
   "home": {
     "title": "体验卡帕多奇亚的魔力",
@@ -214,7 +210,14 @@
     "flightNumber": "航班号",
     "flightArrival": "抵达航班",
     "flightDeparture": "出发航班",
-    "free": "免费"
+    "free": "免费",
+    "agePolicyTitle": "年龄政策：",
+    "agePolicyInfant": "0-3岁：免费",
+    "agePolicyChild": "4-7岁：儿童价格",
+    "agePolicyAdult": "7岁以上：成人价格",
+    "addedToCart": "已加入购物车！",
+    "goToCart": "前往购物车",
+    "continueShopping": "继续购物"
   },
   "tourDetail": {
     "description": "描述",

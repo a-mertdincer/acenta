@@ -38,11 +38,7 @@ const fallbackHeaderUserMenu = {
   myCoupons: 'My Coupons',
   myReservations: 'My Reservations',
   contact: 'Contact',
-  adminAccount: 'Admin Account',
-  adminDashboard: 'Admin Dashboard',
-  adminReservations: 'Reservation Calendar',
-  adminUsers: 'Users',
-  adminCoupons: 'Coupons',
+  managementPanel: 'Management Panel',
 };
 
 export default async function RootLayout(props: {
@@ -62,18 +58,18 @@ export default async function RootLayout(props: {
   try {
     const params = await props.params;
     lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
-    const d = await getDictionary(lang);
+  } catch {
+    // params failed, keep default lang
+  }
+
+  try {
+    const [d, s] = await Promise.all([getDictionary(lang), getSession()]);
     dict = d && typeof d === 'object' ? {
       navigation: d.navigation ?? fallbackNav,
       footer: d.footer ?? fallbackFooter,
       headerUserMenu: d.headerUserMenu ?? fallbackHeaderUserMenu,
     } : dict;
-  } catch {
-    // getDictionary or params failed
-  }
-
-  try {
-    session = await getSession();
+    session = s;
   } catch {
     session = null;
   }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
+import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, deleteTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
 import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
 import { getTourVariantsForAdmin, createVariant, updateVariant, deleteVariant, type CreateVariantInput } from '../../../actions/variants';
 import type { TourVariantDisplay } from '@/lib/types/variant';
@@ -65,11 +65,18 @@ export default function AdminToursPage() {
     const [variants, setVariants] = useState<TourVariantDisplay[]>([]);
     const [variantSaving, setVariantSaving] = useState(false);
     const [showAddVariant, setShowAddVariant] = useState(false);
+    const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+    const [editVariant, setEditVariant] = useState<Partial<CreateVariantInput>>({
+        tourType: null, reservationType: 'regular', airport: null,
+        titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '',
+        includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null,
+        adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: 0, isActive: true, isRecommended: false,
+    });
     const [newVariant, setNewVariant] = useState<Partial<CreateVariantInput>>({
         tourType: null, reservationType: 'regular', airport: null,
         titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '',
         includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null,
-        adultPrice: 0, childPrice: null, pricingType: 'per_person', sortOrder: 0, isActive: true, isRecommended: false,
+        adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: 0, isActive: true, isRecommended: false,
     });
 
     const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
@@ -193,6 +200,23 @@ export default function AdminToursPage() {
         else alert(result.error);
     };
 
+    const updateVariantTierRows = (
+        target: 'new' | 'edit',
+        updater: (prev: { minPax: number; maxPax: number; price: number }[]) => { minPax: number; maxPax: number; price: number }[]
+    ) => {
+        if (target === 'new') {
+            setNewVariant((prev) => {
+                const rows = Array.isArray(prev.privatePriceTiers) ? prev.privatePriceTiers : [];
+                return { ...prev, privatePriceTiers: updater(rows) };
+            });
+            return;
+        }
+        setEditVariant((prev) => {
+            const rows = Array.isArray(prev.privatePriceTiers) ? prev.privatePriceTiers : [];
+            return { ...prev, privatePriceTiers: updater(rows) };
+        });
+    };
+
     const handleSeedDemo = async () => {
         setSeedLoading(true);
         const result = await seedDemoTours();
@@ -302,6 +326,7 @@ export default function AdminToursPage() {
             adultPrice: Number(newVariant.adultPrice) || 0,
             childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
+            privatePriceTiers: newVariant.privatePriceTiers ?? null,
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,
             isRecommended: Boolean(newVariant.isRecommended),
@@ -310,7 +335,7 @@ export default function AdminToursPage() {
         if (result.ok) {
             getTourVariantsForAdmin(editTourId!).then(setVariants);
             setShowAddVariant(false);
-            setNewVariant({ tourType: null, reservationType: 'regular', airport: null, titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '', includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null, adultPrice: 0, childPrice: null, pricingType: 'per_person', sortOrder: variants.length, isActive: true, isRecommended: false });
+            setNewVariant({ tourType: null, reservationType: 'regular', airport: null, titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '', includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null, adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: variants.length, isActive: true, isRecommended: false });
         } else alert(result.error);
     };
 
@@ -321,8 +346,99 @@ export default function AdminToursPage() {
         else if (!result.ok) alert(result.error);
     };
 
+    const handleStartEditVariant = (v: TourVariantDisplay) => {
+        setEditingVariantId(v.id);
+        setShowAddVariant(false);
+        setEditVariant({
+            tourType: v.tourType,
+            reservationType: v.reservationType,
+            airport: v.airport,
+            titleEn: v.titleEn,
+            titleTr: v.titleTr,
+            titleZh: v.titleZh,
+            descEn: v.descEn,
+            descTr: v.descTr,
+            descZh: v.descZh,
+            includes: v.includes,
+            excludes: v.excludes,
+            duration: v.duration,
+            languages: v.languages,
+            vehicleType: v.vehicleType,
+            maxGroupSize: v.maxGroupSize,
+            routeStops: v.routeStops,
+            adultPrice: v.adultPrice,
+            childPrice: v.childPrice,
+            pricingType: v.pricingType,
+            privatePriceTiers: v.privatePriceTiers ?? null,
+            sortOrder: v.sortOrder,
+            isActive: v.isActive,
+            isRecommended: v.isRecommended,
+        });
+    };
+
+    const handleUpdateVariant = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingVariantId || !editVariant.titleEn?.trim()) {
+            alert('Varyant başlığı (EN) zorunludur.');
+            return;
+        }
+        setVariantSaving(true);
+        const includes = typeof editVariant.includes === 'string' ? (editVariant.includes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (editVariant.includes ?? []);
+        const excludes = typeof editVariant.excludes === 'string' ? (editVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (editVariant.excludes ?? []);
+        const routeStops = typeof editVariant.routeStops === 'string' ? (editVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (editVariant.routeStops ?? []);
+        const result = await updateVariant(editingVariantId, {
+            tourType: editVariant.tourType ?? null,
+            reservationType: editVariant.reservationType ?? 'regular',
+            airport: editVariant.airport ?? null,
+            titleEn: editVariant.titleEn?.trim(),
+            titleTr: (editVariant.titleTr ?? '').trim() || editVariant.titleEn?.trim(),
+            titleZh: (editVariant.titleZh ?? '').trim() || editVariant.titleEn?.trim(),
+            descEn: (editVariant.descEn ?? '').trim(),
+            descTr: (editVariant.descTr ?? '').trim(),
+            descZh: (editVariant.descZh ?? '').trim(),
+            includes,
+            excludes,
+            duration: (editVariant.duration as string)?.trim() || null,
+            languages: editVariant.languages ?? null,
+            vehicleType: (editVariant.vehicleType as string)?.trim() || null,
+            maxGroupSize: editVariant.maxGroupSize ?? null,
+            routeStops: routeStops.length ? routeStops : null,
+            adultPrice: Number(editVariant.adultPrice) || 0,
+            childPrice: editVariant.childPrice != null ? Number(editVariant.childPrice) : null,
+            pricingType: (editVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
+            privatePriceTiers: editVariant.privatePriceTiers ?? null,
+            sortOrder: editVariant.sortOrder ?? 0,
+            isActive: editVariant.isActive !== false,
+            isRecommended: Boolean(editVariant.isRecommended),
+        });
+        setVariantSaving(false);
+        if (result.ok && editTourId) {
+            await getTourVariantsForAdmin(editTourId).then(setVariants);
+            setEditingVariantId(null);
+        } else if (!result.ok) {
+            alert(result.error);
+        }
+    };
+
     const openEditTour = (tourId: string) => {
         setEditTourId(tourId);
+    };
+
+    const handleDeleteTour = async (tourId: string) => {
+        if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+        const result = await deleteTour(tourId);
+        if (!result.ok) {
+            alert(result.error);
+            return;
+        }
+        const list = await getTours();
+        setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+        if (editTourId === tourId) {
+            setEditTourId(null);
+            setVariants([]);
+            setShowAddVariant(false);
+            setEditingVariantId(null);
+        }
     };
 
     if (loading) return <div className="loading-block">Turlar yükleniyor...</div>;
@@ -341,7 +457,7 @@ export default function AdminToursPage() {
                 </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2xl)' }}>
-                <h1>Turlar ve Fiyatlandırma Yönetimi</h1>
+                <h1>Ürünler Yönetimi</h1>
                 <Button onClick={() => setShowNewTourForm((v) => !v)}>
                     {showNewTourForm ? 'Formu kapat' : 'Yeni Ürün Ekle'}
                 </Button>
@@ -529,8 +645,64 @@ export default function AdminToursPage() {
                                 <Input label="Başlık (ZH)" value={newVariant.titleZh ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, titleZh: e.target.value }))} />
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
                                     <Input label="Yetişkin fiyatı (€)" type="number" step="0.01" value={String(newVariant.adultPrice ?? 0)} onChange={(e) => setNewVariant((v) => ({ ...v, adultPrice: parseFloat(e.target.value) || 0 }))} />
-                                    <Input label="Çocuk fiyatı (€, boş = yetişkin ile aynı)" type="number" step="0.01" value={newVariant.childPrice != null ? String(newVariant.childPrice) : ''} onChange={(e) => setNewVariant((v) => ({ ...v, childPrice: e.target.value === '' ? null : parseFloat(e.target.value) }))} />
+                                    <Input label="Çocuk fiyatı — 4-7 yaş (€, boş = yetişkin ile aynı)" type="number" step="0.01" value={newVariant.childPrice != null ? String(newVariant.childPrice) : ''} onChange={(e) => setNewVariant((v) => ({ ...v, childPrice: e.target.value === '' ? null : parseFloat(e.target.value) }))} />
                                 </div>
+                                <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                                    <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
+                                </div>
+                                {newVariant.reservationType === 'private' && (
+                                    <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                                            <strong>Private kişi-fiyat kademeleri</strong>
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                onClick={() =>
+                                                    updateVariantTierRows('new', (rows) => [
+                                                        ...rows,
+                                                        { minPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 1 : 1, maxPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 4 : 4, price: Number(newVariant.adultPrice) || 0 },
+                                                    ])
+                                                }
+                                            >
+                                                Kademe ekle
+                                            </Button>
+                                        </div>
+                                        <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                                            {(Array.isArray(newVariant.privatePriceTiers) ? newVariant.privatePriceTiers : []).map((tier, idx) => (
+                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                                    <Input
+                                                        label="Min kişi"
+                                                        type="number"
+                                                        min={1}
+                                                        value={String(tier.minPax)}
+                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, minPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                    />
+                                                    <Input
+                                                        label="Max kişi"
+                                                        type="number"
+                                                        min={1}
+                                                        value={String(tier.maxPax)}
+                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, maxPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                    />
+                                                    <Input
+                                                        label="Fiyat (€)"
+                                                        type="number"
+                                                        step="0.01"
+                                                        min={0}
+                                                        value={String(tier.price)}
+                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, price: parseFloat(e.target.value) || 0 } : r)))}
+                                                    />
+                                                    <Button type="button" variant="secondary" onClick={() => updateVariantTierRows('new', (rows) => rows.filter((_, i) => i !== idx))}>
+                                                        Sil
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p style={{ marginTop: 'var(--space-sm)', marginBottom: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                            Min &lt; Max olmalı, kademeler çakışmamalı ve arada boşluk olmamalı.
+                                        </p>
+                                    </div>
+                                )}
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Açıklama (EN)</label>
                                     <textarea value={newVariant.descEn ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, descEn: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
@@ -547,6 +719,18 @@ export default function AdminToursPage() {
                                     <Input label="Süre" value={newVariant.duration ?? ''} onChange={(e) => setNewVariant((v) => ({ ...v, duration: e.target.value }))} placeholder="4 saat" style={{ flex: 1 }} />
                                     <Input label="Max grup" type="number" min={1} value={String(newVariant.maxGroupSize ?? '')} onChange={(e) => setNewVariant((v) => ({ ...v, maxGroupSize: e.target.value === '' ? null : parseInt(e.target.value, 10) }))} placeholder="12" style={{ width: '80px' }} />
                                 </div>
+                                <Input
+                                    label="Dil(ler) (virgülle)"
+                                    value={Array.isArray(newVariant.languages) ? newVariant.languages.join(', ') : ''}
+                                    onChange={(e) => setNewVariant((v) => ({
+                                        ...v,
+                                        languages: e.target.value
+                                            .split(',')
+                                            .map((s) => s.trim())
+                                            .filter(Boolean),
+                                    }))}
+                                    placeholder="Türkçe, İngilizce"
+                                />
                                 <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                                     <input type="checkbox" checked={newVariant.isRecommended ?? false} onChange={(e) => setNewVariant((v) => ({ ...v, isRecommended: e.target.checked }))} />
                                     <span>Önerilen</span>
@@ -557,6 +741,156 @@ export default function AdminToursPage() {
                                 </label>
                             </div>
                             <Button type="submit" disabled={variantSaving}>{variantSaving ? 'Ekleniyor...' : 'Varyant ekle'}</Button>
+                        </form>
+                    )}
+                    {editingVariantId && (
+                        <form onSubmit={handleUpdateVariant} style={{ marginBottom: 'var(--space-xl)', padding: 'var(--space-lg)', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+                            <h3 style={{ marginBottom: 'var(--space-md)' }}>Varyantı düzenle</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Tur tipi</label>
+                                    <select value={editVariant.tourType ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, tourType: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="">— Yok (aktiviteler/transfer) —</option>
+                                        <option value="eco">Eco</option>
+                                        <option value="plus">Plus</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
+                                    <select value={editVariant.reservationType ?? 'regular'} onChange={(e) => setEditVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="regular">Regular (Paylaşımlı)</option>
+                                        <option value="private">Private (Özel)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Havalimanı</label>
+                                    <select value={editVariant.airport ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, airport: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="">— Yok —</option>
+                                        <option value="NAV">NAV (Nevşehir)</option>
+                                        <option value="ASR">ASR (Kayseri)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Fiyat tipi</label>
+                                    <select value={editVariant.pricingType ?? 'per_person'} onChange={(e) => setEditVariant((v) => ({ ...v, pricingType: e.target.value as 'per_person' | 'per_vehicle' }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                        <option value="per_person">Kişi başı</option>
+                                        <option value="per_vehicle">Araç başı</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+                                <Input label="Başlık (EN) *" value={editVariant.titleEn ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, titleEn: e.target.value }))} />
+                                <Input label="Başlık (TR)" value={editVariant.titleTr ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, titleTr: e.target.value }))} />
+                                <Input label="Başlık (ZH)" value={editVariant.titleZh ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, titleZh: e.target.value }))} />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                                    <Input label="Yetişkin fiyatı (€)" type="number" step="0.01" value={String(editVariant.adultPrice ?? 0)} onChange={(e) => setEditVariant((v) => ({ ...v, adultPrice: parseFloat(e.target.value) || 0 }))} />
+                                    <Input label="Çocuk fiyatı — 4-7 yaş (€, boş = yetişkin ile aynı)" type="number" step="0.01" value={editVariant.childPrice != null ? String(editVariant.childPrice) : ''} onChange={(e) => setEditVariant((v) => ({ ...v, childPrice: e.target.value === '' ? null : parseFloat(e.target.value) }))} />
+                                </div>
+                                <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                                    <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
+                                </div>
+                                {editVariant.reservationType === 'private' && (
+                                    <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                                            <strong>Private kişi-fiyat kademeleri</strong>
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                onClick={() =>
+                                                    updateVariantTierRows('edit', (rows) => [
+                                                        ...rows,
+                                                        { minPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 1 : 1, maxPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 4 : 4, price: Number(editVariant.adultPrice) || 0 },
+                                                    ])
+                                                }
+                                            >
+                                                Kademe ekle
+                                            </Button>
+                                        </div>
+                                        <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                                            {(Array.isArray(editVariant.privatePriceTiers) ? editVariant.privatePriceTiers : []).map((tier, idx) => (
+                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                                    <Input
+                                                        label="Min kişi"
+                                                        type="number"
+                                                        min={1}
+                                                        value={String(tier.minPax)}
+                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, minPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                    />
+                                                    <Input
+                                                        label="Max kişi"
+                                                        type="number"
+                                                        min={1}
+                                                        value={String(tier.maxPax)}
+                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, maxPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                    />
+                                                    <Input
+                                                        label="Fiyat (€)"
+                                                        type="number"
+                                                        step="0.01"
+                                                        min={0}
+                                                        value={String(tier.price)}
+                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, price: parseFloat(e.target.value) || 0 } : r)))}
+                                                    />
+                                                    <Button type="button" variant="secondary" onClick={() => updateVariantTierRows('edit', (rows) => rows.filter((_, i) => i !== idx))}>
+                                                        Sil
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p style={{ marginTop: 'var(--space-sm)', marginBottom: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                            Min &lt; Max olmalı, kademeler çakışmamalı ve arada boşluk olmamalı.
+                                        </p>
+                                    </div>
+                                )}
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Açıklama (EN)</label>
+                                    <textarea value={editVariant.descEn ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, descEn: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Açıklama (TR)</label>
+                                    <textarea value={editVariant.descTr ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, descTr: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Açıklama (ZH)</label>
+                                    <textarea value={editVariant.descZh ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, descZh: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Dahil (her satıra bir madde)</label>
+                                    <textarea value={Array.isArray(editVariant.includes) ? editVariant.includes.join('\n') : ''} onChange={(e) => setEditVariant((v) => ({ ...v, includes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Hariç (her satıra bir madde)</label>
+                                    <textarea value={Array.isArray(editVariant.excludes) ? editVariant.excludes.join('\n') : ''} onChange={(e) => setEditVariant((v) => ({ ...v, excludes: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
+                                    <Input label="Süre" value={editVariant.duration ?? ''} onChange={(e) => setEditVariant((v) => ({ ...v, duration: e.target.value }))} style={{ flex: 1 }} />
+                                    <Input label="Max grup" type="number" min={1} value={String(editVariant.maxGroupSize ?? '')} onChange={(e) => setEditVariant((v) => ({ ...v, maxGroupSize: e.target.value === '' ? null : parseInt(e.target.value, 10) }))} style={{ width: '80px' }} />
+                                </div>
+                                <Input
+                                    label="Dil(ler) (virgülle)"
+                                    value={Array.isArray(editVariant.languages) ? editVariant.languages.join(', ') : ''}
+                                    onChange={(e) => setEditVariant((v) => ({
+                                        ...v,
+                                        languages: e.target.value
+                                            .split(',')
+                                            .map((s) => s.trim())
+                                            .filter(Boolean),
+                                    }))}
+                                    placeholder="Türkçe, İngilizce"
+                                />
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                                    <input type="checkbox" checked={editVariant.isRecommended ?? false} onChange={(e) => setEditVariant((v) => ({ ...v, isRecommended: e.target.checked }))} />
+                                    <span>Önerilen</span>
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                                    <input type="checkbox" checked={editVariant.isActive !== false} onChange={(e) => setEditVariant((v) => ({ ...v, isActive: e.target.checked }))} />
+                                    <span>Aktif</span>
+                                </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                                <Button type="submit" disabled={variantSaving}>{variantSaving ? 'Kaydediliyor...' : 'Varyantı güncelle'}</Button>
+                                <Button type="button" variant="secondary" onClick={() => setEditingVariantId(null)}>Vazgeç</Button>
+                            </div>
                         </form>
                     )}
                     <div style={{ overflowX: 'auto' }}>
@@ -581,6 +915,7 @@ export default function AdminToursPage() {
                                             </td>
                                             <td style={{ padding: 'var(--space-md)' }}>€{v.adultPrice} {v.pricingType === 'per_vehicle' ? '(araç)' : '(kişi)'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
+                                                <Button type="button" variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => handleStartEditVariant(v)}>✏️ Düzenle</Button>
                                                 <Button type="button" variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteVariant(v.id)}>Sil</Button>
                                             </td>
                                         </tr>
@@ -592,6 +927,8 @@ export default function AdminToursPage() {
                 </div>
             )}
 
+            {false && (
+                <>
             <form onSubmit={handleDailySubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
                 <h2 style={{ marginBottom: 'var(--space-lg)' }}>Günlük Fiyat / Kapasite / Gün Kapat</h2>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'end' }}>
@@ -780,6 +1117,12 @@ export default function AdminToursPage() {
                     </div>
                 </div>
             )}
+                </>
+            )}
+
+            <div className="card" style={{ padding: 'var(--space-md)', marginBottom: 'var(--space-2xl)', backgroundColor: '#eef6ff', borderColor: '#bfdbfe' }}>
+                Günlük fiyat, kapasite, ekstralar ve transfer kademeleri artık <strong>Fiyatlandırma ve Müsaitlik</strong> ekranında yönetiliyor.
+            </div>
 
             <h2>Ürün Kataloğu</h2>
             <div className="card" style={{ overflowX: 'auto', marginTop: 'var(--space-md)' }}>
@@ -806,7 +1149,8 @@ export default function AdminToursPage() {
                                     </td>
                                     <td style={{ padding: 'var(--space-md)' }}>€{t.basePrice}</td>
                                     <td style={{ padding: 'var(--space-md)' }}>
-                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openEditTour(t.id)}>Düzenle</Button>
+                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => openEditTour(t.id)}>Düzenle</Button>
+                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteTour(t.id)}>Sil</Button>
                                     </td>
                                 </tr>
                             ))

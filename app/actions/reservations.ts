@@ -7,13 +7,13 @@ import { sanitizeGuestInput } from '@/lib/guestNotes';
 import { getTourDatePrice } from './tours';
 import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 
-type TourSummary = { id: string; titleEn: string; titleTr: string };
+type TourSummary = { id: string; titleEn: string; titleTr: string; type: string };
 type VariantSummary = { id: string; titleEn: string; titleTr: string };
 
 async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSummary>> {
   if (tourIds.length === 0) return new Map();
   const wanted = new Set(tourIds);
-  const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true, titleTr: true } });
+  const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true, titleTr: true, type: true } });
   const filtered = tours.filter((t) => wanted.has(t.id));
   return new Map(filtered.map((t) => [t.id, t]));
 }

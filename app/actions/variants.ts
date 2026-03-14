@@ -47,7 +47,8 @@ function parseTierArray(value: unknown): { minPax: number; maxPax: number; price
       };
     })
     .filter((item): item is { minPax: number; maxPax: number; price: number } => {
-      return Boolean(item) && Number.isFinite(item.minPax) && Number.isFinite(item.maxPax) && Number.isFinite(item.price);
+      if (!item) return false;
+      return Number.isFinite(item.minPax) && Number.isFinite(item.maxPax) && Number.isFinite(item.price);
     });
 }
 

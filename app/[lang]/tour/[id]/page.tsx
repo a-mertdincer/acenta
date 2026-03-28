@@ -449,6 +449,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 </p>
                             )}
                             <TourDetailGallery mainSrc={galleryMain} fallbackSrc={galleryFallback} />
+                            <div style={{ marginTop: 'var(--space-lg)' }}>
+                                <h2>{t.description}</h2>
+                                <ProductDescription text={desc} />
+                            </div>
                         </div>
                         <div className="tour-detail-booking-card-wrapper">
                             <ProductVariantBookingCard
@@ -460,10 +464,6 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 options={tour.options ?? []}
                             />
                         </div>
-                    </div>
-                    <div>
-                        <h2>{t.description}</h2>
-                        <ProductDescription text={desc} />
                     </div>
                 </>
             ) : (

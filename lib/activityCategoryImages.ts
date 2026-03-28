@@ -14,6 +14,8 @@ export const ACTIVITY_CATEGORY_IMAGES: Record<string, string> = {
   'transfers': PEXELS(3647693),       // Araç, havalimanı
   'workshops': PEXELS(3817646),       // Seramik boyama atölyesi
   'boat-tours': PEXELS(31616530),     // Tekneler, kıyı manzarası
+  'packages': PEXELS(261102),         // Hotel room / accommodation vibe
+  'concierge': PEXELS(3771089),       // Concierge/service desk style
 };
 
 const FALLBACK = PEXELS(5246814);

@@ -6,6 +6,7 @@ import { Button } from '../../../components/Button';
 import AdminReservationsCalendarView from './AdminReservationsCalendarView';
 import {
   getReservations,
+  cancelReservationByAdmin,
   updateReservationStatus,
   sendReservationConfirmationEmail,
   updateReservationDeposit,
@@ -13,6 +14,7 @@ import {
   rejectGuestCancellationRequest,
   approveGuestUpdateRequest,
   rejectGuestUpdateRequest,
+  type CancellationReason,
 } from '../../../actions/reservations';
 import {
   getReservationStatusLabel,
@@ -45,6 +47,21 @@ function parseOptionsJson(optionsStr: string | null): { title: string; price: nu
   }
 }
 
+function getCancelReasonLabel(reason: string | null): string {
+  switch (reason) {
+    case 'free_cancel':
+      return 'Ücretsiz iptal';
+    case 'customer_request':
+      return 'Müşteri talebi';
+    case 'wrong_reservation':
+      return 'Hatalı rezervasyon';
+    case 'other':
+      return 'Diğer';
+    default:
+      return 'Belirtilmedi';
+  }
+}
+
 interface ResRow {
   id: string;
   customer: string;
@@ -59,6 +76,9 @@ interface ResRow {
   status: string;
   depositPaid: number;
   createdAt: string;
+  updatedAt: string;
+  userId: string | null;
+  account: { id: string; name: string; email: string; createdAt: Date } | null;
   notes: string | null;
   displayNotes: string;
   optionsRaw: string | null;
@@ -68,6 +88,9 @@ interface ResRow {
   discountAmount: number | null;
   cancellationRequestedAt: string | null;
   cancellationRequestReason: string | null;
+  cancelReason: string | null;
+  cancelNote: string | null;
+  cancelledBy: string | null;
   updateRequestedAt: string | null;
   pendingDate: string | null;
   pendingPax: number | null;
@@ -115,6 +138,11 @@ export default function AdminReservationsPage() {
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [depositEditId, setDepositEditId] = useState<string | null>(null);
   const [depositValue, setDepositValue] = useState('');
+  const [cancelDialog, setCancelDialog] = useState<{ id: string; mode: 'direct' | 'approve_request' } | null>(null);
+  const [cancelReason, setCancelReason] = useState<CancellationReason>('free_cancel');
+  const [cancelOtherNote, setCancelOtherNote] = useState('');
+  const [cancelSendEmail, setCancelSendEmail] = useState(true);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -163,11 +191,17 @@ export default function AdminReservationsPage() {
             status: string;
             depositPaid?: number;
             createdAt: Date;
+            updatedAt: Date;
+            userId: string | null;
+            account?: { id: string; name: string; email: string; createdAt: Date } | null;
             notes: string | null;
             options: string;
             transferAirport?: string | null;
             cancellationRequestedAt?: Date | null;
             cancellationRequestReason?: string | null;
+            cancelReason?: string | null;
+            cancelNote?: string | null;
+            cancelledBy?: string | null;
             updateRequestedAt?: Date | null;
             pendingDate?: Date | null;
             pendingPax?: number | null;
@@ -186,6 +220,9 @@ export default function AdminReservationsPage() {
             status: r.status,
             depositPaid: r.depositPaid ?? 0,
             createdAt: r.createdAt.toISOString(),
+            updatedAt: r.updatedAt.toISOString(),
+            userId: r.userId ?? null,
+            account: (r.account as { id: string; name: string; email: string; createdAt: Date } | null) ?? null,
             notes: r.notes ?? null,
             displayNotes: formatNotesForDisplay(r.notes),
             optionsRaw: r.options ?? null,
@@ -195,6 +232,9 @@ export default function AdminReservationsPage() {
             discountAmount: (r as { discountAmount?: number | null }).discountAmount ?? null,
             cancellationRequestedAt: r.cancellationRequestedAt ? r.cancellationRequestedAt.toISOString() : null,
             cancellationRequestReason: r.cancellationRequestReason ?? null,
+            cancelReason: (r as { cancelReason?: string | null }).cancelReason ?? null,
+            cancelNote: (r as { cancelNote?: string | null }).cancelNote ?? null,
+            cancelledBy: (r as { cancelledBy?: string | null }).cancelledBy ?? null,
             updateRequestedAt: r.updateRequestedAt ? r.updateRequestedAt.toISOString() : null,
             pendingDate: r.pendingDate ? r.pendingDate.toISOString() : null,
             pendingPax: r.pendingPax ?? null,
@@ -308,6 +348,13 @@ export default function AdminReservationsPage() {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setStatusPopoverId(null);
+    if (newStatus === RESERVATION_STATUS.CANCELLED) {
+      setCancelReason('free_cancel');
+      setCancelOtherNote('');
+      setCancelSendEmail(true);
+      setCancelDialog({ id, mode: 'direct' });
+      return;
+    }
     const result = await updateReservationStatus(id, newStatus);
     if (result.ok) setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
   };
@@ -346,10 +393,16 @@ export default function AdminReservationsPage() {
               pax: next.pax,
               total: `€${next.totalPrice}`,
               totalPrice: next.totalPrice,
+              updatedAt: next.updatedAt.toISOString(),
+              userId: next.userId ?? null,
+              account: (next as { account?: { id: string; name: string; email: string; createdAt: Date } | null }).account ?? null,
               notes: next.notes ?? null,
               displayNotes: formatNotesForDisplay(next.notes),
               cancellationRequestedAt: next.cancellationRequestedAt ? next.cancellationRequestedAt.toISOString() : null,
               cancellationRequestReason: next.cancellationRequestReason ?? null,
+              cancelReason: (next as { cancelReason?: string | null }).cancelReason ?? null,
+              cancelNote: (next as { cancelNote?: string | null }).cancelNote ?? null,
+              cancelledBy: (next as { cancelledBy?: string | null }).cancelledBy ?? null,
               updateRequestedAt: next.updateRequestedAt ? next.updateRequestedAt.toISOString() : null,
               pendingDate: next.pendingDate ? next.pendingDate.toISOString() : null,
               pendingPax: next.pendingPax ?? null,
@@ -363,10 +416,37 @@ export default function AdminReservationsPage() {
     );
   };
 
+  const handleOpenCancelDialog = (id: string, mode: 'direct' | 'approve_request') => {
+    setCancelReason(mode === 'approve_request' ? 'customer_request' : 'free_cancel');
+    setCancelOtherNote('');
+    setCancelSendEmail(true);
+    setCancelDialog({ id, mode });
+  };
+
+  const handleSubmitCancelDialog = async () => {
+    if (!cancelDialog) return;
+    if (cancelReason === 'other' && !cancelOtherNote.trim()) {
+      alert('Diğer nedeni için açıklama girin.');
+      return;
+    }
+    setCancelSubmitting(true);
+    const payload = {
+      reason: cancelReason,
+      note: cancelOtherNote.trim() || null,
+      sendEmail: cancelSendEmail,
+    };
+    const result =
+      cancelDialog.mode === 'approve_request'
+        ? await approveGuestCancellationRequest(cancelDialog.id, cancelSendEmail, { reason: cancelReason, note: payload.note })
+        : await cancelReservationByAdmin(cancelDialog.id, payload);
+    setCancelSubmitting(false);
+    if (!result.ok) return alert(result.error ?? 'İptal işlemi başarısız');
+    await refreshSingleReservation(cancelDialog.id);
+    setCancelDialog(null);
+  };
+
   const handleApproveCancellationRequest = async (id: string) => {
-    const result = await approveGuestCancellationRequest(id, true);
-    if (!result.ok) return alert(result.error ?? 'Onaylama başarısız');
-    await refreshSingleReservation(id);
+    handleOpenCancelDialog(id, 'approve_request');
   };
 
   const handleRejectCancellationRequest = async (id: string) => {
@@ -744,6 +824,16 @@ export default function AdminReservationsPage() {
                         <button
                           type="button"
                           className="admin-action-btn"
+                          title="Rezervasyonu iptal et"
+                          onClick={() => handleOpenCancelDialog(res.id, 'direct')}
+                        >
+                          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-action-btn"
                           title="Diğer"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -767,6 +857,18 @@ export default function AdminReservationsPage() {
                               <p>Ad: {res.customer}</p>
                               <p>E-posta: <a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></p>
                               <p>Telefon: <a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></p>
+                            </div>
+                            <div className="admin-expand-section">
+                              <h4>Hesap bilgisi</h4>
+                              {res.account ? (
+                                <>
+                                  <p>👤 Üye: {res.account.name} ({res.account.email})</p>
+                                  <p>Kullanıcı ID: {res.account.id.slice(0, 8)}</p>
+                                  <p>Kayıt: {formatDate(new Date(res.account.createdAt).toISOString())}</p>
+                                </>
+                              ) : (
+                                <p>👤 Misafir (üye değil)</p>
+                              )}
                             </div>
                             <div className="admin-expand-section">
                               <h4>Konaklama / Notlar</h4>
@@ -841,6 +943,15 @@ export default function AdminReservationsPage() {
                                 )}
                               </div>
                             )}
+                            {res.status === RESERVATION_STATUS.CANCELLED && (
+                              <div className="admin-expand-section" style={{ gridColumn: '1 / -1', border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)', background: '#f9fafb' }}>
+                                <h4>İptal bilgisi</h4>
+                                <p>
+                                  {getCancelReasonLabel(res.cancelReason)} · {res.cancelledBy === 'admin' ? 'Admin tarafından' : res.cancelledBy === 'customer' ? 'Müşteri talebi ile' : 'Belirsiz kaynak'} · {formatDate(res.updatedAt)}
+                                </p>
+                                {res.cancelNote && <p>Not: {res.cancelNote}</p>}
+                              </div>
+                            )}
                           </div>
                           <div style={{ marginTop: 12 }}>
                             <Button
@@ -851,6 +962,11 @@ export default function AdminReservationsPage() {
                             >
                               {sendingEmailId === res.id ? 'Gönderiliyor…' : 'Onay mail gönder'}
                             </Button>
+                            {res.status !== RESERVATION_STATUS.CANCELLED && (
+                              <Button variant="secondary" onClick={() => handleOpenCancelDialog(res.id, 'direct')}>
+                                Rezervasyonu iptal et
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -876,6 +992,15 @@ export default function AdminReservationsPage() {
           <button
             type="button"
             onClick={() => {
+              handleOpenCancelDialog(contextMenu.id, 'direct');
+              setContextMenu(null);
+            }}
+          >
+            Rezervasyonu iptal et
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               const r = reservations.find((x) => x.id === contextMenu.id);
               if (r) {
                 setDepositEditId(r.id);
@@ -887,6 +1012,65 @@ export default function AdminReservationsPage() {
           >
             Depozit düzenle
           </button>
+        </div>
+      )}
+
+      {cancelDialog && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div className="card" style={{ width: 'min(560px, 96vw)', padding: 'var(--space-xl)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: 'var(--space-md)' }}>Rezervasyonu İptal Et</h3>
+            <p style={{ marginTop: 0, color: 'var(--color-text-muted)' }}>İptal nedeni:</p>
+            <div style={{ display: 'grid', gap: 8, marginBottom: 'var(--space-md)' }}>
+              {[
+                { value: 'free_cancel', label: 'Ücretsiz iptal' },
+                { value: 'customer_request', label: 'Müşteri talebi' },
+                { value: 'wrong_reservation', label: 'Hatalı rezervasyon' },
+                { value: 'other', label: 'Diğer' },
+              ].map((opt) => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="radio"
+                    checked={cancelReason === opt.value}
+                    onChange={() => setCancelReason(opt.value as CancellationReason)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+            {cancelReason === 'other' && (
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Diğer notu</label>
+                <textarea
+                  value={cancelOtherNote}
+                  onChange={(e) => setCancelOtherNote(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1px solid var(--color-border)' }}
+                  placeholder="İptal notu"
+                />
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-lg)' }}>
+              <input type="checkbox" checked={cancelSendEmail} onChange={(e) => setCancelSendEmail(e.target.checked)} />
+              <span>Müşteriye iptal maili gönder</span>
+            </label>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => setCancelDialog(null)}>Vazgeç</Button>
+              <Button onClick={handleSubmitCancelDialog} disabled={cancelSubmitting}>
+                {cancelSubmitting ? 'İşleniyor...' : 'İptal Et'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -968,6 +1152,11 @@ export default function AdminReservationsPage() {
                   >
                     Depozit
                   </button>
+                  {res.status !== RESERVATION_STATUS.CANCELLED && (
+                    <button type="button" className="admin-action-btn" onClick={() => handleOpenCancelDialog(res.id, 'direct')}>
+                      İptal Et
+                    </button>
+                  )}
                   <Button variant="secondary" onClick={() => handleSendConfirmation(res.id)} disabled={sendingEmailId === res.id}>
                     Onay mail
                   </Button>

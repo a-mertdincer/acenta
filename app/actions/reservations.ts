@@ -9,6 +9,7 @@ import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 
 type TourSummary = { id: string; titleEn: string; titleTr: string; type: string };
 type VariantSummary = { id: string; titleEn: string; titleTr: string };
+type UserSummary = { id: string; name: string; email: string; createdAt: Date };
 
 async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSummary>> {
   if (tourIds.length === 0) return new Map();
@@ -25,6 +26,16 @@ async function getVariantSummaryMap(variantIds: string[]): Promise<Map<string, V
   const filtered = variants.filter((v) => wanted.has(v.id));
   return new Map(filtered.map((v) => [v.id, v]));
 }
+
+async function getUserSummaryMap(userIds: string[]): Promise<Map<string, UserSummary>> {
+  if (userIds.length === 0) return new Map();
+  const wanted = new Set(userIds);
+  const users = await prisma.user.findMany({ select: { id: true, name: true, email: true, createdAt: true } });
+  const filtered = users.filter((u) => wanted.has(u.id));
+  return new Map(filtered.map((u) => [u.id, u]));
+}
+
+export type CancellationReason = 'free_cancel' | 'customer_request' | 'wrong_reservation' | 'other';
 
 export interface CreateReservationItem {
   tourId: string;
@@ -90,8 +101,28 @@ export async function createReservations(input: CreateReservationInput): Promise
 
     const ids: string[] = [];
     const couponUsages: { reservationId: string; tourId: string; date: string; totalPrice: number; itemDiscount: number; itemTotalPrice: number }[] = [];
+    const variantIds = [...new Set(input.items.map((i) => i.variantId).filter((v): v is string => Boolean(v)))];
+    const variantCapacityMap = new Map<string, { maxGroupSize: number | null; titleEn: string; titleTr: string }>();
+    if (variantIds.length > 0) {
+      const wanted = new Set(variantIds);
+      const variants = await prisma.tourVariant.findMany({ select: { id: true, maxGroupSize: true, titleEn: true, titleTr: true } });
+      variants
+        .filter((v) => wanted.has(v.id))
+        .forEach((v) => {
+          variantCapacityMap.set(v.id, { maxGroupSize: v.maxGroupSize, titleEn: v.titleEn, titleTr: v.titleTr });
+        });
+    }
 
     for (const item of input.items) {
+      if (item.variantId) {
+        const variantCap = variantCapacityMap.get(item.variantId);
+        if (variantCap?.maxGroupSize != null && item.pax > variantCap.maxGroupSize) {
+          return {
+            ok: false,
+            error: `Maksimum kişi sınırı aşıldı (${variantCap.maxGroupSize}). Varyant: ${variantCap.titleTr || variantCap.titleEn}`,
+          };
+        }
+      }
       let itemTotalPrice = item.totalPrice;
       let itemDiscount = 0;
       const itemOriginalPrice = item.totalPrice;
@@ -179,10 +210,12 @@ export async function getReservations(filters?: { from?: Date; to?: Date; status
     });
     const tourMap = await getTourSummaryMap([...new Set(list.map((r) => r.tourId))]);
     const variantMap = await getVariantSummaryMap([...new Set(list.map((r) => r.variantId).filter((v): v is string => Boolean(v)))]);
+    const userMap = await getUserSummaryMap([...new Set(list.map((r) => r.userId).filter((u): u is string => Boolean(u)))]);
     return list.map((r) => ({
       ...r,
       tour: tourMap.get(r.tourId) ?? null,
       variant: r.variantId ? variantMap.get(r.variantId) ?? null : null,
+      account: r.userId ? userMap.get(r.userId) ?? null : null,
     }));
   } catch {
     return [];
@@ -322,18 +355,83 @@ export async function requestUpdateByGuest(
   }
 }
 
+function getCancellationReasonLabel(reason: CancellationReason): string {
+  switch (reason) {
+    case 'free_cancel':
+      return 'Ücretsiz iptal';
+    case 'customer_request':
+      return 'Müşteri talebi';
+    case 'wrong_reservation':
+      return 'Hatalı rezervasyon';
+    case 'other':
+    default:
+      return 'Diğer';
+  }
+}
+
+async function sendReservationCancelledEmail(
+  reservationId: string,
+  reason: CancellationReason,
+  note?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: true };
+  try {
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!res) return { ok: false, error: 'Reservation not found' };
+    const tour = await prisma.tour.findUnique({
+      where: { id: res.tourId },
+      select: { titleEn: true },
+    });
+    const from = process.env.RESEND_FROM ?? 'onboarding@resend.dev';
+    const resend = new Resend(apiKey);
+    const dateStr = new Date(res.date).toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const reasonLabel = getCancellationReasonLabel(reason);
+    const subject = `Rezervasyonunuz iptal edildi – ${tour?.titleEn ?? 'Tur'}`;
+    const noteLine = note ? `<p><strong>Not:</strong> ${note}</p>` : '';
+    const html = `
+      <h2>${subject}</h2>
+      <p>Sayın ${res.guestName},</p>
+      <p>Rezervasyonunuz operasyon ekibimiz tarafından iptal edilmiştir.</p>
+      <p><strong>Tur:</strong> ${tour?.titleEn ?? res.tourId}<br/><strong>Tarih:</strong> ${dateStr}<br/><strong>İptal nedeni:</strong> ${reasonLabel}</p>
+      ${noteLine}
+      <p>Sorularınız için bizimle iletişime geçebilirsiniz.</p>
+      <p>Kısmet Göreme Travel</p>
+    `;
+    const { error } = await resend.emails.send({
+      from,
+      to: res.guestEmail,
+      subject,
+      html,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'E-posta gönderilemedi' };
+  }
+}
+
 /** Admin: misafir iptal talebini onayla → rezervasyon iptal, misafire bildirim. */
-export async function approveGuestCancellationRequest(reservationId: string, sendEmail = true): Promise<{ ok: boolean; error?: string }> {
+export async function approveGuestCancellationRequest(
+  reservationId: string,
+  sendEmail = true,
+  payload?: { reason?: CancellationReason; note?: string | null }
+): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
     const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
     if (!res) return { ok: false, error: 'Reservation not found' };
     if (!res.cancellationRequestedAt) return { ok: false, error: 'İptal talebi bulunamadı' };
+    const reason = payload?.reason ?? 'customer_request';
+    const note = payload?.note ? sanitizeGuestInput(payload.note, 500) : null;
     await prisma.reservation.update({
       where: { id: reservationId },
       data: {
         status: 'CANCELLED',
+        cancelReason: reason,
+        cancelNote: note,
+        cancelledBy: 'customer',
         cancellationRequestedAt: null,
         cancellationRequestReason: null,
       },
@@ -348,10 +446,50 @@ export async function approveGuestCancellationRequest(reservationId: string, sen
       const { decrementCouponUsage } = await import('./coupons');
       await decrementCouponUsage(res.couponId);
     }
-    if (sendEmail) await sendGuestRequestResponseEmail(reservationId, 'cancellation_approved');
+    if (sendEmail) await sendReservationCancelledEmail(reservationId, reason, note ?? undefined);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Onaylama başarısız' };
+  }
+}
+
+/** Admin: rezervasyonu doğrudan iptal eder. */
+export async function cancelReservationByAdmin(
+  reservationId: string,
+  payload: { reason: CancellationReason; note?: string | null; sendEmail?: boolean }
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
+  try {
+    const res = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!res) return { ok: false, error: 'Reservation not found' };
+    if (res.status === 'CANCELLED') return { ok: false, error: 'Rezervasyon zaten iptal edilmiş.' };
+    const note = payload.note ? sanitizeGuestInput(payload.note, 500) : null;
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: 'CANCELLED',
+        cancelReason: payload.reason,
+        cancelNote: note,
+        cancelledBy: 'admin',
+        cancellationRequestedAt: null,
+        cancellationRequestReason: null,
+      },
+    });
+    try {
+      const { syncCariWithReservation } = await import('./cari');
+      await syncCariWithReservation(reservationId);
+    } catch {
+      // Cari sync should not block direct admin cancellation.
+    }
+    if (res.couponId) {
+      const { decrementCouponUsage } = await import('./coupons');
+      await decrementCouponUsage(res.couponId);
+    }
+    if (payload.sendEmail !== false) await sendReservationCancelledEmail(reservationId, payload.reason, note ?? undefined);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'İptal işlemi başarısız' };
   }
 }
 
@@ -429,13 +567,15 @@ async function recalculateReservationPrice(
   }
 
   try {
-    const opts = JSON.parse(res.options || '[]') as { id?: number; price?: number }[];
+    const opts = JSON.parse(res.options || '[]') as { id?: string | number; price?: number; pricingMode?: 'per_person' | 'flat' }[];
     if (Array.isArray(opts)) {
       for (const o of opts) {
-        if (typeof o?.price === 'number') subtotal += o.price * newPax;
+        if (typeof o?.price === 'number') {
+          subtotal += o.pricingMode === 'flat' ? o.price : o.price * newPax;
+        }
         else {
           const tourOpt = options.find((to) => String(to.id) === String(o?.id));
-          if (tourOpt) subtotal += tourOpt.priceAdd * newPax;
+          if (tourOpt) subtotal += (tourOpt.pricingMode === 'flat' ? tourOpt.priceAdd : tourOpt.priceAdd * newPax);
         }
       }
     }

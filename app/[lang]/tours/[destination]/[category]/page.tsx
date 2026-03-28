@@ -14,6 +14,8 @@ import {
 } from '@/lib/destinations';
 import { ActivitiesDestinationSection } from '../../../../components/ActivitiesDestinationSection';
 import type { Metadata } from 'next';
+import { getEurTryRate } from '@/lib/exchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string; destination: string; category: string }>;
@@ -72,6 +74,8 @@ export default async function ToursCategoryPage(props: {
   const destName = getDestinationName(dest, lang);
   const catLabel = getCategoryLabel(cat, lang);
   const bookNowLabel = (dict.tours as { bookNow?: string })?.bookNow ?? 'Book Now';
+  const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
+  const rateData = lang === 'tr' ? await getEurTryRate() : null;
 
   return (
     <>
@@ -108,7 +112,15 @@ export default async function ToursCategoryPage(props: {
                     </div>
                     <p className="tour-card-desc">{desc}</p>
                     <div className="tour-card-footer">
-                      <span className="tour-card-price">{dict.home?.from ?? 'From'} €{Number(tour.fromPrice ?? tour.basePrice).toFixed(0)}</span>
+                      {(() => {
+                        const shown = formatPriceByLang(Number(tour.fromPrice ?? tour.basePrice), lang, rateData?.rate ?? null);
+                        return (
+                          <span className="tour-card-price">
+                            {Number(tour.fromPrice ?? tour.basePrice) > 0 ? `${dict.home?.from ?? 'From'} ${shown.primary}` : contactForPriceLabel}
+                            {shown.secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{shown.secondary}</small> : null}
+                          </span>
+                        );
+                      })()}
                       <Link href={`/${lang}/tour/${tour.id}`}>
                         <Button className="tour-card-cta">{bookNowLabel}</Button>
                       </Link>

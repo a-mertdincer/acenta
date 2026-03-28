@@ -39,6 +39,8 @@ const DESTINATIONS: DestinationConfig[] = [
       { id: 'private-tours', slug: 'private-tours', labelEn: 'Private Tours', labelTr: 'Özel Turlar', labelZh: '私人游' },
       { id: 'transfers', slug: 'transfers', labelEn: 'Transfers', labelTr: 'Transferler', labelZh: '接送' },
       { id: 'workshops', slug: 'workshops', labelEn: 'Workshops', labelTr: 'Atölyeler', labelZh: '工作坊' },
+      { id: 'packages', slug: 'packages', labelEn: 'Packages', labelTr: 'Paketler', labelZh: '套餐' },
+      { id: 'concierge', slug: 'concierge', labelEn: 'Concierge', labelTr: 'Concierge', labelZh: '礼宾服务' },
     ],
   },
   {

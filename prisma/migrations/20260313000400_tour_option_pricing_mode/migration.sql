@@ -1,0 +1,2 @@
+ALTER TABLE "TourOption"
+ADD COLUMN IF NOT EXISTS "pricingMode" VARCHAR(20) NOT NULL DEFAULT 'per_person';

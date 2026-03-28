@@ -20,6 +20,8 @@ import enDict from '@/app/dictionaries/en.json';
 import trDict from '@/app/dictionaries/tr.json';
 import zhDict from '@/app/dictionaries/zh.json';
 import { resolveTierPrice } from '@/lib/pricingTiers';
+import { useExchangeRate } from '@/app/hooks/useExchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
@@ -37,16 +39,19 @@ export function ProductVariantBookingCard({
   lang,
   data,
   title,
+  options,
 }: {
   tourId: string;
   tourType: string;
   lang: Lang;
   data: TourWithVariantsResult;
   title: string;
+  options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' }[];
 }) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const t = useMemo(() => getVariantStrings(lang), [lang]);
+  const { eurTryRate } = useExchangeRate(lang === 'tr');
 
   const defaultSelection = useMemo(
     () => getDefaultVariantSelection(data.hasTourType, data.hasAirportSelect),
@@ -71,6 +76,7 @@ export function ProductVariantBookingCard({
   const [flightsDeparture, setFlightsDeparture] = useState<{ id: string; code: string; airline: string }[]>([]);
   const [cartToastOpen, setCartToastOpen] = useState(false);
   const [cartToastTitle, setCartToastTitle] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   useEffect(() => {
     if (!data.hasAirportSelect) return;
@@ -93,6 +99,30 @@ export function ProductVariantBookingCard({
     () => getActiveVariant(data.variants, selection),
     [data.variants, selection]
   );
+  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? 99);
+  const totalGuests = adults + children + infants;
+  const isAtGuestLimit = totalGuests >= maxGuests;
+
+  useEffect(() => {
+    if (!activeVariant?.maxGroupSize) return;
+    const limit = Math.max(1, activeVariant.maxGroupSize);
+    const currentTotal = adults + children + infants;
+    if (currentTotal <= limit) return;
+    let overflow = currentTotal - limit;
+    if (infants > 0) {
+      const cut = Math.min(overflow, infants);
+      setInfants((n) => n - cut);
+      overflow -= cut;
+    }
+    if (overflow > 0 && children > 0) {
+      const cut = Math.min(overflow, children);
+      setChildren((n) => n - cut);
+      overflow -= cut;
+    }
+    if (overflow > 0) {
+      setAdults((n) => Math.max(1, n - overflow));
+    }
+  }, [activeVariant?.id, activeVariant?.maxGroupSize, adults, children, infants]);
 
   const variantsForReservationType = useMemo(() => {
     return data.variants.filter((v) => {
@@ -126,8 +156,13 @@ export function ProductVariantBookingCard({
         return tierPrice * multiplier;
       }
     }
-    return baseTotal;
-  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, data.transferAirportTiers, selection.airport]);
+    const extrasTotal = selectedOptions.reduce((sum, optId) => {
+      const opt = options.find((o) => o.id === optId);
+      if (!opt) return sum;
+      return sum + (opt.pricingMode === 'flat' ? opt.price : opt.price * totalPax);
+    }, 0);
+    return baseTotal + extrasTotal;
+  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, data.transferAirportTiers, selection.airport, selectedOptions, options]);
 
   const variantTitle = activeVariant
     ? lang === 'tr'
@@ -136,6 +171,7 @@ export function ProductVariantBookingCard({
         ? activeVariant.titleZh
         : activeVariant.titleEn
     : title;
+  const formatShown = (eur: number) => formatPriceByLang(eur, lang, eurTryRate);
 
   const handleAddToCart = () => {
     if (!activeVariant) return;
@@ -147,7 +183,10 @@ export function ProductVariantBookingCard({
       date: selectedDate,
       pax,
       basePrice: activeVariant.pricingType === 'per_person' ? activeVariant.adultPrice : activeVariant.adultPrice / Math.max(1, pax),
-      options: [],
+      options: selectedOptions
+        .map((id) => options.find((o) => o.id === id))
+        .filter((o): o is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' } => Boolean(o))
+        .map((o) => ({ id: o.id, title: o.title, price: o.price, pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person' })),
       totalPrice: total,
       variantId: activeVariant.id,
       ...(data.hasAirportSelect && {
@@ -216,8 +255,36 @@ export function ProductVariantBookingCard({
           onlyYou: t.onlyYou,
           perPerson: t.perPerson,
           perVehicle: t.perVehicle,
+          recommended: t.recommended ?? 'Recommended',
         }}
       />
+
+      {options.length > 0 && (
+        <div style={{ marginBottom: 'var(--space-lg)' }}>
+          <label className="form-label">{t.optionalAddons ?? 'Optional add-ons'}</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {options.map((opt) => {
+              const selected = selectedOptions.includes(opt.id);
+              const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * Math.max(1, adults + children + infants);
+              return (
+                <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 10px', background: selected ? 'var(--color-bg-alt)' : 'transparent' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => {
+                        setSelectedOptions((prev) => (prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]));
+                      }}
+                    />
+                    <span>{opt.title}</span>
+                  </span>
+                  <strong style={{ color: 'var(--color-primary)' }}>+{formatShown(displayPrice).primary}</strong>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {activeVariant && (
         <div className="variant-description">
@@ -323,7 +390,7 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{adults}</span>
-          <button type="button" className="stepper-btn" onClick={() => setAdults((a) => a + 1)}>+</button>
+          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setAdults((a) => a + 1)}>+</button>
         </div>
       </div>
       <div className="age-group">
@@ -341,7 +408,7 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{children}</span>
-          <button type="button" className="stepper-btn" onClick={() => setChildren((c) => c + 1)}>+</button>
+          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setChildren((c) => c + 1)}>+</button>
         </div>
       </div>
       <div className="age-group">
@@ -356,9 +423,14 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{infants}</span>
-          <button type="button" className="stepper-btn" onClick={() => setInfants((i) => i + 1)}>+</button>
+          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setInfants((i) => i + 1)}>+</button>
         </div>
       </div>
+      {activeVariant?.maxGroupSize != null && (
+        <p style={{ marginTop: '8px', marginBottom: 'var(--space-md)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+          {t.maxGuestsInfo?.replace('{max}', String(maxGuests)) ?? `Maximum ${maxGuests} guests allowed for this option.`}
+        </p>
+      )}
       <div style={{ marginTop: 'var(--space-sm)', marginBottom: 'var(--space-md)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
         <strong>{t.agePolicyTitle}</strong><br />
         {t.agePolicyInfant}<br />
@@ -374,14 +446,14 @@ export function ProductVariantBookingCard({
               <>
                 {adults > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>{adults} Adult{adults > 1 ? 's' : ''} × €{activeVariant.adultPrice.toFixed(2)}</span>
-                    <span>€{(activeVariant.adultPrice * adults).toFixed(2)}</span>
+                  <span>{adults} Adult{adults > 1 ? 's' : ''} × {formatShown(activeVariant.adultPrice).primary}</span>
+                  <span>{formatShown(activeVariant.adultPrice * adults).primary}</span>
                   </div>
                 )}
                 {children > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>{children} Child × €{(activeVariant.childPrice ?? activeVariant.adultPrice).toFixed(2)}</span>
-                    <span>€{((activeVariant.childPrice ?? activeVariant.adultPrice) * children).toFixed(2)}</span>
+                  <span>{children} Child × {formatShown(activeVariant.childPrice ?? activeVariant.adultPrice).primary}</span>
+                  <span>{formatShown((activeVariant.childPrice ?? activeVariant.adultPrice) * children).primary}</span>
                   </div>
                 )}
                 {infants > 0 && (
@@ -402,7 +474,7 @@ export function ProductVariantBookingCard({
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span>{adults + children + infants} pax (vehicle)</span>
-                  <span>€{total.toFixed(2)}</span>
+                  <span>{formatShown(total).primary}</span>
                 </div>
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
@@ -416,7 +488,10 @@ export function ProductVariantBookingCard({
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, marginBottom: 'var(--space-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-sm)' }}>
           <span>{t.total}</span>
-          <span style={{ color: 'var(--color-primary)' }}>€{total.toFixed(2)}</span>
+          <span style={{ color: 'var(--color-primary)' }}>
+            {formatShown(total).primary}
+            {formatShown(total).secondary ? <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatShown(total).secondary}</small> : null}
+          </span>
         </div>
         <Button style={{ width: '100%' }} onClick={handleAddToCart} disabled={!activeVariant}>
           {t.addToCart}

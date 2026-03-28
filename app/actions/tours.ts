@@ -14,7 +14,7 @@ function revalidateTours() {
   });
 }
 
-export type TourType = 'BALLOON' | 'TOUR' | 'TRANSFER' | 'CONCIERGE' | 'PACKAGE';
+export type TourType = 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'CONCIERGE' | 'PACKAGE';
 
 export type TransferTier = { minPax: number; maxPax: number; price: number };
 
@@ -38,7 +38,7 @@ export interface TourWithOptions {
   hasAirportSelect?: boolean;
   transferTiers: TransferTier[] | null;
   transferAirportTiers: TransferAirportTiers | null;
-  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
+  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' }[];
 }
 
 export interface TourDatePriceResult {
@@ -155,6 +155,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
         titleEn: o.titleEn,
         titleZh: o.titleZh,
         priceAdd: o.priceAdd,
+        pricingMode: ((o as { pricingMode?: string }).pricingMode === 'flat' ? 'flat' : 'per_person'),
       })),
     };
   } catch {
@@ -394,6 +395,8 @@ export type CreateTourInput = {
   capacity: number;
   destination?: string;
   category?: string | null;
+  hasTourType?: boolean;
+  hasAirportSelect?: boolean;
 };
 
 export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; error?: string }> {
@@ -413,6 +416,8 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
         category: data.category?.trim() || null,
+        hasTourType: data.hasTourType ?? false,
+        hasAirportSelect: data.hasAirportSelect ?? false,
       },
     });
     revalidateTours();
@@ -422,7 +427,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   }
 }
 
-export type UpdateTourInput = CreateTourInput & { hasTourType?: boolean; hasAirportSelect?: boolean };
+export type UpdateTourInput = CreateTourInput;
 
 export async function updateTour(tourId: string, data: UpdateTourInput): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
@@ -470,17 +475,24 @@ export async function deleteTour(tourId: string): Promise<{ ok: boolean; error?:
 }
 
 // --- Tour options CRUD (admin only) ---
-export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number };
+export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' };
 
 export async function createTourOption(
   tourId: string,
-  data: { titleTr: string; titleEn: string; titleZh: string; priceAdd: number }
+  data: { titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
     await prisma.tourOption.create({
-      data: { tourId, titleTr: data.titleTr.trim(), titleEn: data.titleEn.trim(), titleZh: data.titleZh.trim(), priceAdd: data.priceAdd },
+      data: {
+        tourId,
+        titleTr: data.titleTr.trim(),
+        titleEn: data.titleEn.trim(),
+        titleZh: data.titleZh.trim(),
+        priceAdd: data.priceAdd,
+        pricingMode: data.pricingMode === 'flat' ? 'flat' : 'per_person',
+      },
     });
     revalidateTours();
     return { ok: true };
@@ -491,7 +503,7 @@ export async function createTourOption(
 
 export async function updateTourOption(
   id: string,
-  data: { titleTr?: string; titleEn?: string; titleZh?: string; priceAdd?: number }
+  data: { titleTr?: string; titleEn?: string; titleZh?: string; priceAdd?: number; pricingMode?: 'per_person' | 'flat' }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
@@ -503,6 +515,7 @@ export async function updateTourOption(
         ...(data.titleEn != null && { titleEn: data.titleEn.trim() }),
         ...(data.titleZh != null && { titleZh: data.titleZh.trim() }),
         ...(data.priceAdd != null && { priceAdd: data.priceAdd }),
+        ...(data.pricingMode != null && { pricingMode: data.pricingMode }),
       },
     });
     revalidateTours();

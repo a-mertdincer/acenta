@@ -215,6 +215,8 @@
     "agePolicyInfant": "0-3 years: Free",
     "agePolicyChild": "4-7 years: Child price",
     "agePolicyAdult": "7+ years: Adult price",
+    "recommended": "Recommended",
+    "maxGuestsInfo": "Maximum {max} guests are allowed for this option.",
     "addedToCart": "added to cart!",
     "goToCart": "Go to Cart",
     "continueShopping": "Continue Shopping"

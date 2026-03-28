@@ -10,6 +10,8 @@ import { getTourById, getTourDatePrice } from '../../../actions/tours';
 import { getTourWithVariants } from '../../../actions/variants';
 import { ProductVariantBookingCard } from '../../../components/ProductVariantBookingCard';
 import { TourDetailGallery } from '../../../components/TourDetailGallery';
+import { useExchangeRate } from '../../../hooks/useExchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: number; price: number }[] | null, pax: number, basePrice: number): number {
   if (transferTiers?.length) {
@@ -182,11 +184,83 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   },
 };
 
+type DescriptionBlock =
+  | { kind: 'p'; content: string }
+  | { kind: 'h2'; content: string }
+  | { kind: 'h3'; content: string }
+  | { kind: 'ul'; items: string[] };
+
+function parseDescriptionBlocks(source: string): DescriptionBlock[] {
+  const normalized = source
+    .replace(/\r\n?/g, '\n')
+    .replace(/\s+•\s+/g, '\n• ')
+    .trim();
+  if (!normalized) return [];
+  const lines = normalized.split('\n');
+  const blocks: DescriptionBlock[] = [];
+  let listBuffer: string[] = [];
+  const flushList = () => {
+    if (listBuffer.length > 0) {
+      blocks.push({ kind: 'ul', items: listBuffer });
+      listBuffer = [];
+    }
+  };
+  for (const lineRaw of lines) {
+    const line = lineRaw.trim();
+    if (!line) {
+      flushList();
+      continue;
+    }
+    const bullet = line.match(/^(?:[-*•])\s+(.+)$/);
+    if (bullet) {
+      listBuffer.push(bullet[1].trim());
+      continue;
+    }
+    flushList();
+    const h2 = line.match(/^##\s+(.+)$/);
+    if (h2) {
+      blocks.push({ kind: 'h2', content: h2[1].trim() });
+      continue;
+    }
+    const h3 = line.match(/^###\s+(.+)$/);
+    if (h3) {
+      blocks.push({ kind: 'h3', content: h3[1].trim() });
+      continue;
+    }
+    blocks.push({ kind: 'p', content: line });
+  }
+  flushList();
+  return blocks;
+}
+
+function ProductDescription({ text }: { text: string }) {
+  const blocks = parseDescriptionBlocks(text);
+  if (blocks.length === 0) return null;
+  return (
+    <div className="product-description">
+      {blocks.map((block, idx) => {
+        if (block.kind === 'ul') {
+          return (
+            <ul key={`ul-${idx}`}>
+              {block.items.map((item, itemIdx) => (
+                <li key={`li-${idx}-${itemIdx}`}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.kind === 'h2') return <h2 key={`h2-${idx}`}>{block.content}</h2>;
+        if (block.kind === 'h3') return <h3 key={`h3-${idx}`}>{block.content}</h3>;
+        return <p key={`p-${idx}`}>{block.content}</p>;
+      })}
+    </div>
+  );
+}
+
 function mapDbTourToState(db: {
   id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
   transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
   transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
-  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }[];
+  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }[];
 }, _lang: Lang) {
   const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
   return {
@@ -201,10 +275,11 @@ function mapDbTourToState(db: {
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
     transferAirportTiers: db.transferAirportTiers ?? null,
-    options: db.options.map((o, i) => ({
-      id: i + 1,
+    options: db.options.map((o) => ({
+      id: o.id,
       title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
       price: o.priceAdd,
+      pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person',
     })),
   };
 }
@@ -233,8 +308,8 @@ const mockTours = [
         descZh: '探索地下城，在伊赫拉拉山谷徒步旅行，并参观塞利梅修道院。包括午餐。',
         basePrice: 40.0,
         options: [
-            { id: 1, title: 'Vegetarian Lunch', price: 0 },
-            { id: 2, title: 'Private Guide', price: 50.0 }
+            { id: '1', title: 'Vegetarian Lunch', price: 0, pricingMode: 'per_person' },
+            { id: '2', title: 'Private Guide', price: 50.0, pricingMode: 'per_person' }
         ]
     }
 ];
@@ -249,11 +324,12 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [tourWithVariants, setTourWithVariants] = useState<Awaited<ReturnType<typeof getTourWithVariants>>>(null);
     const [pax, setPax] = useState(1);
     const [selectedDate, setSelectedDate] = useState<string>('');
-    const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
+    const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     const [selectedAirport, setSelectedAirport] = useState<TransferAirport>('ASR');
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
     const [cartToastOpen, setCartToastOpen] = useState(false);
     const [cartToastTitle, setCartToastTitle] = useState('');
+    const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
 
     useEffect(() => {
         const d = new Date();
@@ -318,6 +394,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const t = TOUR_DETAIL_STRINGS[locale];
     const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+    const formatShown = (eur: number) => formatPriceByLang(eur, locale, eurTryRate);
 
     const transferTiersForAirport =
         tour.type === 'TRANSFER' && tour.transferAirportTiers
@@ -332,10 +409,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     let total = isTransferWithTiers ? unitPrice : basePrice * pax;
     selectedOptions.forEach(optId => {
         const opt = tour.options?.find((o: any) => o.id === optId);
-        if (opt) total += (opt.price * pax);
+        if (opt) total += opt.pricingMode === 'flat' ? opt.price : (opt.price * pax);
     });
 
-    const toggleOption = (optId: number) => {
+    const toggleOption = (optId: string) => {
         setSelectedOptions(prev =>
             prev.includes(optId) ? prev.filter(id => id !== optId) : [...prev, optId]
         );
@@ -367,7 +444,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             </span>
                             {fromPrice != null && (
                                 <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)', marginBottom: 'var(--space-lg)' }}>
-                                    From {fromPrice.toFixed(2)}€
+                                    From {formatShown(fromPrice).primary}
+                                    {formatShown(fromPrice).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(fromPrice).secondary}</small> : null}
                                 </p>
                             )}
                             <TourDetailGallery mainSrc={galleryMain} fallbackSrc={galleryFallback} />
@@ -379,14 +457,13 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 lang={lang as Lang}
                                 data={tourWithVariants!}
                                 title={title}
+                                options={tour.options ?? []}
                             />
                         </div>
                     </div>
                     <div>
                         <h2>{t.description}</h2>
-                        <p style={{ color: 'var(--color-text-muted)', lineHeight: '1.6', fontSize: '1.1rem', marginTop: 'var(--space-sm)' }}>
-                            {desc}
-                        </p>
+                        <ProductDescription text={desc} />
                     </div>
                 </>
             ) : (
@@ -400,9 +477,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 <TourDetailHeroImage type={tour.type} title={title} />
 
                 <h2>{t.description}</h2>
-                <p style={{ color: 'var(--color-text-muted)', lineHeight: '1.6', fontSize: '1.1rem', marginTop: 'var(--space-sm)' }}>
-                    {desc}
-                </p>
+                <ProductDescription text={desc} />
 
                 {tour.options?.length > 0 && (
                     <div style={{ marginTop: 'var(--space-xl)' }}>
@@ -415,7 +490,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                         <span style={{ fontWeight: '500' }}>{opt.title}</span>
                                     </div>
                                     <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
-                                        {opt.price === 0 ? t.free : `+€${opt.price}`}
+                                        {opt.price === 0 ? t.free : `+€${opt.price}${opt.pricingMode === 'flat' ? '' : ` (${pax}x)`}`}
                                     </span>
                                 </label>
                             ))}
@@ -436,7 +511,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     {datePrice && selectedDate && (
                         <div style={{ marginBottom: 'var(--space-md)', padding: 'var(--space-sm) 0', borderBottom: '1px solid var(--color-border)' }}>
                             <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                                <strong>{t.thisDayPrice}:</strong> €{datePrice.price.toFixed(2)} {t.perPerson}
+                                <strong>{t.thisDayPrice}:</strong> {formatShown(datePrice.price).primary} {t.perPerson}
                             </p>
                             <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                 {t.capacity}: {datePrice.capacity} {t.guests}
@@ -478,33 +553,42 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     )}
                     {isTransferWithTiers && (
                         <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-md)' }}>
-                            {t.transferPrice.replace('{pax}', String(pax))}: €{unitPrice.toFixed(2)}
+                            {t.transferPrice.replace('{pax}', String(pax))}: {formatShown(unitPrice).primary}
                         </p>
                     )}
                     <div style={{ padding: 'var(--space-md)', backgroundColor: 'var(--color-bg-card)', borderRadius: '8px', marginBottom: 'var(--space-xl)' }}>
                         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-sm)' }}>
-                            {t.basePrice}: €{basePrice.toFixed(2)} {t.perPerson}
+                            {t.basePrice}: {formatShown(basePrice).primary} {t.perPerson}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <span>{isTransferWithTiers ? `${t.basePrice} (${pax} ${t.guests})` : t.baseSubtotal.replace('{pax}', String(pax))}</span>
-                            <span>€{(isTransferWithTiers ? unitPrice : basePrice * pax).toFixed(2)}</span>
+                            <span>{formatShown(isTransferWithTiers ? unitPrice : basePrice * pax).primary}</span>
                         </div>
                         {selectedOptions.map(optId => {
                             const opt = tour.options.find((o: any) => o.id === optId);
                             if (!opt) return null;
-                            const optTotal = opt.price * pax;
+                            const optTotal = opt.pricingMode === 'flat' ? opt.price : opt.price * pax;
                             return (
                                 <div key={optId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                                    <span>{opt.title} (×{pax})</span>
-                                    <span>{opt.price === 0 ? t.free : `+€${optTotal.toFixed(2)}`}</span>
+                                    <span>{opt.title} {opt.pricingMode === 'flat' ? '(sabit)' : `(×${pax})`}</span>
+                                    <span>{opt.price === 0 ? t.free : `+${formatShown(optTotal).primary}`}</span>
                                 </div>
                             );
                         })}
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--color-border)', paddingTop: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: '1.25rem', fontWeight: 'bold' }}>
                             <span>{t.netTotal}</span>
-                            <span style={{ color: 'var(--color-primary)' }}>€{Number(total).toFixed(2)}</span>
+                            <span style={{ color: 'var(--color-primary)' }}>
+                                {formatShown(Number(total)).primary}
+                                {formatShown(Number(total)).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(Number(total)).secondary}</small> : null}
+                            </span>
                         </div>
                     </div>
+                    {lang === 'tr' && (
+                        <p style={{ marginTop: 'var(--space-sm)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            TL tutarlar bilgilendirme amaçlıdır; ödeme EUR cinsindendir.
+                            {updatedAt ? ` Kur güncelleme: ${new Date(updatedAt).toLocaleString('tr-TR')}` : ''}
+                        </p>
+                    )}
 
                     <Button style={{ width: '100%' }} disabled={isClosed} onClick={() => {
                         if (isClosed) return;
@@ -518,7 +602,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             basePrice: isTransferWithTiers ? unitPrice : basePrice,
                             options: selectedOptions.map(optId => {
                                 const o = tour.options.find((opt: any) => opt.id === optId);
-                                return { id: o.id, title: o.title, price: o.price };
+                                return { id: o.id, title: o.title, price: o.price, pricingMode: o.pricingMode };
                             }),
                             totalPrice: total,
                             ...(tour.type === 'TRANSFER' && { transferAirport: selectedAirport }),

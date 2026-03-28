@@ -23,10 +23,12 @@ export default function AdminToursPage() {
     const [optTitleEn, setOptTitleEn] = useState('');
     const [optTitleZh, setOptTitleZh] = useState('');
     const [optPriceAdd, setOptPriceAdd] = useState('');
+    const [optPricingMode, setOptPricingMode] = useState<'per_person' | 'flat'>('per_person');
     const [optSaving, setOptSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitleEn, setEditTitleEn] = useState('');
     const [editPriceAdd, setEditPriceAdd] = useState('');
+    const [editPricingMode, setEditPricingMode] = useState<'per_person' | 'flat'>('per_person');
 
     const [transferTiersASR, setTransferTiersASR] = useState<TransferTier[]>([]);
     const [transferTiersNAV, setTransferTiersNAV] = useState<TransferTier[]>([]);
@@ -46,6 +48,8 @@ export default function AdminToursPage() {
     const [newCapacity, setNewCapacity] = useState('10');
     const [newDestination, setNewDestination] = useState('cappadocia');
     const [newCategory, setNewCategory] = useState('');
+    const [newHasTourType, setNewHasTourType] = useState(false);
+    const [newHasAirportSelect, setNewHasAirportSelect] = useState(false);
 
     const [editTourId, setEditTourId] = useState<string | null>(null);
     const [editSaving, setEditSaving] = useState(false);
@@ -123,6 +127,21 @@ export default function AdminToursPage() {
         getTourVariantsForAdmin(editTourId).then(setVariants);
     }, [editTourId]);
 
+    useEffect(() => {
+        if (newType === 'TRANSFER') {
+            setNewHasAirportSelect(true);
+            setNewHasTourType(false);
+            return;
+        }
+        if (newType === 'TOUR') {
+            setNewHasTourType(true);
+            setNewHasAirportSelect(false);
+            return;
+        }
+        setNewHasTourType(false);
+        setNewHasAirportSelect(false);
+    }, [newType]);
+
     const handleDailySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!dailyTourId || !dailyDate) return;
@@ -146,6 +165,7 @@ export default function AdminToursPage() {
             titleEn: optTitleEn.trim(),
             titleZh: optTitleZh.trim() || optTitleEn.trim(),
             priceAdd: parseFloat(optPriceAdd) || 0,
+            pricingMode: optPricingMode,
         });
         setOptSaving(false);
         if (result.ok) {
@@ -153,6 +173,7 @@ export default function AdminToursPage() {
             setOptTitleEn('');
             setOptTitleZh('');
             setOptPriceAdd('');
+            setOptPricingMode('per_person');
             getTourById(dailyTourId).then((t) => setOptions(t?.options ?? []));
         } else alert(result.error);
     };
@@ -168,11 +189,16 @@ export default function AdminToursPage() {
         setEditingId(o.id);
         setEditTitleEn(o.titleEn);
         setEditPriceAdd(String(o.priceAdd));
+        setEditPricingMode(o.pricingMode ?? 'per_person');
     };
     const handleUpdateOption = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingId) return;
-        const result = await updateTourOption(editingId, { titleEn: editTitleEn.trim(), priceAdd: parseFloat(editPriceAdd) || 0 });
+        const result = await updateTourOption(editingId, {
+            titleEn: editTitleEn.trim(),
+            priceAdd: parseFloat(editPriceAdd) || 0,
+            pricingMode: editPricingMode,
+        });
         if (result.ok) {
             setEditingId(null);
             getTourById(dailyTourId).then((t) => setOptions(t?.options ?? []));
@@ -247,6 +273,8 @@ export default function AdminToursPage() {
             capacity: parseInt(newCapacity, 10) || 0,
             destination: newDestination,
             category: newCategory || null,
+            hasTourType: newHasTourType,
+            hasAirportSelect: newHasAirportSelect,
         });
         setCreateSaving(false);
         if (result.ok) {
@@ -262,6 +290,8 @@ export default function AdminToursPage() {
             setNewDescZh('');
             setNewBasePrice('0');
             setNewCapacity('10');
+            setNewHasTourType(false);
+            setNewHasAirportSelect(false);
         } else alert(result.error ?? 'Tur eklenemedi');
     };
 
@@ -477,6 +507,7 @@ export default function AdminToursPage() {
                                 <option value="BALLOON">BALLOON</option>
                                 <option value="TOUR">TOUR</option>
                                 <option value="TRANSFER">TRANSFER</option>
+                                <option value="ACTIVITY">ACTIVITY</option>
                                 <option value="CONCIERGE">CONCIERGE</option>
                                 <option value="PACKAGE">PACKAGE</option>
                             </select>
@@ -517,6 +548,19 @@ export default function AdminToursPage() {
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} />
                             <Input label="Kapasite" type="number" min={1} value={newCapacity} onChange={(e) => setNewCapacity(e.target.value)} />
                         </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={newHasTourType} onChange={(e) => setNewHasTourType(e.target.checked)} />
+                            <span>Eco/Plus (Tur Tipi) seçeneği var</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={newHasAirportSelect} onChange={(e) => setNewHasAirportSelect(e.target.checked)} />
+                            <span>Havalimanı (NAV/ASR) seçeneği var</span>
+                        </label>
+                        {newType === 'ACTIVITY' && (
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                ACTIVITY ürünlerinde süre, konum ve kişi limiti gibi alanları varyant formundan yönetebilirsiniz.
+                            </p>
+                        )}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
                         <Button type="submit" disabled={createSaving}>{createSaving ? 'Ekleniyor...' : 'Ürünü ekle'}</Button>
@@ -539,6 +583,7 @@ export default function AdminToursPage() {
                                 <option value="BALLOON">BALLOON</option>
                                 <option value="TOUR">TOUR</option>
                                 <option value="TRANSFER">TRANSFER</option>
+                                <option value="ACTIVITY">ACTIVITY</option>
                                 <option value="CONCIERGE">CONCIERGE</option>
                                 <option value="PACKAGE">PACKAGE</option>
                             </select>
@@ -993,6 +1038,13 @@ export default function AdminToursPage() {
                         <div style={{ flex: '1 1 100px' }}>
                             <Input label="Ek fiyat (€)" type="number" step="0.01" value={optPriceAdd} onChange={(e) => setOptPriceAdd(e.target.value)} placeholder="0" />
                         </div>
+                        <div style={{ flex: '1 1 140px' }}>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Fiyat tipi</label>
+                            <select value={optPricingMode} onChange={(e) => setOptPricingMode(e.target.value as 'per_person' | 'flat')} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                <option value="per_person">Kişi başı</option>
+                                <option value="flat">Sabit</option>
+                            </select>
+                        </div>
                         <Button type="submit" disabled={optSaving}>{optSaving ? 'Ekleniyor...' : 'Opsiyon ekle'}</Button>
                     </div>
                 </form>
@@ -1002,6 +1054,7 @@ export default function AdminToursPage() {
                             <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                                 <th style={{ padding: 'var(--space-md)' }}>Başlık (EN)</th>
                                 <th style={{ padding: 'var(--space-md)' }}>Ek fiyat</th>
+                                <th style={{ padding: 'var(--space-md)' }}>Tip</th>
                                 <th style={{ padding: 'var(--space-md)' }}>İşlemler</th>
                             </tr>
                         </thead>
@@ -1014,16 +1067,21 @@ export default function AdminToursPage() {
                                                 <form onSubmit={handleUpdateOption} style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
                                                     <Input label="Başlık" value={editTitleEn} onChange={(e) => setEditTitleEn(e.target.value)} style={{ flex: 1 }} />
                                                     <Input label="Fiyat" type="number" step="0.01" value={editPriceAdd} onChange={(e) => setEditPriceAdd(e.target.value)} style={{ width: '80px' }} />
+                                                    <select value={editPricingMode} onChange={(e) => setEditPricingMode(e.target.value as 'per_person' | 'flat')} style={{ padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                                                        <option value="per_person">Kişi başı</option>
+                                                        <option value="flat">Sabit</option>
+                                                    </select>
                                                     <Button type="submit" style={{ padding: '4px 8px' }}>Kaydet</Button>
                                                     <Button type="button" variant="secondary" style={{ padding: '4px 8px' }} onClick={() => setEditingId(null)}>İptal</Button>
                                                 </form>
                                             </td>
-                                            <td colSpan={2} />
+                                            <td colSpan={3} />
                                         </>
                                     ) : (
                                         <>
                                             <td style={{ padding: 'var(--space-md)' }}>{o.titleEn}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>+€{o.priceAdd}</td>
+                                            <td style={{ padding: 'var(--space-md)' }}>{o.pricingMode === 'flat' ? 'Sabit' : 'Kişi başı'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
                                                 <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => startEdit(o)}>Düzenle</Button>
                                                 <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteOption(o.id)}>Sil</Button>

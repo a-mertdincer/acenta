@@ -44,10 +44,12 @@ export default function AdminPricingPage() {
   const [optTitleTr, setOptTitleTr] = useState('');
   const [optTitleZh, setOptTitleZh] = useState('');
   const [optPriceAdd, setOptPriceAdd] = useState('');
+  const [optPricingMode, setOptPricingMode] = useState<'per_person' | 'flat'>('per_person');
   const [optSaving, setOptSaving] = useState(false);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [editOptionTitleEn, setEditOptionTitleEn] = useState('');
   const [editOptionPrice, setEditOptionPrice] = useState('');
+  const [editOptionPricingMode, setEditOptionPricingMode] = useState<'per_person' | 'flat'>('per_person');
 
   const [transferTiersASR, setTransferTiersASR] = useState<TransferTier[]>([]);
   const [transferTiersNAV, setTransferTiersNAV] = useState<TransferTier[]>([]);
@@ -219,6 +221,7 @@ export default function AdminPricingPage() {
       titleTr: optTitleTr.trim() || optTitleEn.trim(),
       titleZh: optTitleZh.trim() || optTitleEn.trim(),
       priceAdd: parseFloat(optPriceAdd) || 0,
+      pricingMode: optPricingMode,
     });
     setOptSaving(false);
     if (!result.ok) return alert(result.error);
@@ -226,6 +229,7 @@ export default function AdminPricingPage() {
     setOptTitleTr('');
     setOptTitleZh('');
     setOptPriceAdd('');
+    setOptPricingMode('per_person');
     await refreshSelectedTourData();
   };
 
@@ -233,6 +237,7 @@ export default function AdminPricingPage() {
     setEditingOptionId(o.id);
     setEditOptionTitleEn(o.titleEn);
     setEditOptionPrice(String(o.priceAdd));
+    setEditOptionPricingMode(o.pricingMode ?? 'per_person');
   };
 
   const handleUpdateOption = async (e: React.FormEvent) => {
@@ -241,6 +246,7 @@ export default function AdminPricingPage() {
     const result = await updateTourOption(editingOptionId, {
       titleEn: editOptionTitleEn.trim(),
       priceAdd: parseFloat(editOptionPrice) || 0,
+      pricingMode: editOptionPricingMode,
     });
     if (!result.ok) return alert(result.error);
     setEditingOptionId(null);
@@ -426,6 +432,13 @@ export default function AdminPricingPage() {
             <div style={{ flex: '1 1 120px' }}>
               <Input label="Ek fiyat (€)" type="number" step="0.01" value={optPriceAdd} onChange={(e) => setOptPriceAdd(e.target.value)} />
             </div>
+            <div style={{ flex: '1 1 140px' }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Fiyat tipi</label>
+              <select value={optPricingMode} onChange={(e) => setOptPricingMode(e.target.value as 'per_person' | 'flat')} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                <option value="per_person">Kişi başı</option>
+                <option value="flat">Sabit</option>
+              </select>
+            </div>
             <Button type="submit" disabled={optSaving}>{optSaving ? 'Ekleniyor...' : 'Opsiyon ekle'}</Button>
           </div>
         </form>
@@ -436,6 +449,7 @@ export default function AdminPricingPage() {
               <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                 <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Başlık (EN)</th>
                 <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Ek fiyat</th>
+                <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Tip</th>
                 <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>İşlem</th>
               </tr>
             </thead>
@@ -448,16 +462,21 @@ export default function AdminPricingPage() {
                         <form onSubmit={handleUpdateOption} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <Input label="Başlık" value={editOptionTitleEn} onChange={(e) => setEditOptionTitleEn(e.target.value)} />
                           <Input label="Fiyat" type="number" step="0.01" value={editOptionPrice} onChange={(e) => setEditOptionPrice(e.target.value)} />
+                          <select value={editOptionPricingMode} onChange={(e) => setEditOptionPricingMode(e.target.value as 'per_person' | 'flat')} style={{ padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                            <option value="per_person">Kişi başı</option>
+                            <option value="flat">Sabit</option>
+                          </select>
                           <Button type="submit">Kaydet</Button>
                           <Button type="button" variant="secondary" onClick={() => setEditingOptionId(null)}>İptal</Button>
                         </form>
                       </td>
-                      <td colSpan={2} />
+                      <td colSpan={3} />
                     </>
                   ) : (
                     <>
                       <td style={{ padding: 'var(--space-md)' }}>{o.titleEn}</td>
                       <td style={{ padding: 'var(--space-md)' }}>+€{o.priceAdd}</td>
+                      <td style={{ padding: 'var(--space-md)' }}>{o.pricingMode === 'flat' ? 'Sabit' : 'Kişi başı'}</td>
                       <td style={{ padding: 'var(--space-md)' }}>
                         <Button variant="secondary" style={{ marginRight: 8 }} onClick={() => startEditOption(o)}>Düzenle</Button>
                         <Button variant="secondary" onClick={() => handleDeleteOption(o.id)}>Sil</Button>

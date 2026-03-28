@@ -6,6 +6,8 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { CheckoutSteps } from '../../components/CheckoutSteps';
 import { useRouter } from 'next/navigation';
+import { useExchangeRate } from '../../hooks/useExchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 export default function CheckoutPage(props: { params: Promise<{ lang: string }> }) {
     const params = use(props.params);
@@ -35,6 +37,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
         paymentMethod: 'MAIL_ORDER'
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
 
     useEffect(() => {
         setMounted(true);
@@ -61,6 +64,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
 
     const subtotal = getTotal();
     const total = couponApplied ? Math.max(0, subtotal - couponApplied.discountAmount) : subtotal;
+    const formatShown = (eur: number) => formatPriceByLang(eur, lang as 'en' | 'tr' | 'zh', eurTryRate);
 
     const handleApplyCoupon = async () => {
         setCouponError('');
@@ -197,7 +201,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                             {items.map(item => (
                                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
                                     <span style={{ color: 'var(--color-text-muted)' }}>{item.pax}x {item.title}</span>
-                                    <span style={{ fontWeight: '500' }}>€{item.totalPrice}</span>
+                                    <span style={{ fontWeight: '500' }}>{formatShown(item.totalPrice).primary}</span>
                                 </div>
                             ))}
                         </div>
@@ -228,18 +232,27 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-sm)' }}>
                             <span>Subtotal</span>
-                            <span>€{subtotal.toFixed(2)}</span>
+                            <span>{formatShown(subtotal).primary}</span>
                         </div>
                         {couponApplied && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
                                 <span>Discount ({couponApplied.couponCode})</span>
-                                <span>-€{couponApplied.discountAmount.toFixed(2)}</span>
+                                <span>-{formatShown(couponApplied.discountAmount).primary}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px dashed var(--color-border)', paddingTop: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: '1.5rem', fontWeight: 'bold' }}>
                             <span>Total</span>
-                            <span style={{ color: 'var(--color-primary)' }}>€{total.toFixed(2)}</span>
+                            <span style={{ color: 'var(--color-primary)' }}>
+                                {formatShown(total).primary}
+                                {formatShown(total).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(total).secondary}</small> : null}
+                            </span>
                         </div>
+                        {lang === 'tr' && (
+                            <p style={{ marginTop: 'var(--space-sm)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                TL tutarlar bilgilendirme amaçlıdır; ödeme EUR cinsindendir.
+                                {updatedAt ? ` Kur güncelleme: ${new Date(updatedAt).toLocaleString('tr-TR')}` : ''}
+                            </p>
+                        )}
 
                         <Button
                             type="submit"

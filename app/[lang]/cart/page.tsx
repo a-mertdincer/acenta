@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useCartStore } from '../../store/cartStore';
 import { Button } from '../../components/Button';
 import { CheckoutSteps } from '../../components/CheckoutSteps';
+import { useExchangeRate } from '../../hooks/useExchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 export default function CartPage(props: { params: Promise<{ lang: string }> }) {
     const params = use(props.params);
@@ -14,6 +16,7 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
     // For simplicity, we just use local state mounted check
     const [mounted, setMounted] = useState(false);
     const { items, removeItem, getTotal } = useCartStore();
+    const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
 
     useEffect(() => {
         setMounted(true);
@@ -29,6 +32,7 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
     }
 
     const total = getTotal();
+    const formatShown = (eur: number) => formatPriceByLang(eur, lang as 'en' | 'tr' | 'zh', eurTryRate);
 
     return (
         <div className="container cart-page">
@@ -67,7 +71,10 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--color-primary)' }}>€{item.totalPrice}</span>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--color-primary)' }}>
+                                        {formatShown(item.totalPrice).primary}
+                                        {formatShown(item.totalPrice).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(item.totalPrice).secondary}</small> : null}
+                                    </span>
                                     <button
                                         onClick={() => removeItem(item.id)}
                                         style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', textDecoration: 'underline' }}
@@ -86,7 +93,10 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
                                 <span>Subtotal</span>
-                                <span>€{total}</span>
+                                <span>
+                                    {formatShown(total).primary}
+                                    {formatShown(total).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)' }}>{formatShown(total).secondary}</small> : null}
+                                </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
                                 <span>Tax</span>
@@ -95,8 +105,17 @@ export default function CartPage(props: { params: Promise<{ lang: string }> }) {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px dashed var(--color-border)', paddingTop: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: '1.5rem', fontWeight: 'bold' }}>
                                 <span>Total</span>
-                                <span style={{ color: 'var(--color-primary)' }}>€{total}</span>
+                                <span style={{ color: 'var(--color-primary)' }}>
+                                    {formatShown(total).primary}
+                                    {formatShown(total).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(total).secondary}</small> : null}
+                                </span>
                             </div>
+                            {lang === 'tr' && (
+                                <p style={{ marginTop: 'var(--space-sm)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                    TL tutarlar bilgilendirme amaçlıdır; ödeme EUR cinsindendir.
+                                    {updatedAt ? ` Kur güncelleme: ${new Date(updatedAt).toLocaleString('tr-TR')}` : ''}
+                                </p>
+                            )}
 
                             <Link href={`/${lang}/checkout`}>
                                 <Button style={{ width: '100%', marginTop: 'var(--space-xl)' }}>Proceed to Checkout</Button>

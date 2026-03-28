@@ -215,6 +215,8 @@
     "agePolicyInfant": "0-3岁：免费",
     "agePolicyChild": "4-7岁：儿童价格",
     "agePolicyAdult": "7岁以上：成人价格",
+    "recommended": "推荐",
+    "maxGuestsInfo": "此选项最多可接待 {max} 位客人。",
     "addedToCart": "已加入购物车！",
     "goToCart": "前往购物车",
     "continueShopping": "继续购物"

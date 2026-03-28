@@ -15,7 +15,7 @@ export function ReservationTypeCards({
   value: ReservationTypeVariant;
   onChange: (v: ReservationTypeVariant) => void;
   lang: 'en' | 'tr' | 'zh';
-  labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string };
+  labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
 }) {
   const regular = variants.find((v) => v.reservationType === 'regular');
   const privateV = variants.find((v) => v.reservationType === 'private');
@@ -29,9 +29,10 @@ export function ReservationTypeCards({
       {regular && (
         <button
           type="button"
-          className={`reservation-card ${value === 'regular' ? 'selected' : ''}`}
+          className={`reservation-card ${regular.isRecommended ? 'recommended' : ''} ${value === 'regular' ? 'selected' : ''}`}
           onClick={() => onChange('regular')}
         >
+          {regular.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
           <span className="reservation-card-icon" aria-hidden>🚐</span>
           <strong className="reservation-card-title">{title(regular)}</strong>
           <span className="reservation-card-subtitle">({labels.group})</span>
@@ -48,7 +49,7 @@ export function ReservationTypeCards({
           className={`reservation-card ${privateV.isRecommended ? 'recommended' : ''} ${value === 'private' ? 'selected' : ''}`}
           onClick={() => onChange('private')}
         >
-          {privateV.isRecommended && <span className="recommended-badge">★ Recommended</span>}
+          {privateV.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
           <span className="reservation-card-icon" aria-hidden>🚗</span>
           <strong className="reservation-card-title">{title(privateV)}</strong>
           <span className="reservation-card-subtitle">({labels.onlyYou})</span>

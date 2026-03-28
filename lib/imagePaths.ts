@@ -24,7 +24,7 @@ export function getHomeImagePath(key: HomeImageKey): string {
 }
 
 const TOUR_IMAGE_KEYS: Record<string, keyof typeof FALLBACKS.tours> = {
-  BALLOON: 'balloon', TOUR: 'green-tour', TRANSFER: 'transfer', CONCIERGE: 'green-tour', PACKAGE: 'green-tour',
+  BALLOON: 'balloon', TOUR: 'green-tour', TRANSFER: 'transfer', ACTIVITY: 'green-tour', CONCIERGE: 'green-tour', PACKAGE: 'green-tour',
 };
 export function getTourImagePath(type: string): string {
   const key = TOUR_IMAGE_KEYS[type] ?? 'green-tour';

@@ -5,6 +5,8 @@ import { TourCardImage } from '../../components/TourCardImage';
 import { getTourImagePath, getTourImageFallback } from '../../../lib/imagePaths';
 import { getTours } from '../../actions/tours';
 import { ActivitiesDestinationSection } from '../../components/ActivitiesDestinationSection';
+import { getEurTryRate } from '@/lib/exchangeRate';
+import { formatPriceByLang } from '@/lib/currency';
 
 const MOCK_TOURS = [
     { id: 'mock-balloon', type: 'BALLOON' as const, titleEn: 'Standard Balloon Flight', titleTr: 'Standart Balon Turu', titleZh: '标准热气球飞行', descEn: 'Float above the fairy chimneys at sunrise in our spacious baskets. 1 hour flight with champagne toast.', descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.', descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。', basePrice: 150.0 },
@@ -18,6 +20,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
     const dict = await getDictionary(lang);
 
     const dbTours = await getTours();
+    const rateData = lang === 'tr' ? await getEurTryRate() : null;
     const tours = dbTours.length > 0
         ? dbTours.map((t) => {
             const byAirport = t.transferAirportTiers;
@@ -29,7 +32,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                 : t.basePrice;
             return {
                 id: t.id,
-                type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER',
+                type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'PACKAGE' | 'CONCIERGE',
                 titleEn: t.titleEn,
                 titleTr: t.titleTr,
                 titleZh: t.titleZh,
@@ -43,6 +46,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
         : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice }));
 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
+    const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
 
     return (
         <>
@@ -73,7 +77,15 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                                 </div>
                                 <p className="tour-card-desc">{desc}</p>
                                 <div className="tour-card-footer">
-                                    <span className="tour-card-price">{dict.home.from} €{Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice).toFixed(0)}</span>
+                                    {(() => {
+                                      const shown = formatPriceByLang(Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice), lang, rateData?.rate ?? null);
+                                      return (
+                                        <span className="tour-card-price">
+                                          {Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice) > 0 ? `${dict.home.from} ${shown.primary}` : contactForPriceLabel}
+                                          {shown.secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{shown.secondary}</small> : null}
+                                        </span>
+                                      );
+                                    })()}
                                     <Link href={`/${lang}/tour/${tour.id}`}>
                                         <Button className="tour-card-cta">{bookNowLabel}</Button>
                                     </Link>

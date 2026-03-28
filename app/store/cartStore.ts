@@ -38,9 +38,10 @@ export interface CartItem {
     pax: number;
     basePrice: number;
     options: {
-        id: number;
+        id: string | number;
         title: string;
         price: number;
+        pricingMode?: 'per_person' | 'flat';
     }[];
     totalPrice: number;
     /** For transfer: ASR (Kayseri) | NAV (Nevşehir) */

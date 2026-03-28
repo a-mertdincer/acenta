@@ -9,8 +9,10 @@ import type { TransferAirportTiers } from '@/app/actions/tours';
 type PrismaWithTourVariant = typeof prisma & {
   tourVariant: {
     findMany: (args: unknown) => Promise<unknown[]>;
+    findUnique: (args: unknown) => Promise<unknown>;
     create: (args: unknown) => Promise<unknown>;
     update: (args: unknown) => Promise<unknown>;
+    updateMany: (args: unknown) => Promise<unknown>;
     delete: (args: unknown) => Promise<unknown>;
   };
 };
@@ -182,7 +184,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
       const valid = validateContinuousPriceTiers(data.privatePriceTiers);
       if (!valid.ok) return { ok: false, error: valid.error };
     }
-    await prismaWithTourVariant.tourVariant.create({
+    const created = await prismaWithTourVariant.tourVariant.create({
       data: {
         tourId: data.tourId,
         tourType: data.tourType || null,
@@ -210,6 +212,19 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
         isRecommended: Boolean(data.isRecommended),
       },
     });
+    if (data.isRecommended) {
+      const createdVariant = created as { id: string };
+      await prismaWithTourVariant.tourVariant.updateMany({
+        where: {
+          tourId: data.tourId,
+          tourType: data.tourType || null,
+          airport: data.airport || null,
+          reservationType: data.reservationType,
+          id: { not: createdVariant.id },
+        },
+        data: { isRecommended: false },
+      });
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Varyant eklenemedi' };
@@ -250,7 +265,26 @@ export async function updateVariant(variantId: string, data: UpdateVariantInput)
     if (data.sortOrder !== undefined) payload.sortOrder = data.sortOrder;
     if (data.isActive !== undefined) payload.isActive = data.isActive;
     if (data.isRecommended !== undefined) payload.isRecommended = data.isRecommended;
-    await prismaWithTourVariant.tourVariant.update({ where: { id: variantId }, data: payload });
+    const updated = (await prismaWithTourVariant.tourVariant.update({ where: { id: variantId }, data: payload })) as {
+      id: string;
+      tourId: string;
+      tourType: string | null;
+      airport: string | null;
+      reservationType: string;
+      isRecommended: boolean;
+    };
+    if (updated.isRecommended) {
+      await prismaWithTourVariant.tourVariant.updateMany({
+        where: {
+          tourId: updated.tourId,
+          tourType: updated.tourType,
+          airport: updated.airport,
+          reservationType: updated.reservationType,
+          id: { not: updated.id },
+        },
+        data: { isRecommended: false },
+      });
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Varyant güncellenemedi' };

@@ -18,7 +18,6 @@ const SIDEBAR_SECTIONS = [
     items: [
       { path: 'admin/tours', label: 'Ürünler', icon: '📦' },
       { path: 'admin/pricing', label: 'Fiyatlandırma ve Müsaitlik', icon: '💰' },
-      { path: 'admin/balloon-calendar', label: 'Balon Fiyat Takvimi', icon: '🎈' },
       { path: 'admin/flights', label: 'Uçuş Listesi', icon: '✈️' },
     ],
   },

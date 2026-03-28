@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { getTours, getTourDatePricesInRange, setTourDatePrice, type DatePriceEntry } from '../../../actions/tours';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getDaysInMonth } from '@/lib/adminCalendar';
 
 export default function AdminBalloonCalendarPage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; capacity: number }[]>([]);
   const [balloonTourId, setBalloonTourId] = useState('');
   const [month, setMonth] = useState(() => {
@@ -28,6 +31,13 @@ export default function AdminBalloonCalendarPage() {
   const [bulkCapacity, setBulkCapacity] = useState('');
   const [bulkClosed, setBulkClosed] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  useEffect(() => {
+    const target = pathname?.replace('/admin/balloon-calendar', '/admin/pricing');
+    if (!target || target === pathname) return;
+    const timer = setTimeout(() => router.replace(target), 250);
+    return () => clearTimeout(timer);
+  }, [pathname, router]);
 
   useEffect(() => {
     getTours().then((list) => {

@@ -102,6 +102,7 @@ model TourOption {
   titleEn   String
   titleZh   String
   priceAdd  Float // Amount added to base price
+  pricingMode String @default("per_person") // per_person | flat
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -147,6 +148,9 @@ model Reservation {
   // Misafir iptal talebi (operasyon onayına kadar bekler)
   cancellationRequestedAt   DateTime?
   cancellationRequestReason  String?
+  cancelReason       String?       // free_cancel | customer_request | wrong_reservation | other
+  cancelNote         String?
+  cancelledBy        String?       // admin | customer
   // Misafir değişiklik talebi (tarih/kişi/not; operasyon onayına kadar bekler)
   updateRequestedAt  DateTime?
   pendingDate        DateTime?

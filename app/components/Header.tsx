@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useCartStore } from '../store/cartStore';
+import { useCartStore, type CartItem } from '../store/cartStore';
 
 type Lang = 'en' | 'tr' | 'zh';
 
@@ -90,11 +90,27 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [canHover, setCanHover] = useState(true);
+  const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
+  const [removedItem, setRemovedItem] = useState<{ title: string; item: Omit<CartItem, 'id'> } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const cartPreviewRef = useRef<HTMLDivElement>(null);
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const undoTimerRef = useRef<number | null>(null);
   const cartCount = useCartStore((s) => s.items.length);
+  const cartItems = useCartStore((s) => s.items);
+  const removeCartItem = useCartStore((s) => s.removeItem);
+  const addCartItem = useCartStore((s) => s.addItem);
+  const cartTotal = useCartStore((s) => s.getTotal());
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setCanHover(window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   }, []);
 
   useEffect(() => {
@@ -104,6 +120,14 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (openTimerRef.current) window.clearTimeout(openTimerRef.current);
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    };
   }, []);
 
   const navLinks = [
@@ -123,10 +147,40 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (cartPreviewRef.current && !cartPreviewRef.current.contains(e.target as Node)) {
+        setCartPreviewOpen(false);
+      }
     }
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  const cartLabels = lang === 'tr'
+    ? { title: 'Sepetim', empty: 'Sepetiniz boş', go: 'Sepete Git', total: 'Toplam', removed: 'Kaldırıldı', undo: 'Geri Al' }
+    : lang === 'zh'
+      ? { title: '购物车', empty: '购物车为空', go: '前往购物车', total: '合计', removed: '已移除', undo: '撤销' }
+      : { title: 'My Cart', empty: 'Your cart is empty', go: 'Go to Cart', total: 'Total', removed: 'Removed', undo: 'Undo' };
+
+  const openCartPreview = () => {
+    if (!canHover) return;
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    openTimerRef.current = window.setTimeout(() => setCartPreviewOpen(true), 300);
+  };
+  const closeCartPreview = () => {
+    if (!canHover) return;
+    if (openTimerRef.current) window.clearTimeout(openTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => setCartPreviewOpen(false), 200);
+  };
+
+  const removeFromPreview = (id: string) => {
+    const target = cartItems.find((i) => i.id === id);
+    if (!target) return;
+    removeCartItem(id);
+    const { id: _id, ...withoutId } = target;
+    setRemovedItem({ title: target.title, item: withoutId });
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = window.setTimeout(() => setRemovedItem(null), 5000);
+  };
 
   return (
     <header className={`site-header-compact${scrolled ? ' scrolled' : ''}`}>
@@ -251,12 +305,72 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
                 <SearchIcon />
               </Link>
 
-              <Link href={`/${lang}/cart`} className="site-nav-icon-btn site-nav-cart-btn site-nav-cart-wrap" aria-label={`${nav.cart}${mounted && cartCount > 0 ? ` (${cartCount})` : ''}`} onClick={() => setMobileOpen(false)}>
-                <CartIcon />
-                {mounted && cartCount > 0 && (
-                  <span className="site-nav-cart-badge" aria-hidden>{cartCount > 99 ? '99+' : cartCount}</span>
+              <div
+                className="site-nav-cart-wrap"
+                ref={cartPreviewRef}
+                onMouseEnter={openCartPreview}
+                onMouseLeave={closeCartPreview}
+              >
+                <Link
+                  href={`/${lang}/cart`}
+                  className="site-nav-icon-btn site-nav-cart-btn"
+                  aria-label={`${nav.cart}${mounted && cartCount > 0 ? ` (${cartCount})` : ''}`}
+                  onClick={(e) => {
+                    setMobileOpen(false);
+                    if (!canHover) {
+                      e.preventDefault();
+                      setCartPreviewOpen((v) => !v);
+                    }
+                  }}
+                >
+                  <CartIcon />
+                  {mounted && cartCount > 0 && (
+                    <span className="site-nav-cart-badge" aria-hidden>{cartCount > 99 ? '99+' : cartCount}</span>
+                  )}
+                </Link>
+                {cartPreviewOpen && (
+                  <div className="cart-preview">
+                    <div className="cart-preview-title">{cartLabels.title} ({cartItems.length})</div>
+                    {cartItems.length === 0 ? (
+                      <p className="cart-preview-empty">{cartLabels.empty}</p>
+                    ) : (
+                      <>
+                        <div className="cart-preview-list">
+                          {cartItems.map((item) => (
+                            <div key={item.id} className="cart-preview-item">
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{item.title}</div>
+                                <div style={{ color: 'var(--color-text-muted)' }}>{item.date} · {item.pax} kişi · €{item.totalPrice.toFixed(2)}</div>
+                              </div>
+                              <button type="button" className="cart-preview-remove" onClick={() => removeFromPreview(item.id)}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="cart-preview-footer">
+                          <strong>{cartLabels.total}: €{cartTotal.toFixed(2)}</strong>
+                          <Link href={`/${lang}/cart`} className="btn btn-primary btn-sm" onClick={() => setCartPreviewOpen(false)}>
+                            {cartLabels.go}
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                    {removedItem && (
+                      <div className="cart-preview-toast">
+                        <span>{cartLabels.removed}: {removedItem.title}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            addCartItem(removedItem.item);
+                            setRemovedItem(null);
+                          }}
+                        >
+                          {cartLabels.undo}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </Link>
+              </div>
             </div>
           </nav>
         </div>

@@ -126,11 +126,18 @@ export function ProductVariantBookingCard({
 
   const variantsForReservationType = useMemo(() => {
     return data.variants.filter((v) => {
-      const tourTypeMatch = (v.tourType ?? null) === selection.tourType;
-      const airportMatch = (v.airport ?? null) === selection.airport;
+      const tourTypeMatch = selection.tourType == null || (v.tourType ?? null) === selection.tourType || v.tourType == null;
+      const airportMatch = selection.airport == null || (v.airport ?? null) === selection.airport || v.airport == null;
       return tourTypeMatch && airportMatch;
     });
   }, [data.variants, selection.tourType, selection.airport]);
+
+  useEffect(() => {
+    if (activeVariant) return;
+    if (variantsForReservationType.length === 0) return;
+    const fallback = variantsForReservationType.find((v) => v.isRecommended) ?? variantsForReservationType[0];
+    setSelection((s) => ({ ...s, reservationType: fallback.reservationType as 'regular' | 'private' }));
+  }, [activeVariant, variantsForReservationType]);
 
   const total = useMemo(() => {
     if (!activeVariant) return 0;
@@ -174,8 +181,15 @@ export function ProductVariantBookingCard({
   const formatShown = (eur: number) => formatPriceByLang(eur, lang, eurTryRate);
 
   const handleAddToCart = () => {
-    if (!activeVariant) return;
+    if (!activeVariant) {
+      alert('Bu seçenek için uygun varyant bulunamadı.');
+      return;
+    }
     const pax = adults + children + infants;
+    if (pax > maxGuests) {
+      alert(t.maxGuestsInfo?.replace('{max}', String(maxGuests)) ?? `Maksimum ${maxGuests} kişi kabul edilmektedir.`);
+      return;
+    }
     addItem({
       tourId,
       tourType,
@@ -390,7 +404,14 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{adults}</span>
-          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setAdults((a) => a + 1)}>+</button>
+          <button
+            type="button"
+            className="stepper-btn"
+            disabled={isAtGuestLimit}
+            onClick={() => setAdults((a) => Math.min(maxGuests - children - infants, a + 1))}
+          >
+            +
+          </button>
         </div>
       </div>
       <div className="age-group">
@@ -408,7 +429,14 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{children}</span>
-          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setChildren((c) => c + 1)}>+</button>
+          <button
+            type="button"
+            className="stepper-btn"
+            disabled={isAtGuestLimit}
+            onClick={() => setChildren((c) => Math.max(0, Math.min(maxGuests - adults - infants, c + 1)))}
+          >
+            +
+          </button>
         </div>
       </div>
       <div className="age-group">
@@ -423,7 +451,14 @@ export function ProductVariantBookingCard({
             −
           </button>
           <span>{infants}</span>
-          <button type="button" className="stepper-btn" disabled={isAtGuestLimit} onClick={() => setInfants((i) => i + 1)}>+</button>
+          <button
+            type="button"
+            className="stepper-btn"
+            disabled={isAtGuestLimit}
+            onClick={() => setInfants((i) => Math.max(0, Math.min(maxGuests - adults - children, i + 1)))}
+          >
+            +
+          </button>
         </div>
       </div>
       {activeVariant?.maxGroupSize != null && (

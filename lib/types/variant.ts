@@ -46,13 +46,23 @@ export function getActiveVariant(
   variants: TourVariantDisplay[],
   selection: VariantSelection
 ): TourVariantDisplay | null {
-  const active = variants.filter((v) => v.isActive).find((v) => {
-    const tourTypeMatch = (v.tourType ?? null) === selection.tourType;
-    const resMatch = v.reservationType === selection.reservationType;
-    const airportMatch = (v.airport ?? null) === selection.airport;
-    return tourTypeMatch && resMatch && airportMatch;
+  const active = variants.filter((v) => v.isActive).filter((v) => {
+    const tourTypeMatch = selection.tourType == null || (v.tourType ?? null) === selection.tourType || v.tourType == null;
+    const airportMatch = selection.airport == null || (v.airport ?? null) === selection.airport || v.airport == null;
+    return tourTypeMatch && airportMatch;
   });
-  return active ?? null;
+  if (active.length === 0) return null;
+  const sameReservationType = active.filter((v) => v.reservationType === selection.reservationType);
+  const candidates = sameReservationType.length > 0 ? sameReservationType : active;
+  const exact = candidates.find((v) => (v.tourType ?? null) === selection.tourType && (v.airport ?? null) === selection.airport);
+  if (exact) return exact;
+  const wildcardAirport = candidates.find((v) => (v.tourType ?? null) === selection.tourType && v.airport == null);
+  if (wildcardAirport) return wildcardAirport;
+  const wildcardTourType = candidates.find((v) => (v.airport ?? null) === selection.airport && v.tourType == null);
+  if (wildcardTourType) return wildcardTourType;
+  const recommended = candidates.find((v) => v.isRecommended);
+  if (recommended) return recommended;
+  return [...candidates].sort((a, b) => a.sortOrder - b.sortOrder)[0] ?? null;
 }
 
 /** Default selection for a tour: hasTourType → eco, hasAirportSelect → NAV, reservationType → regular. */

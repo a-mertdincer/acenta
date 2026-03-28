@@ -41,24 +41,35 @@ export interface TourVariantDisplay {
   isRecommended: boolean;
 }
 
+function normalizeNullable(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed.toLowerCase();
+}
+
 /** Find the active variant from list by selection. */
 export function getActiveVariant(
   variants: TourVariantDisplay[],
   selection: VariantSelection
 ): TourVariantDisplay | null {
+  const selectedTourType = normalizeNullable(selection.tourType);
+  const selectedAirport = normalizeNullable(selection.airport);
+  const selectedReservationType = normalizeNullable(selection.reservationType);
   const active = variants.filter((v) => v.isActive).filter((v) => {
-    const tourTypeMatch = selection.tourType == null || (v.tourType ?? null) === selection.tourType || v.tourType == null;
-    const airportMatch = selection.airport == null || (v.airport ?? null) === selection.airport || v.airport == null;
+    const variantTourType = normalizeNullable(v.tourType);
+    const variantAirport = normalizeNullable(v.airport);
+    const tourTypeMatch = selectedTourType == null || variantTourType === selectedTourType || variantTourType == null;
+    const airportMatch = selectedAirport == null || variantAirport === selectedAirport || variantAirport == null;
     return tourTypeMatch && airportMatch;
   });
   if (active.length === 0) return null;
-  const sameReservationType = active.filter((v) => v.reservationType === selection.reservationType);
+  const sameReservationType = active.filter((v) => normalizeNullable(v.reservationType) === selectedReservationType);
   const candidates = sameReservationType.length > 0 ? sameReservationType : active;
-  const exact = candidates.find((v) => (v.tourType ?? null) === selection.tourType && (v.airport ?? null) === selection.airport);
+  const exact = candidates.find((v) => normalizeNullable(v.tourType) === selectedTourType && normalizeNullable(v.airport) === selectedAirport);
   if (exact) return exact;
-  const wildcardAirport = candidates.find((v) => (v.tourType ?? null) === selection.tourType && v.airport == null);
+  const wildcardAirport = candidates.find((v) => normalizeNullable(v.tourType) === selectedTourType && normalizeNullable(v.airport) == null);
   if (wildcardAirport) return wildcardAirport;
-  const wildcardTourType = candidates.find((v) => (v.airport ?? null) === selection.airport && v.tourType == null);
+  const wildcardTourType = candidates.find((v) => normalizeNullable(v.airport) === selectedAirport && normalizeNullable(v.tourType) == null);
   if (wildcardTourType) return wildcardTourType;
   const recommended = candidates.find((v) => v.isRecommended);
   if (recommended) return recommended;

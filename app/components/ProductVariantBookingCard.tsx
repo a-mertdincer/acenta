@@ -99,7 +99,15 @@ export function ProductVariantBookingCard({
     () => getActiveVariant(data.variants, selection),
     [data.variants, selection]
   );
-  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? 99);
+  const transferAirportTiers = useMemo(
+    () => data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null,
+    [data.transferAirportTiers, selection.airport]
+  );
+  const tierDerivedMax = useMemo(() => {
+    if (!transferAirportTiers || transferAirportTiers.length === 0) return null;
+    return transferAirportTiers.reduce((max, tier) => Math.max(max, tier.maxPax), 0);
+  }, [transferAirportTiers]);
+  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? tierDerivedMax ?? 99);
   const totalGuests = adults + children + infants;
   const isAtGuestLimit = totalGuests >= maxGuests;
 
@@ -126,8 +134,12 @@ export function ProductVariantBookingCard({
 
   const variantsForReservationType = useMemo(() => {
     return data.variants.filter((v) => {
-      const tourTypeMatch = selection.tourType == null || (v.tourType ?? null) === selection.tourType || v.tourType == null;
-      const airportMatch = selection.airport == null || (v.airport ?? null) === selection.airport || v.airport == null;
+      const selectedTourType = selection.tourType?.toLowerCase() ?? null;
+      const selectedAirport = selection.airport?.toLowerCase() ?? null;
+      const variantTourType = v.tourType?.toLowerCase() ?? null;
+      const variantAirport = v.airport?.toLowerCase() ?? null;
+      const tourTypeMatch = selectedTourType == null || variantTourType === selectedTourType || variantTourType == null;
+      const airportMatch = selectedAirport == null || variantAirport === selectedAirport || variantAirport == null;
       return tourTypeMatch && airportMatch;
     });
   }, [data.variants, selection.tourType, selection.airport]);
@@ -142,7 +154,6 @@ export function ProductVariantBookingCard({
   const total = useMemo(() => {
     if (!activeVariant) return 0;
     const totalPax = Math.max(1, adults + children + infants);
-    const transferAirportTiers = data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null;
     const effectivePrivateTiers =
       activeVariant.reservationType === 'private'
         ? (activeVariant.privatePriceTiers && activeVariant.privatePriceTiers.length > 0
@@ -169,7 +180,7 @@ export function ProductVariantBookingCard({
       return sum + (opt.pricingMode === 'flat' ? opt.price : opt.price * totalPax);
     }, 0);
     return baseTotal + extrasTotal;
-  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, data.transferAirportTiers, selection.airport, selectedOptions, options]);
+  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, transferAirportTiers, selection.airport, selectedOptions, options]);
 
   const variantTitle = activeVariant
     ? lang === 'tr'

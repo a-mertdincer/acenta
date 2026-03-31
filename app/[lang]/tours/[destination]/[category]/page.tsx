@@ -68,6 +68,7 @@ export default async function ToursCategoryPage(props: {
       descZh: t.descZh,
       basePrice: t.basePrice,
       fromPrice,
+      imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
     };
   });
 
@@ -101,7 +102,7 @@ export default async function ToursCategoryPage(props: {
               return (
                 <article key={tour.id} className="tour-card">
                   <TourCardImage
-                    src={getTourImagePath(tour.type)}
+                    src={tour.imageUrl ?? getTourImagePath(tour.type)}
                     fallback={getTourImageFallback(tour.type)}
                     alt={title}
                   />

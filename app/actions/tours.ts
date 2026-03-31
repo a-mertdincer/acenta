@@ -36,6 +36,30 @@ export interface TourWithOptions {
   category?: string | null;
   hasTourType?: boolean;
   hasAirportSelect?: boolean;
+  hasReservationType?: boolean;
+  minAgeLimit?: number | null;
+  ageRestrictionEn?: string | null;
+  ageRestrictionTr?: string | null;
+  ageRestrictionZh?: string | null;
+  ageGroups?: {
+    id: string;
+    minAge: number;
+    maxAge: number;
+    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+    descriptionEn: string;
+    descriptionTr: string;
+    descriptionZh: string | null;
+    sortOrder: number;
+  }[];
+  images?: {
+    id: string;
+    url: string;
+    isPrimary: boolean;
+    sortOrder: number;
+    altEn: string | null;
+    altTr: string | null;
+    altZh: string | null;
+  }[];
   transferTiers: TransferTier[] | null;
   transferAirportTiers: TransferAirportTiers | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' }[];
@@ -56,6 +80,23 @@ export async function getTours(filters?: { destination?: string; category?: stri
       where: Object.keys(where).length ? where : undefined,
       orderBy: { createdAt: 'asc' },
     });
+    const allImages = await prisma.tourImage.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const imageMap = new Map<string, { id: string; url: string; isPrimary: boolean; sortOrder: number; altEn: string | null; altTr: string | null; altZh: string | null }[]>();
+    allImages.forEach((img) => {
+      const list = imageMap.get(img.tourId) ?? [];
+      list.push({
+        id: img.id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+        altEn: img.altEn ?? null,
+        altTr: img.altTr ?? null,
+        altZh: img.altZh ?? null,
+      });
+      imageMap.set(img.tourId, list);
+    });
     return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
@@ -71,10 +112,16 @@ export async function getTours(filters?: { destination?: string; category?: stri
         capacity: t.capacity,
         hasTourType: Boolean((t as { hasTourType?: boolean }).hasTourType),
         hasAirportSelect: Boolean((t as { hasAirportSelect?: boolean }).hasAirportSelect),
+        hasReservationType: Boolean((t as { hasReservationType?: boolean }).hasReservationType ?? true),
+        minAgeLimit: (t as { minAgeLimit?: number | null }).minAgeLimit ?? null,
+        ageRestrictionEn: (t as { ageRestrictionEn?: string | null }).ageRestrictionEn ?? null,
+        ageRestrictionTr: (t as { ageRestrictionTr?: string | null }).ageRestrictionTr ?? null,
+        ageRestrictionZh: (t as { ageRestrictionZh?: string | null }).ageRestrictionZh ?? null,
         transferTiers,
         transferAirportTiers,
         // NOTE: Tour list API is used for catalog/listing contexts; options are fetched by getTourById.
         options: [],
+        images: imageMap.get(t.id) ?? [],
       };
     });
   } catch {
@@ -128,10 +175,26 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       where: { tourId: id },
       orderBy: { createdAt: 'asc' },
     });
+    const ageGroups = await prisma.productAgeGroup.findMany({
+      where: { tourId: id },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const images = await prisma.tourImage.findMany({
+      where: { tourId: id },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
     const raw = tour as { transferAirportTiers?: unknown };
     const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
     const t = tour as { destination?: string; category?: string | null };
-    const tourRecord = tour as { hasTourType?: boolean; hasAirportSelect?: boolean };
+    const tourRecord = tour as {
+      hasTourType?: boolean;
+      hasAirportSelect?: boolean;
+      hasReservationType?: boolean;
+      minAgeLimit?: number | null;
+      ageRestrictionEn?: string | null;
+      ageRestrictionTr?: string | null;
+      ageRestrictionZh?: string | null;
+    };
     return {
       id: tour.id,
       type: tour.type,
@@ -147,8 +210,32 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       category: t.category ?? null,
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
+      hasReservationType: Boolean(tourRecord.hasReservationType ?? true),
+      minAgeLimit: tourRecord.minAgeLimit ?? null,
+      ageRestrictionEn: tourRecord.ageRestrictionEn ?? null,
+      ageRestrictionTr: tourRecord.ageRestrictionTr ?? null,
+      ageRestrictionZh: tourRecord.ageRestrictionZh ?? null,
       transferTiers,
       transferAirportTiers,
+      ageGroups: ageGroups.map((g) => ({
+        id: g.id,
+        minAge: g.minAge,
+        maxAge: g.maxAge,
+        pricingType: (g.pricingType as 'free' | 'child' | 'adult' | 'not_allowed') ?? 'adult',
+        descriptionEn: g.descriptionEn,
+        descriptionTr: g.descriptionTr,
+        descriptionZh: g.descriptionZh ?? null,
+        sortOrder: g.sortOrder,
+      })),
+      images: images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+        altEn: img.altEn ?? null,
+        altTr: img.altTr ?? null,
+        altZh: img.altZh ?? null,
+      })),
       options: options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
@@ -397,6 +484,20 @@ export type CreateTourInput = {
   category?: string | null;
   hasTourType?: boolean;
   hasAirportSelect?: boolean;
+  hasReservationType?: boolean;
+  minAgeLimit?: number | null;
+  ageRestrictionEn?: string | null;
+  ageRestrictionTr?: string | null;
+  ageRestrictionZh?: string | null;
+  ageGroups?: {
+    minAge: number;
+    maxAge: number;
+    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+    descriptionEn: string;
+    descriptionTr: string;
+    descriptionZh?: string | null;
+    sortOrder?: number;
+  }[];
 };
 
 export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; error?: string }> {
@@ -418,6 +519,26 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         category: data.category?.trim() || null,
         hasTourType: data.hasTourType ?? false,
         hasAirportSelect: data.hasAirportSelect ?? false,
+        hasReservationType: data.hasReservationType ?? true,
+        minAgeLimit: data.minAgeLimit ?? null,
+        ageRestrictionEn: data.ageRestrictionEn?.trim() || null,
+        ageRestrictionTr: data.ageRestrictionTr?.trim() || null,
+        ageRestrictionZh: data.ageRestrictionZh?.trim() || null,
+        ageGroups: {
+          create: (data.ageGroups && data.ageGroups.length > 0 ? data.ageGroups : [
+            { minAge: 0, maxAge: 3, pricingType: 'free', descriptionEn: 'Free of charge', descriptionTr: 'Ücretsiz', descriptionZh: '免费', sortOrder: 0 },
+            { minAge: 4, maxAge: 7, pricingType: 'child', descriptionEn: 'Child price applies', descriptionTr: 'Çocuk fiyatı uygulanır', descriptionZh: '儿童价格适用', sortOrder: 1 },
+            { minAge: 8, maxAge: 99, pricingType: 'adult', descriptionEn: 'Adult price applies', descriptionTr: 'Yetişkin fiyatı uygulanır', descriptionZh: '成人价格适用', sortOrder: 2 },
+          ]).map((g, index) => ({
+            minAge: g.minAge,
+            maxAge: g.maxAge,
+            pricingType: g.pricingType,
+            descriptionEn: g.descriptionEn.trim(),
+            descriptionTr: g.descriptionTr.trim(),
+            descriptionZh: g.descriptionZh?.trim() || null,
+            sortOrder: g.sortOrder ?? index,
+          })),
+        },
       },
     });
     revalidateTours();
@@ -449,12 +570,137 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         category: data.category?.trim() || null,
         ...(data.hasTourType !== undefined && { hasTourType: data.hasTourType }),
         ...(data.hasAirportSelect !== undefined && { hasAirportSelect: data.hasAirportSelect }),
+        ...(data.hasReservationType !== undefined && { hasReservationType: data.hasReservationType }),
+        ...(data.minAgeLimit !== undefined && { minAgeLimit: data.minAgeLimit }),
+        ...(data.ageRestrictionEn !== undefined && { ageRestrictionEn: data.ageRestrictionEn?.trim() || null }),
+        ...(data.ageRestrictionTr !== undefined && { ageRestrictionTr: data.ageRestrictionTr?.trim() || null }),
+        ...(data.ageRestrictionZh !== undefined && { ageRestrictionZh: data.ageRestrictionZh?.trim() || null }),
+      },
+    });
+    if (data.ageGroups !== undefined) {
+      await prisma.productAgeGroup.deleteMany({ where: { tourId } });
+      if (data.ageGroups.length > 0) {
+        await prisma.productAgeGroup.createMany({
+          data: data.ageGroups.map((g, index) => ({
+            tourId,
+            minAge: g.minAge,
+            maxAge: g.maxAge,
+            pricingType: g.pricingType,
+            descriptionEn: g.descriptionEn.trim(),
+            descriptionTr: g.descriptionTr.trim(),
+            descriptionZh: g.descriptionZh?.trim() || null,
+            sortOrder: g.sortOrder ?? index,
+          })),
+        });
+      }
+    }
+    if (data.hasReservationType === false) {
+      await prisma.tourVariant.updateMany({
+        where: { tourId },
+        data: { reservationType: null },
+      });
+    }
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Tur güncellenemedi' };
+  }
+}
+
+// --- Tour images CRUD (admin only) ---
+export async function addTourImage(
+  tourId: string,
+  data: { url: string; altEn?: string | null; altTr?: string | null; altZh?: string | null }
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const existing = await prisma.tourImage.findMany({ where: { tourId }, orderBy: { sortOrder: 'asc' } });
+    await prisma.tourImage.create({
+      data: {
+        tourId,
+        url: data.url.trim(),
+        altEn: data.altEn?.trim() || null,
+        altTr: data.altTr?.trim() || null,
+        altZh: data.altZh?.trim() || null,
+        sortOrder: existing.length,
+        isPrimary: existing.length === 0,
       },
     });
     revalidateTours();
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Tur güncellenemedi' };
+    return { ok: false, error: e instanceof Error ? e.message : 'Görsel eklenemedi' };
+  }
+}
+
+export async function deleteTourImage(imageId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const current = await prisma.tourImage.findUnique({ where: { id: imageId } });
+    if (!current) return { ok: false, error: 'Görsel bulunamadı' };
+    await prisma.tourImage.delete({ where: { id: imageId } });
+    const remains = await prisma.tourImage.findMany({
+      where: { tourId: current.tourId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    if (remains.length > 0 && !remains.some((img) => img.isPrimary)) {
+      await prisma.tourImage.update({ where: { id: remains[0].id }, data: { isPrimary: true } });
+    }
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Görsel silinemedi' };
+  }
+}
+
+export async function setPrimaryTourImage(imageId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const current = await prisma.tourImage.findUnique({ where: { id: imageId } });
+    if (!current) return { ok: false, error: 'Görsel bulunamadı' };
+    await prisma.tourImage.updateMany({
+      where: { tourId: current.tourId },
+      data: { isPrimary: false },
+    });
+    await prisma.tourImage.update({
+      where: { id: imageId },
+      data: { isPrimary: true },
+    });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Ana görsel ayarlanamadı' };
+  }
+}
+
+export async function moveTourImage(
+  imageId: string,
+  direction: 'up' | 'down'
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const current = await prisma.tourImage.findUnique({ where: { id: imageId } });
+    if (!current) return { ok: false, error: 'Görsel bulunamadı' };
+    const list = await prisma.tourImage.findMany({
+      where: { tourId: current.tourId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const idx = list.findIndex((item) => item.id === imageId);
+    if (idx < 0) return { ok: false, error: 'Görsel bulunamadı' };
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= list.length) return { ok: true };
+    const a = list[idx];
+    const b = list[swapIdx];
+    await prisma.tourImage.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } });
+    await prisma.tourImage.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Görsel sıralanamadı' };
   }
 }
 

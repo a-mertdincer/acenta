@@ -3,13 +3,22 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, deleteTour, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
+import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, deleteTour, addTourImage, deleteTourImage, setPrimaryTourImage, moveTourImage, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
 import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
 import { getTourVariantsForAdmin, createVariant, updateVariant, deleteVariant, type CreateVariantInput } from '../../../actions/variants';
 import type { TourVariantDisplay } from '@/lib/types/variant';
 
+type AgeGroupDraft = {
+    minAge: number;
+    maxAge: number;
+    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+    descriptionEn: string;
+    descriptionTr: string;
+    descriptionZh: string;
+};
+
 export default function AdminToursPage() {
-    const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number }[]>([]);
+    const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; hasReservationType?: boolean }[]>([]);
     const [loading, setLoading] = useState(true);
     const [dailyDate, setDailyDate] = useState('');
     const [dailyTourId, setDailyTourId] = useState('');
@@ -50,6 +59,16 @@ export default function AdminToursPage() {
     const [newCategory, setNewCategory] = useState('');
     const [newHasTourType, setNewHasTourType] = useState(false);
     const [newHasAirportSelect, setNewHasAirportSelect] = useState(false);
+    const [newHasReservationType, setNewHasReservationType] = useState(true);
+    const [newMinAgeLimit, setNewMinAgeLimit] = useState('');
+    const [newAgeRestrictionEn, setNewAgeRestrictionEn] = useState('');
+    const [newAgeRestrictionTr, setNewAgeRestrictionTr] = useState('');
+    const [newAgeRestrictionZh, setNewAgeRestrictionZh] = useState('');
+    const [newAgeGroups, setNewAgeGroups] = useState<AgeGroupDraft[]>([
+        { minAge: 0, maxAge: 3, pricingType: 'free', descriptionEn: 'Free of charge', descriptionTr: 'Ücretsiz', descriptionZh: '免费' },
+        { minAge: 4, maxAge: 7, pricingType: 'child', descriptionEn: 'Child price applies', descriptionTr: 'Çocuk fiyatı uygulanır', descriptionZh: '儿童价格适用' },
+        { minAge: 8, maxAge: 99, pricingType: 'adult', descriptionEn: 'Adult price applies', descriptionTr: 'Yetişkin fiyatı uygulanır', descriptionZh: '成人价格适用' },
+    ]);
 
     const [editTourId, setEditTourId] = useState<string | null>(null);
     const [editSaving, setEditSaving] = useState(false);
@@ -66,6 +85,15 @@ export default function AdminToursPage() {
     const [tourEditCategory, setTourEditCategory] = useState('');
     const [tourEditHasTourType, setTourEditHasTourType] = useState(false);
     const [tourEditHasAirportSelect, setTourEditHasAirportSelect] = useState(false);
+    const [tourEditHasReservationType, setTourEditHasReservationType] = useState(true);
+    const [tourEditMinAgeLimit, setTourEditMinAgeLimit] = useState('');
+    const [tourEditAgeRestrictionEn, setTourEditAgeRestrictionEn] = useState('');
+    const [tourEditAgeRestrictionTr, setTourEditAgeRestrictionTr] = useState('');
+    const [tourEditAgeRestrictionZh, setTourEditAgeRestrictionZh] = useState('');
+    const [tourEditAgeGroups, setTourEditAgeGroups] = useState<AgeGroupDraft[]>([]);
+    const [tourImages, setTourImages] = useState<{ id: string; url: string; isPrimary: boolean }[]>([]);
+    const [imageUploading, setImageUploading] = useState(false);
+    const [imageUrlInput, setImageUrlInput] = useState('');
     const [variants, setVariants] = useState<TourVariantDisplay[]>([]);
     const [variantSaving, setVariantSaving] = useState(false);
     const [showAddVariant, setShowAddVariant] = useState(false);
@@ -83,14 +111,15 @@ export default function AdminToursPage() {
         adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: 0, isActive: true, isRecommended: false,
     });
 
-    const selectedTourType = tours.find((t) => t.id === dailyTourId)?.type ?? '';
+    const selectedTour = tours.find((t) => t.id === dailyTourId) ?? null;
+    const selectedTourType = selectedTour?.type ?? '';
     const destinations = getDestinations();
     const createCategories = getCategoriesForDestination(newDestination);
     const editCategories = getCategoriesForDestination(tourEditDestination);
 
     useEffect(() => {
         getTours().then((list) => {
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
             if (list.length > 0 && !dailyTourId) setDailyTourId(list[0].id);
             setLoading(false);
         });
@@ -109,7 +138,26 @@ export default function AdminToursPage() {
         if (!editTourId) return;
         getTourById(editTourId).then((t) => {
             if (!t) return;
-            const rec = t as { destination?: string; category?: string | null; hasTourType?: boolean; hasAirportSelect?: boolean };
+            const rec = t as {
+                destination?: string;
+                category?: string | null;
+                hasTourType?: boolean;
+                hasAirportSelect?: boolean;
+                hasReservationType?: boolean;
+                minAgeLimit?: number | null;
+                ageRestrictionEn?: string | null;
+                ageRestrictionTr?: string | null;
+                ageRestrictionZh?: string | null;
+                ageGroups?: {
+                    minAge: number;
+                    maxAge: number;
+                    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+                    descriptionEn: string;
+                    descriptionTr: string;
+                    descriptionZh?: string | null;
+                }[];
+                images?: { id: string; url: string; isPrimary: boolean }[];
+            };
             setTourEditType(t.type as TourType);
             setTourEditDestination(rec.destination ?? 'cappadocia');
             setTourEditCategory(rec.category ?? '');
@@ -123,6 +171,29 @@ export default function AdminToursPage() {
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
             setTourEditHasAirportSelect(Boolean(rec.hasAirportSelect));
+            setTourEditHasReservationType(Boolean(rec.hasReservationType ?? true));
+            setTourEditMinAgeLimit(rec.minAgeLimit != null ? String(rec.minAgeLimit) : '');
+            setTourEditAgeRestrictionEn(rec.ageRestrictionEn ?? '');
+            setTourEditAgeRestrictionTr(rec.ageRestrictionTr ?? '');
+            setTourEditAgeRestrictionZh(rec.ageRestrictionZh ?? '');
+            const fetchedAgeGroups = (rec.ageGroups ?? []).map((g) => ({
+                minAge: g.minAge,
+                maxAge: g.maxAge,
+                pricingType: g.pricingType,
+                descriptionEn: g.descriptionEn,
+                descriptionTr: g.descriptionTr,
+                descriptionZh: g.descriptionZh ?? '',
+            }));
+            setTourEditAgeGroups(
+                fetchedAgeGroups.length > 0
+                    ? fetchedAgeGroups
+                    : [
+                        { minAge: 0, maxAge: 3, pricingType: 'free', descriptionEn: 'Free of charge', descriptionTr: 'Ücretsiz', descriptionZh: '免费' },
+                        { minAge: 4, maxAge: 7, pricingType: 'child', descriptionEn: 'Child price applies', descriptionTr: 'Çocuk fiyatı uygulanır', descriptionZh: '儿童价格适用' },
+                        { minAge: 8, maxAge: 99, pricingType: 'adult', descriptionEn: 'Adult price applies', descriptionTr: 'Yetişkin fiyatı uygulanır', descriptionZh: '成人价格适用' },
+                    ]
+            );
+            setTourImages((rec.images ?? []).map((img) => ({ id: img.id, url: img.url, isPrimary: img.isPrimary })));
         });
         getTourVariantsForAdmin(editTourId).then(setVariants);
     }, [editTourId]);
@@ -131,15 +202,18 @@ export default function AdminToursPage() {
         if (newType === 'TRANSFER') {
             setNewHasAirportSelect(true);
             setNewHasTourType(false);
+            setNewHasReservationType(true);
             return;
         }
         if (newType === 'TOUR') {
             setNewHasTourType(true);
             setNewHasAirportSelect(false);
+            setNewHasReservationType(true);
             return;
         }
         setNewHasTourType(false);
         setNewHasAirportSelect(false);
+        setNewHasReservationType(false);
     }, [newType]);
 
     const handleDailySubmit = async (e: React.FormEvent) => {
@@ -249,7 +323,7 @@ export default function AdminToursPage() {
         setSeedLoading(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
             if (list.length > 0) setDailyTourId(list[0].id);
         } else alert(result.error ?? 'Yüklenemedi');
     };
@@ -275,11 +349,17 @@ export default function AdminToursPage() {
             category: newCategory || null,
             hasTourType: newHasTourType,
             hasAirportSelect: newHasAirportSelect,
+            hasReservationType: newHasReservationType,
+            minAgeLimit: newMinAgeLimit === '' ? null : parseInt(newMinAgeLimit, 10),
+            ageRestrictionEn: newAgeRestrictionEn || null,
+            ageRestrictionTr: newAgeRestrictionTr || null,
+            ageRestrictionZh: newAgeRestrictionZh || null,
+            ageGroups: newAgeGroups.map((g, idx) => ({ ...g, sortOrder: idx })),
         });
         setCreateSaving(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
             if (list.length > 0) setDailyTourId(list[list.length - 1].id);
             setShowNewTourForm(false);
             setNewTitleEn('');
@@ -292,6 +372,16 @@ export default function AdminToursPage() {
             setNewCapacity('10');
             setNewHasTourType(false);
             setNewHasAirportSelect(false);
+            setNewHasReservationType(true);
+            setNewMinAgeLimit('');
+            setNewAgeRestrictionEn('');
+            setNewAgeRestrictionTr('');
+            setNewAgeRestrictionZh('');
+            setNewAgeGroups([
+                { minAge: 0, maxAge: 3, pricingType: 'free', descriptionEn: 'Free of charge', descriptionTr: 'Ücretsiz', descriptionZh: '免费' },
+                { minAge: 4, maxAge: 7, pricingType: 'child', descriptionEn: 'Child price applies', descriptionTr: 'Çocuk fiyatı uygulanır', descriptionZh: '儿童价格适用' },
+                { minAge: 8, maxAge: 99, pricingType: 'adult', descriptionEn: 'Adult price applies', descriptionTr: 'Yetişkin fiyatı uygulanır', descriptionZh: '成人价格适用' },
+            ]);
         } else alert(result.error ?? 'Tur eklenemedi');
     };
 
@@ -316,11 +406,17 @@ export default function AdminToursPage() {
             capacity: parseInt(tourEditCapacity, 10) || 0,
             hasTourType: tourEditHasTourType,
             hasAirportSelect: tourEditHasAirportSelect,
+            hasReservationType: tourEditHasReservationType,
+            minAgeLimit: tourEditMinAgeLimit === '' ? null : parseInt(tourEditMinAgeLimit, 10),
+            ageRestrictionEn: tourEditAgeRestrictionEn || null,
+            ageRestrictionTr: tourEditAgeRestrictionTr || null,
+            ageRestrictionZh: tourEditAgeRestrictionZh || null,
+            ageGroups: tourEditAgeGroups.map((g, idx) => ({ ...g, sortOrder: idx })),
         });
         setEditSaving(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
             setEditTourId(null);
         } else alert(result.error ?? 'Tur güncellenemedi');
     };
@@ -338,7 +434,7 @@ export default function AdminToursPage() {
         const result = await createVariant({
             tourId: editTourId,
             tourType: newVariant.tourType ?? null,
-            reservationType: newVariant.reservationType ?? 'regular',
+            reservationType: tourEditHasReservationType ? (newVariant.reservationType ?? 'regular') : null,
             airport: newVariant.airport ?? null,
             titleEn: newVariant.titleEn!.trim(),
             titleTr: (newVariant.titleTr ?? '').trim() || newVariant.titleEn!.trim(),
@@ -356,7 +452,7 @@ export default function AdminToursPage() {
             adultPrice: Number(newVariant.adultPrice) || 0,
             childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: newVariant.privatePriceTiers ?? null,
+            privatePriceTiers: tourEditHasReservationType && newVariant.reservationType === 'private' ? (newVariant.privatePriceTiers ?? null) : null,
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,
             isRecommended: Boolean(newVariant.isRecommended),
@@ -418,7 +514,7 @@ export default function AdminToursPage() {
         const routeStops = typeof editVariant.routeStops === 'string' ? (editVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (editVariant.routeStops ?? []);
         const result = await updateVariant(editingVariantId, {
             tourType: editVariant.tourType ?? null,
-            reservationType: editVariant.reservationType ?? 'regular',
+            reservationType: tourEditHasReservationType ? (editVariant.reservationType ?? 'regular') : null,
             airport: editVariant.airport ?? null,
             titleEn: editVariant.titleEn?.trim(),
             titleTr: (editVariant.titleTr ?? '').trim() || editVariant.titleEn?.trim(),
@@ -436,7 +532,7 @@ export default function AdminToursPage() {
             adultPrice: Number(editVariant.adultPrice) || 0,
             childPrice: editVariant.childPrice != null ? Number(editVariant.childPrice) : null,
             pricingType: (editVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: editVariant.privatePriceTiers ?? null,
+            privatePriceTiers: tourEditHasReservationType && editVariant.reservationType === 'private' ? (editVariant.privatePriceTiers ?? null) : null,
             sortOrder: editVariant.sortOrder ?? 0,
             isActive: editVariant.isActive !== false,
             isRecommended: Boolean(editVariant.isRecommended),
@@ -462,13 +558,84 @@ export default function AdminToursPage() {
             return;
         }
         const list = await getTours();
-        setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice })));
+        setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
         if (editTourId === tourId) {
             setEditTourId(null);
             setVariants([]);
             setShowAddVariant(false);
             setEditingVariantId(null);
         }
+    };
+
+    const addDefaultAgeGroupRow = (target: 'new' | 'edit') => {
+        const next: AgeGroupDraft = {
+            minAge: 0,
+            maxAge: 99,
+            pricingType: 'adult',
+            descriptionEn: 'Adult price applies',
+            descriptionTr: 'Yetişkin fiyatı uygulanır',
+            descriptionZh: '成人价格适用',
+        };
+        if (target === 'new') setNewAgeGroups((prev) => [...prev, next]);
+        else setTourEditAgeGroups((prev) => [...prev, next]);
+    };
+
+    const uploadImageToCloudinary = async (file: File): Promise<string> => {
+        const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+        if (!cloud || !preset) throw new Error('Cloudinary env eksik: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME / NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET');
+        const body = new FormData();
+        body.append('file', file);
+        body.append('upload_preset', preset);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
+            method: 'POST',
+            body,
+        });
+        if (!res.ok) throw new Error('Görsel upload başarısız');
+        const json = (await res.json()) as { secure_url?: string };
+        if (!json.secure_url) throw new Error('Upload URL alınamadı');
+        return json.secure_url;
+    };
+
+    const handleUploadImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!editTourId) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            alert('Sadece JPG/PNG/WebP desteklenir.');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Maksimum dosya boyutu 5MB.');
+            return;
+        }
+        setImageUploading(true);
+        try {
+            const url = await uploadImageToCloudinary(file);
+            const result = await addTourImage(editTourId, { url });
+            if (!result.ok) throw new Error(result.error ?? 'Görsel kaydedilemedi');
+            const refreshed = await getTourById(editTourId);
+            const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null;
+            setTourImages((rec?.images ?? []).map((img) => ({ id: img.id, url: img.url, isPrimary: img.isPrimary })));
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Yükleme başarısız');
+        } finally {
+            setImageUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleAddImageByUrl = async () => {
+        if (!editTourId || !imageUrlInput.trim()) return;
+        const result = await addTourImage(editTourId, { url: imageUrlInput.trim() });
+        if (!result.ok) {
+            alert(result.error);
+            return;
+        }
+        setImageUrlInput('');
+        const refreshed = await getTourById(editTourId);
+        const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null;
+        setTourImages((rec?.images ?? []).map((img) => ({ id: img.id, url: img.url, isPrimary: img.isPrimary })));
     };
 
     if (loading) return <div className="loading-block">Turlar yükleniyor...</div>;
@@ -491,6 +658,41 @@ export default function AdminToursPage() {
                 <Button onClick={() => setShowNewTourForm((v) => !v)}>
                     {showNewTourForm ? 'Formu kapat' : 'Yeni Ürün Ekle'}
                 </Button>
+            </div>
+
+            <h2>Ürün Kataloğu</h2>
+            <div className="card" style={{ overflowX: 'auto', marginTop: 'var(--space-md)', marginBottom: 'var(--space-2xl)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                            <th style={{ padding: 'var(--space-md)' }}>ID</th>
+                            <th style={{ padding: 'var(--space-md)' }}>Ürün Adı</th>
+                            <th style={{ padding: 'var(--space-md)' }}>Tip</th>
+                            <th style={{ padding: 'var(--space-md)' }}>Başlangıç Fiyatı</th>
+                            <th style={{ padding: 'var(--space-md)' }}>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tours.length === 0 ? (
+                            <tr><td colSpan={5} style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)' }}>Tur yok. Veri eklemek için seed çalıştırın.</td></tr>
+                        ) : (
+                            tours.map((t) => (
+                                <tr key={t.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                    <td style={{ padding: 'var(--space-md)' }}>{t.id.slice(0, 8)}</td>
+                                    <td style={{ padding: 'var(--space-md)', fontWeight: 'bold' }}>{t.titleEn}</td>
+                                    <td style={{ padding: 'var(--space-md)' }}>
+                                        <span style={{ backgroundColor: 'var(--color-bg-light)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>{t.type}</span>
+                                    </td>
+                                    <td style={{ padding: 'var(--space-md)' }}>€{t.basePrice}</td>
+                                    <td style={{ padding: 'var(--space-md)' }}>
+                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => openEditTour(t.id)}>Düzenle</Button>
+                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteTour(t.id)}>Sil</Button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
 
             {showNewTourForm && (
@@ -556,6 +758,47 @@ export default function AdminToursPage() {
                             <input type="checkbox" checked={newHasAirportSelect} onChange={(e) => setNewHasAirportSelect(e.target.checked)} />
                             <span>Havalimanı (NAV/ASR) seçeneği var</span>
                         </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={newHasReservationType} onChange={(e) => setNewHasReservationType(e.target.checked)} />
+                            <span>Private/Regular seçeneği var</span>
+                        </label>
+                        <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                                <strong>Yaş Politikası</strong>
+                                <Button type="button" variant="secondary" onClick={() => addDefaultAgeGroupRow('new')}>+ Yaş Grubu Ekle</Button>
+                            </div>
+                            <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                                {newAgeGroups.map((group, idx) => (
+                                    <div key={idx} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-sm)' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                            <Input label="Min yaş" type="number" min={0} value={String(group.minAge)} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, minAge: parseInt(e.target.value, 10) || 0 } : g))} />
+                                            <Input label="Max yaş" type="number" min={0} value={String(group.maxAge)} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, maxAge: parseInt(e.target.value, 10) || 0 } : g))} />
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Fiyat tipi</label>
+                                                <select value={group.pricingType} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, pricingType: e.target.value as AgeGroupDraft['pricingType'] } : g))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                                                    <option value="free">Ücretsiz</option>
+                                                    <option value="child">Çocuk fiyatı</option>
+                                                    <option value="adult">Yetişkin fiyatı</option>
+                                                    <option value="not_allowed">İzin verilmez</option>
+                                                </select>
+                                            </div>
+                                            <Button type="button" variant="secondary" onClick={() => setNewAgeGroups((prev) => prev.filter((_, i) => i !== idx))}>Kaldır</Button>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
+                                            <Input label="Açıklama (EN)" value={group.descriptionEn} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionEn: e.target.value } : g))} />
+                                            <Input label="Açıklama (TR)" value={group.descriptionTr} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionTr: e.target.value } : g))} />
+                                            <Input label="Açıklama (ZH)" value={group.descriptionZh} onChange={(e) => setNewAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionZh: e.target.value } : g))} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 1fr', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
+                                <Input label="Min yaş sınırı" type="number" min={0} value={newMinAgeLimit} onChange={(e) => setNewMinAgeLimit(e.target.value)} placeholder="boş=limitsiz" />
+                                <Input label="Kısıtlama (EN)" value={newAgeRestrictionEn} onChange={(e) => setNewAgeRestrictionEn(e.target.value)} />
+                                <Input label="Kısıtlama (TR)" value={newAgeRestrictionTr} onChange={(e) => setNewAgeRestrictionTr(e.target.value)} />
+                                <Input label="Kısıtlama (ZH)" value={newAgeRestrictionZh} onChange={(e) => setNewAgeRestrictionZh(e.target.value)} />
+                            </div>
+                        </div>
                         {newType === 'ACTIVITY' && (
                             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                                 ACTIVITY ürünlerinde süre, konum ve kişi limiti gibi alanları varyant formundan yönetebilirsiniz.
@@ -632,6 +875,71 @@ export default function AdminToursPage() {
                             <input type="checkbox" checked={tourEditHasAirportSelect} onChange={(e) => setTourEditHasAirportSelect(e.target.checked)} />
                             <span>Havalimanı (NAV/ASR) seçeneği var</span>
                         </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={tourEditHasReservationType} onChange={(e) => setTourEditHasReservationType(e.target.checked)} />
+                            <span>Private/Regular seçeneği var</span>
+                        </label>
+                        <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                                <strong>Yaş Politikası</strong>
+                                <Button type="button" variant="secondary" onClick={() => addDefaultAgeGroupRow('edit')}>+ Yaş Grubu Ekle</Button>
+                            </div>
+                            <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                                {tourEditAgeGroups.map((group, idx) => (
+                                    <div key={idx} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-sm)' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                            <Input label="Min yaş" type="number" min={0} value={String(group.minAge)} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, minAge: parseInt(e.target.value, 10) || 0 } : g))} />
+                                            <Input label="Max yaş" type="number" min={0} value={String(group.maxAge)} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, maxAge: parseInt(e.target.value, 10) || 0 } : g))} />
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Fiyat tipi</label>
+                                                <select value={group.pricingType} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, pricingType: e.target.value as AgeGroupDraft['pricingType'] } : g))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                                                    <option value="free">Ücretsiz</option>
+                                                    <option value="child">Çocuk fiyatı</option>
+                                                    <option value="adult">Yetişkin fiyatı</option>
+                                                    <option value="not_allowed">İzin verilmez</option>
+                                                </select>
+                                            </div>
+                                            <Button type="button" variant="secondary" onClick={() => setTourEditAgeGroups((prev) => prev.filter((_, i) => i !== idx))}>Kaldır</Button>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
+                                            <Input label="Açıklama (EN)" value={group.descriptionEn} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionEn: e.target.value } : g))} />
+                                            <Input label="Açıklama (TR)" value={group.descriptionTr} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionTr: e.target.value } : g))} />
+                                            <Input label="Açıklama (ZH)" value={group.descriptionZh} onChange={(e) => setTourEditAgeGroups((prev) => prev.map((g, i) => i === idx ? { ...g, descriptionZh: e.target.value } : g))} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 1fr', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
+                                <Input label="Min yaş sınırı" type="number" min={0} value={tourEditMinAgeLimit} onChange={(e) => setTourEditMinAgeLimit(e.target.value)} placeholder="boş=limitsiz" />
+                                <Input label="Kısıtlama (EN)" value={tourEditAgeRestrictionEn} onChange={(e) => setTourEditAgeRestrictionEn(e.target.value)} />
+                                <Input label="Kısıtlama (TR)" value={tourEditAgeRestrictionTr} onChange={(e) => setTourEditAgeRestrictionTr(e.target.value)} />
+                                <Input label="Kısıtlama (ZH)" value={tourEditAgeRestrictionZh} onChange={(e) => setTourEditAgeRestrictionZh(e.target.value)} />
+                            </div>
+                        </div>
+                        <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
+                            <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Ürün Fotoğrafları</strong>
+                            <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center', marginBottom: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUploadImageFile} disabled={imageUploading} />
+                                <Input label="Veya görsel URL" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="https://..." />
+                                <Button type="button" variant="secondary" onClick={handleAddImageByUrl}>URL Ekle</Button>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                JPG/PNG/WebP, max 5MB. Ana görsel yıldız ile seçilir.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
+                                {tourImages.map((img) => (
+                                    <div key={img.id} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-xs)' }}>
+                                        <img src={img.url} alt="" style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6 }} />
+                                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await setPrimaryTourImage(img.id); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>{img.isPrimary ? '★ Ana' : '☆ Ana yap'}</button>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await moveTourImage(img.id, 'up'); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>↑</button>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await moveTourImage(img.id, 'down'); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>↓</button>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { if (!confirm('Görsel silinsin mi?')) return; await deleteTourImage(img.id); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>✕</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
                         <Button type="submit" disabled={editSaving}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Button>
@@ -663,10 +971,16 @@ export default function AdminToursPage() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
-                                    <select value={newVariant.reservationType ?? 'regular'} onChange={(e) => setNewVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                                        <option value="regular">Regular (Paylaşımlı)</option>
-                                        <option value="private">Private (Özel)</option>
-                                    </select>
+                                    {tourEditHasReservationType ? (
+                                        <select value={newVariant.reservationType ?? 'regular'} onChange={(e) => setNewVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                            <option value="regular">Regular (Paylaşımlı)</option>
+                                            <option value="private">Private (Özel)</option>
+                                        </select>
+                                    ) : (
+                                        <div style={{ padding: '0.5rem', borderRadius: 4, border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                                            Bu üründe Private/Regular kapalı. Bu varyantta rezervasyon tipi boş bırakılacak.
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Havalimanı</label>
@@ -695,7 +1009,7 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {newVariant.reservationType === 'private' && (
+                                {tourEditHasReservationType && newVariant.reservationType === 'private' && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                             <strong>Private kişi-fiyat kademeleri</strong>
@@ -802,10 +1116,16 @@ export default function AdminToursPage() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
-                                    <select value={editVariant.reservationType ?? 'regular'} onChange={(e) => setEditVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                                        <option value="regular">Regular (Paylaşımlı)</option>
-                                        <option value="private">Private (Özel)</option>
-                                    </select>
+                                    {tourEditHasReservationType ? (
+                                        <select value={editVariant.reservationType ?? 'regular'} onChange={(e) => setEditVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                            <option value="regular">Regular (Paylaşımlı)</option>
+                                            <option value="private">Private (Özel)</option>
+                                        </select>
+                                    ) : (
+                                        <div style={{ padding: '0.5rem', borderRadius: 4, border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                                            Bu üründe Private/Regular kapalı. Rezervasyon tipi boş bırakılacak.
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Havalimanı</label>
@@ -834,7 +1154,7 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {editVariant.reservationType === 'private' && (
+                                {tourEditHasReservationType && editVariant.reservationType === 'private' && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                             <strong>Private kişi-fiyat kademeleri</strong>
@@ -956,7 +1276,7 @@ export default function AdminToursPage() {
                                         <tr key={v.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                             <td style={{ padding: 'var(--space-md)' }}>{v.titleEn}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
-                                                {[v.tourType, v.reservationType, v.airport].filter(Boolean).join(' / ') || '—'}
+                                                {[v.tourType, v.reservationType, v.airport].filter(Boolean).join(' / ') || 'Serbest'}
                                             </td>
                                             <td style={{ padding: 'var(--space-md)' }}>€{v.adultPrice} {v.pricingType === 'per_vehicle' ? '(araç)' : '(kişi)'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
@@ -1182,40 +1502,6 @@ export default function AdminToursPage() {
                 Günlük fiyat, kapasite, ekstralar ve transfer kademeleri artık <strong>Fiyatlandırma ve Müsaitlik</strong> ekranında yönetiliyor.
             </div>
 
-            <h2>Ürün Kataloğu</h2>
-            <div className="card" style={{ overflowX: 'auto', marginTop: 'var(--space-md)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                            <th style={{ padding: 'var(--space-md)' }}>ID</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Ürün Adı</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Tip</th>
-                            <th style={{ padding: 'var(--space-md)' }}>Başlangıç Fiyatı</th>
-                            <th style={{ padding: 'var(--space-md)' }}>İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tours.length === 0 ? (
-                            <tr><td colSpan={5} style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)' }}>Tur yok. Veri eklemek için seed çalıştırın.</td></tr>
-                        ) : (
-                            tours.map((t) => (
-                                <tr key={t.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                    <td style={{ padding: 'var(--space-md)' }}>{t.id.slice(0, 8)}</td>
-                                    <td style={{ padding: 'var(--space-md)', fontWeight: 'bold' }}>{t.titleEn}</td>
-                                    <td style={{ padding: 'var(--space-md)' }}>
-                                        <span style={{ backgroundColor: 'var(--color-bg-light)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>{t.type}</span>
-                                    </td>
-                                    <td style={{ padding: 'var(--space-md)' }}>€{t.basePrice}</td>
-                                    <td style={{ padding: 'var(--space-md)' }}>
-                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => openEditTour(t.id)}>Düzenle</Button>
-                                        <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDeleteTour(t.id)}>Sil</Button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
         </div>
     );
 }

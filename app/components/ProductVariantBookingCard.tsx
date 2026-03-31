@@ -33,6 +33,16 @@ function getVariantStrings(lang: Lang): Record<string, string> {
   return variant ?? (DICTS.en as { variant?: Record<string, string> }).variant ?? {};
 }
 
+function normalizeNullable(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed.toLowerCase();
+}
+
+function getVariantLabel(lang: Lang, variant: TourVariantDisplay): string {
+  return lang === 'tr' ? variant.titleTr : lang === 'zh' ? variant.titleZh : variant.titleEn;
+}
+
 export function ProductVariantBookingCard({
   tourId,
   tourType,
@@ -40,6 +50,9 @@ export function ProductVariantBookingCard({
   data,
   title,
   options,
+  ageGroups = [],
+  minAgeLimit = null,
+  ageRestrictionText = null,
 }: {
   tourId: string;
   tourType: string;
@@ -47,6 +60,14 @@ export function ProductVariantBookingCard({
   data: TourWithVariantsResult;
   title: string;
   options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' }[];
+  ageGroups?: {
+    minAge: number;
+    maxAge: number;
+    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+    description: string;
+  }[];
+  minAgeLimit?: number | null;
+  ageRestrictionText?: string | null;
 }) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -54,8 +75,8 @@ export function ProductVariantBookingCard({
   const { eurTryRate } = useExchangeRate(lang === 'tr');
 
   const defaultSelection = useMemo(
-    () => getDefaultVariantSelection(data.hasTourType, data.hasAirportSelect),
-    [data.hasTourType, data.hasAirportSelect]
+    () => getDefaultVariantSelection(data.hasTourType, data.hasAirportSelect, data.hasReservationType),
+    [data.hasTourType, data.hasAirportSelect, data.hasReservationType]
   );
 
   const [selection, setSelection] = useState<VariantSelection>(defaultSelection);
@@ -77,6 +98,17 @@ export function ProductVariantBookingCard({
   const [cartToastOpen, setCartToastOpen] = useState(false);
   const [cartToastTitle, setCartToastTitle] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const showChildren = useMemo(() => {
+    if (minAgeLimit != null && minAgeLimit >= 8) return false;
+    if (ageGroups.length === 0) return true;
+    return ageGroups.some((g) => g.pricingType === 'child' && g.maxAge >= 4);
+  }, [ageGroups, minAgeLimit]);
+  const showInfants = useMemo(() => {
+    if (minAgeLimit != null && minAgeLimit >= 4) return false;
+    if (ageGroups.length === 0) return true;
+    return ageGroups.some((g) => (g.pricingType === 'free' || g.pricingType === 'adult' || g.pricingType === 'child') && g.minAge <= 3);
+  }, [ageGroups, minAgeLimit]);
 
   useEffect(() => {
     if (!data.hasAirportSelect) return;
@@ -95,10 +127,35 @@ export function ProductVariantBookingCard({
     return () => clearTimeout(timer);
   }, [cartToastOpen]);
 
-  const activeVariant = useMemo(
-    () => getActiveVariant(data.variants, selection),
-    [data.variants, selection]
-  );
+  useEffect(() => {
+    if (!showChildren && children !== 0) setChildren(0);
+    if (!showInfants && infants !== 0) setInfants(0);
+  }, [showChildren, showInfants, children, infants]);
+
+  const matchingVariants = useMemo(() => {
+    const selectedTourType = normalizeNullable(selection.tourType);
+    const selectedAirport = normalizeNullable(selection.airport);
+    return data.variants
+      .filter((v) => v.isActive)
+      .filter((v) => {
+        const variantTourType = normalizeNullable(v.tourType);
+        const variantAirport = normalizeNullable(v.airport);
+        const tourTypeMatch = selectedTourType == null || variantTourType === selectedTourType || variantTourType == null;
+        const airportMatch = selectedAirport == null || variantAirport === selectedAirport || variantAirport == null;
+        return tourTypeMatch && airportMatch;
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [data.variants, selection.tourType, selection.airport]);
+
+  const activeVariant = useMemo(() => {
+    if (data.hasReservationType) return getActiveVariant(data.variants, selection);
+    if (matchingVariants.length === 0) return null;
+    if (selectedVariantId) {
+      const picked = matchingVariants.find((v) => v.id === selectedVariantId);
+      if (picked) return picked;
+    }
+    return matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
+  }, [data.hasReservationType, data.variants, selection, matchingVariants, selectedVariantId]);
   const transferAirportTiers = useMemo(
     () => data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null,
     [data.transferAirportTiers, selection.airport]
@@ -132,24 +189,13 @@ export function ProductVariantBookingCard({
     }
   }, [activeVariant?.id, activeVariant?.maxGroupSize, adults, children, infants]);
 
-  const variantsForReservationType = useMemo(() => {
-    return data.variants.filter((v) => {
-      const selectedTourType = selection.tourType?.toLowerCase() ?? null;
-      const selectedAirport = selection.airport?.toLowerCase() ?? null;
-      const variantTourType = v.tourType?.toLowerCase() ?? null;
-      const variantAirport = v.airport?.toLowerCase() ?? null;
-      const tourTypeMatch = selectedTourType == null || variantTourType === selectedTourType || variantTourType == null;
-      const airportMatch = selectedAirport == null || variantAirport === selectedAirport || variantAirport == null;
-      return tourTypeMatch && airportMatch;
-    });
-  }, [data.variants, selection.tourType, selection.airport]);
-
   useEffect(() => {
     if (activeVariant) return;
-    if (variantsForReservationType.length === 0) return;
-    const fallback = variantsForReservationType.find((v) => v.isRecommended) ?? variantsForReservationType[0];
-    setSelection((s) => ({ ...s, reservationType: fallback.reservationType as 'regular' | 'private' }));
-  }, [activeVariant, variantsForReservationType]);
+    if (matchingVariants.length === 0) return;
+    const fallback = matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
+    setSelectedVariantId(fallback.id);
+    setSelection((s) => ({ ...s, reservationType: data.hasReservationType ? (fallback.reservationType as 'regular' | 'private' | null) : null }));
+  }, [activeVariant, matchingVariants, data.hasReservationType]);
 
   const total = useMemo(() => {
     if (!activeVariant) return 0;
@@ -267,22 +313,53 @@ export function ProductVariantBookingCard({
         </>
       )}
 
-      <label className="form-label">{t.reservationType} *</label>
-      <ReservationTypeCards
-        variants={variantsForReservationType}
-        value={selection.reservationType}
-        onChange={(v) => setSelection((s) => ({ ...s, reservationType: v }))}
-        lang={lang}
-        labels={{
-          regular: t.regular,
-          private: t.private,
-          group: t.group,
-          onlyYou: t.onlyYou,
-          perPerson: t.perPerson,
-          perVehicle: t.perVehicle,
-          recommended: t.recommended ?? 'Recommended',
-        }}
-      />
+      {data.hasReservationType ? (
+        <>
+          <label className="form-label">{t.reservationType} *</label>
+          <ReservationTypeCards
+            variants={matchingVariants}
+            value={(selection.reservationType ?? 'regular') as 'regular' | 'private'}
+            onChange={(v) => setSelection((s) => ({ ...s, reservationType: v }))}
+            lang={lang}
+            labels={{
+              regular: t.regular,
+              private: t.private,
+              group: t.group,
+              onlyYou: t.onlyYou,
+              perPerson: t.perPerson,
+              perVehicle: t.perVehicle,
+              recommended: t.recommended ?? 'Recommended',
+            }}
+          />
+        </>
+      ) : (
+        <div style={{ marginBottom: 'var(--space-lg)' }}>
+          <label className="form-label">{t.variantOptions ?? 'Options'}</label>
+          <div className="reservation-cards">
+            {matchingVariants.map((variant) => {
+              const selected = activeVariant?.id === variant.id;
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  className={`reservation-card ${variant.isRecommended ? 'recommended' : ''} ${selected ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedVariantId(variant.id);
+                    setSelection((s) => ({ ...s, reservationType: variant.reservationType as 'regular' | 'private' | null }));
+                  }}
+                >
+                  {variant.isRecommended && <span className="recommended-badge">★ {t.recommended ?? 'Recommended'}</span>}
+                  <strong className="reservation-card-title">{getVariantLabel(lang, variant)}</strong>
+                  <span className="reservation-card-price">{formatShown(variant.adultPrice).primary}</span>
+                  <span className="reservation-card-subtitle">
+                    {variant.pricingType === 'per_vehicle' ? (t.perVehicle ?? 'per vehicle') : (t.perPerson ?? 'per person')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {options.length > 0 && (
         <div style={{ marginBottom: 'var(--space-lg)' }}>
@@ -318,18 +395,25 @@ export function ProductVariantBookingCard({
             {lang === 'tr' ? activeVariant.descTr : lang === 'zh' ? activeVariant.descZh : activeVariant.descEn}
           </p>
           {activeVariant.includes.length > 0 && (
-            <ul className="includes-list">
-              {activeVariant.includes.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
+            <>
+              <p className="variant-section-title">{t.includedTitle ?? 'Included'}</p>
+              <ul className="includes-list">
+                {activeVariant.includes.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </>
           )}
+          {activeVariant.includes.length > 0 && activeVariant.excludes.length > 0 && <div className="variant-section-divider" />}
           {activeVariant.excludes.length > 0 && (
-            <ul className="excludes-list">
-              {activeVariant.excludes.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
+            <>
+              <p className="variant-section-title">{t.notIncludedTitle ?? 'Not included'}</p>
+              <ul className="excludes-list">
+                {activeVariant.excludes.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
@@ -425,53 +509,57 @@ export function ProductVariantBookingCard({
           </button>
         </div>
       </div>
-      <div className="age-group">
-        <span className="age-group-label">{t.children}</span>
-        {activeVariant?.childPrice != null && (
-          <span className="age-group-price">€{activeVariant.childPrice}/child</span>
-        )}
-        <div className="stepper-control">
-          <button
-            type="button"
-            className="stepper-btn"
-            disabled={children <= 0}
-            onClick={() => setChildren((c) => Math.max(0, c - 1))}
-          >
-            −
-          </button>
-          <span>{children}</span>
-          <button
-            type="button"
-            className="stepper-btn"
-            disabled={isAtGuestLimit}
-            onClick={() => setChildren((c) => Math.max(0, Math.min(maxGuests - adults - infants, c + 1)))}
-          >
-            +
-          </button>
+      {showChildren && (
+        <div className="age-group">
+          <span className="age-group-label">{t.children}</span>
+          {activeVariant?.childPrice != null && (
+            <span className="age-group-price">€{activeVariant.childPrice}/child</span>
+          )}
+          <div className="stepper-control">
+            <button
+              type="button"
+              className="stepper-btn"
+              disabled={children <= 0}
+              onClick={() => setChildren((c) => Math.max(0, c - 1))}
+            >
+              −
+            </button>
+            <span>{children}</span>
+            <button
+              type="button"
+              className="stepper-btn"
+              disabled={isAtGuestLimit}
+              onClick={() => setChildren((c) => Math.max(0, Math.min(maxGuests - adults - infants, c + 1)))}
+            >
+              +
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="age-group">
-        <span className="age-group-label">{t.infants}</span>
-        <div className="stepper-control">
-          <button
-            type="button"
-            className="stepper-btn"
-            disabled={infants <= 0}
-            onClick={() => setInfants((i) => Math.max(0, i - 1))}
-          >
-            −
-          </button>
-          <span>{infants}</span>
-          <button
-            type="button"
-            className="stepper-btn"
-            disabled={isAtGuestLimit}
-            onClick={() => setInfants((i) => Math.max(0, Math.min(maxGuests - adults - children, i + 1)))}
-          >
-            +
-          </button>
+      )}
+      {showInfants && (
+        <div className="age-group">
+          <span className="age-group-label">{t.infants}</span>
+          <div className="stepper-control">
+            <button
+              type="button"
+              className="stepper-btn"
+              disabled={infants <= 0}
+              onClick={() => setInfants((i) => Math.max(0, i - 1))}
+            >
+              −
+            </button>
+            <span>{infants}</span>
+            <button
+              type="button"
+              className="stepper-btn"
+              disabled={isAtGuestLimit}
+              onClick={() => setInfants((i) => Math.max(0, Math.min(maxGuests - adults - children, i + 1)))}
+            >
+              +
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       {activeVariant?.maxGroupSize != null && (
         <p style={{ marginTop: '8px', marginBottom: 'var(--space-md)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
           {t.maxGuestsInfo?.replace('{max}', String(maxGuests)) ?? `Maximum ${maxGuests} guests allowed for this option.`}
@@ -479,9 +567,24 @@ export function ProductVariantBookingCard({
       )}
       <div style={{ marginTop: 'var(--space-sm)', marginBottom: 'var(--space-md)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
         <strong>{t.agePolicyTitle}</strong><br />
-        {t.agePolicyInfant}<br />
-        {t.agePolicyChild}<br />
-        {t.agePolicyAdult}
+        {ageGroups.length > 0 ? (
+          <>
+            {ageGroups
+              .sort((a, b) => a.minAge - b.minAge)
+              .map((g, idx) => {
+                const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
+                const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
+                return <span key={`${range}-${idx}`}>{icon} {range}: {g.description}<br /></span>;
+              })}
+            {ageRestrictionText ? <span>⚠️ {ageRestrictionText}</span> : null}
+          </>
+        ) : (
+          <>
+            {t.agePolicyInfant}<br />
+            {t.agePolicyChild}<br />
+            {t.agePolicyAdult}
+          </>
+        )}
       </div>
 
       <div style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-md)', backgroundColor: 'var(--color-bg-alt)', borderRadius: '8px' }}>

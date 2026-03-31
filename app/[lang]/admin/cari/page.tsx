@@ -14,14 +14,37 @@ function formatDate(d: Date): string {
   return new Date(d).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function getStatusBadge(row: CariRecordRow): { label: string; color: string; bg: string } {
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  paid_to_agency: 'Acenta ödeme durumu',
+  salesperson: 'Satıcı',
+};
+
+function getStatusBadge(row: CariRecordRow): { label: string; color: string; bg: string; tooltip?: string } {
   if (row.completionStatus === 'CANCELLED') {
     return { label: '❌ İptal', color: '#991b1b', bg: '#fee2e2' };
   }
   if (row.completionStatus === 'COMPLETE') {
-    return { label: '✅ Tamamlandı', color: '#065f46', bg: '#d1fae5' };
+    return { label: '✅ Tamam', color: '#065f46', bg: '#d1fae5' };
   }
-  return { label: '⚠️ EKS', color: '#92400e', bg: '#fef3c7' };
+  const missing = row.missingFields ?? [];
+  const tooltip = missing.length > 0
+    ? `Eksik: ${missing.map((field) => MISSING_FIELD_LABELS[field] ?? field).join(', ')}`
+    : 'Eksik alanlar var';
+  return {
+    label: `⚠️ Eksik (${missing.length} alan)`,
+    color: '#92400e',
+    bg: '#fef3c7',
+    tooltip,
+  };
+}
+
+function requiredFieldStyle(isMissing: boolean): React.CSSProperties | undefined {
+  if (!isMissing) return undefined;
+  return {
+    borderColor: '#f59e0b',
+    boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.18)',
+    backgroundColor: '#fffaf0',
+  };
 }
 
 export default function AdminCariPage() {
@@ -127,6 +150,9 @@ export default function AdminCariPage() {
     if (result.ok) load();
     else alert(result.error);
   };
+
+  const currentEditing = editingId ? records.find((r) => r.id === editingId) : null;
+  const missingSet = new Set(currentEditing?.missingFields ?? []);
 
   const startEdit = (row: CariRecordRow) => {
     setEditingId(row.id);
@@ -266,14 +292,16 @@ export default function AdminCariPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Firma ödendi</label>
-              <select value={form.paidToAgency ?? ''} onChange={(e) => setForm((f) => ({ ...f, paidToAgency: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+              <select value={form.paidToAgency ?? ''} onChange={(e) => setForm((f) => ({ ...f, paidToAgency: e.target.value || null }))} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)', ...requiredFieldStyle(missingSet.has('paid_to_agency')) }}>
                 <option value="">—</option>
                 {PAID_TO_AGENCY.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
                 ))}
               </select>
             </div>
-            <Input label="Satıcı" value={form.salesperson ?? ''} onChange={(e) => setForm((f) => ({ ...f, salesperson: e.target.value }))} />
+            <div>
+              <Input label="Satıcı" value={form.salesperson ?? ''} onChange={(e) => setForm((f) => ({ ...f, salesperson: e.target.value }))} style={requiredFieldStyle(missingSet.has('salesperson'))} />
+            </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Notlar</label>
               <textarea value={form.notes ?? ''} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }} />
@@ -311,7 +339,7 @@ export default function AdminCariPage() {
             </thead>
             <tbody>
               {records.map((r) => (
-                <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => startEdit(r)}>
                   <td style={{ padding: 'var(--space-md)' }}>{r.roomNumber ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.guestName}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.activityType} · {r.quantity} kişi · {formatDate(r.activityDate)}</td>
@@ -323,7 +351,7 @@ export default function AdminCariPage() {
                     {(() => {
                       const status = getStatusBadge(r);
                       return (
-                        <span style={{ background: status.bg, color: status.color, padding: '4px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700 }}>
+                        <span title={status.tooltip} style={{ background: status.bg, color: status.color, padding: '4px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700 }}>
                           {status.label}
                         </span>
                       );
@@ -331,8 +359,8 @@ export default function AdminCariPage() {
                   </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.profit != null ? `€${r.profit.toFixed(2)}` : '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>
-                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={() => startEdit(r)}>Düzenle</Button>
-                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleDelete(r.id)}>Sil</Button>
+                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: 'var(--space-xs)' }} onClick={(e) => { e.stopPropagation(); startEdit(r); }}>Düzenle</Button>
+                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}>Sil</Button>
                   </td>
                 </tr>
               ))}

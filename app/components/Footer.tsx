@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import type { SiteLocale } from '@/lib/i18n';
 
-type Lang = 'en' | 'tr' | 'zh';
+type Lang = SiteLocale;
 
 interface FooterDict {
   about: string;

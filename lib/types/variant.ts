@@ -8,7 +8,7 @@ export type AirportVariant = 'NAV' | 'ASR';
 
 export interface VariantSelection {
   tourType: TourTypeVariant | null;       // eco | plus; null when product has no Tour Type
-  reservationType: ReservationTypeVariant;
+  reservationType: ReservationTypeVariant | null;
   airport: AirportVariant | null;         // NAV | ASR; null when not transfer
 }
 
@@ -17,7 +17,7 @@ export interface TourVariantDisplay {
   id: string;
   tourId: string;
   tourType: string | null;
-  reservationType: string;
+  reservationType: string | null;
   airport: string | null;
   titleEn: string;
   titleTr: string;
@@ -63,7 +63,9 @@ export function getActiveVariant(
     return tourTypeMatch && airportMatch;
   });
   if (active.length === 0) return null;
-  const sameReservationType = active.filter((v) => normalizeNullable(v.reservationType) === selectedReservationType);
+  const sameReservationType = selectedReservationType == null
+    ? active
+    : active.filter((v) => normalizeNullable(v.reservationType) === selectedReservationType);
   const candidates = sameReservationType.length > 0 ? sameReservationType : active;
   const exact = candidates.find((v) => normalizeNullable(v.tourType) === selectedTourType && normalizeNullable(v.airport) === selectedAirport);
   if (exact) return exact;
@@ -77,10 +79,10 @@ export function getActiveVariant(
 }
 
 /** Default selection for a tour: hasTourType → eco, hasAirportSelect → NAV, reservationType → regular. */
-export function getDefaultVariantSelection(hasTourType: boolean, hasAirportSelect: boolean): VariantSelection {
+export function getDefaultVariantSelection(hasTourType: boolean, hasAirportSelect: boolean, hasReservationType = true): VariantSelection {
   return {
     tourType: hasTourType ? 'eco' : null,
-    reservationType: 'regular',
+    reservationType: hasReservationType ? 'regular' : null,
     airport: hasAirportSelect ? 'NAV' : null,
   };
 }

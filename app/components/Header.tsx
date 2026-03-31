@@ -4,8 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore, type CartItem } from '../store/cartStore';
+import { SUPPORTED_LOCALES, type SiteLocale } from '@/lib/i18n';
+import { usePathname } from 'next/navigation';
 
-type Lang = 'en' | 'tr' | 'zh';
+type Lang = SiteLocale;
 
 interface NavDict {
   home: string;
@@ -86,6 +88,7 @@ function InstagramIcon({ className }: { className?: string }) {
 }
 
 export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, userName, activeCouponCount = 0 }: HeaderProps) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -136,11 +139,22 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
     ...(isAdmin ? [{ href: `/${lang}/admin`, label: nav.admin }] : []),
   ];
 
-  const langLinks: { lang: Lang; label: string }[] = [
-    { lang: 'en', label: 'EN' },
-    { lang: 'tr', label: 'TR' },
-    { lang: 'zh', label: 'ZH' },
-  ];
+  const langLabels: Record<string, string> = {
+    en: 'EN English',
+    tr: 'TR Türkçe',
+    zh: 'ZH 中文',
+    es: 'ES Español',
+    it: 'IT Italiano',
+    ru: 'RU Русский',
+    de: 'DE Deutsch',
+    fr: 'FR Français',
+    ko: 'KO 한국어',
+    ja: 'JA 日本語',
+    nl: 'NL Nederlands',
+    pl: 'PL Polski',
+    ro: 'RO Română',
+  };
+  const currentPathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '';
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -202,15 +216,21 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
             ))}
           </div>
           <div className="site-top-bar-lang">
-              {langLinks.map(({ lang: l, label }) => (
-                <Link
-                  key={l}
-                  href={`/${l}`}
-                  className={`site-top-bar-lang-link ${lang === l ? 'site-top-bar-lang-active' : ''}`}
-                >
-                  {label}
-                </Link>
-              ))}
+              <select
+                value={lang}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  window.location.href = `/${next}${currentPathWithoutLocale || ''}`;
+                }}
+                style={{ borderRadius: 6, padding: '4px 8px', border: '1px solid var(--color-border)', background: 'transparent', color: '#fff', fontSize: '0.8rem' }}
+                aria-label="Language selector"
+              >
+                {SUPPORTED_LOCALES.map((locale) => (
+                  <option key={locale} value={locale} style={{ color: '#111' }}>
+                    {langLabels[locale] ?? locale.toUpperCase()}
+                  </option>
+                ))}
+              </select>
           </div>
         </div>
       </div>

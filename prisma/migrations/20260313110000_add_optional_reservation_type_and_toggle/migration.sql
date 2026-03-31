@@ -1,0 +1,5 @@
+ALTER TABLE "Tour"
+ADD COLUMN "hasReservationType" BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE "TourVariant"
+ALTER COLUMN "reservationType" DROP NOT NULL;

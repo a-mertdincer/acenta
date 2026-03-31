@@ -27,6 +27,21 @@ export type TourWithVariantsResult = {
   titleZh: string;
   hasTourType: boolean;
   hasAirportSelect: boolean;
+  hasReservationType: boolean;
+  minAgeLimit: number | null;
+  ageRestrictionEn: string | null;
+  ageRestrictionTr: string | null;
+  ageRestrictionZh: string | null;
+  ageGroups: {
+    id: string;
+    minAge: number;
+    maxAge: number;
+    pricingType: 'free' | 'child' | 'adult' | 'not_allowed';
+    descriptionEn: string;
+    descriptionTr: string;
+    descriptionZh: string | null;
+    sortOrder: number;
+  }[];
   transferAirportTiers: TransferAirportTiers | null;
   variants: TourVariantDisplay[];
 };
@@ -59,7 +74,7 @@ function mapVariantToDisplay(v: Record<string, unknown>): TourVariantDisplay {
     id: String(v.id),
     tourId: String(v.tourId),
     tourType: v.tourType != null ? String(v.tourType) : null,
-    reservationType: String(v.reservationType),
+    reservationType: v.reservationType != null ? String(v.reservationType) : null,
     airport: v.airport != null ? String(v.airport) : null,
     titleEn: String(v.titleEn),
     titleTr: String(v.titleTr),
@@ -94,6 +109,10 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
 
     const tourRecord = tour as Record<string, unknown>;
     let variants: TourVariantDisplay[] = [];
+    const ageGroups = await prisma.productAgeGroup.findMany({
+      where: { tourId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
 
     try {
       const variantRows = await prismaWithTourVariant.tourVariant.findMany({
@@ -128,6 +147,21 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
       titleZh: tour.titleZh,
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
+      hasReservationType: Boolean((tourRecord as { hasReservationType?: boolean }).hasReservationType ?? true),
+      minAgeLimit: (tourRecord as { minAgeLimit?: number | null }).minAgeLimit ?? null,
+      ageRestrictionEn: (tourRecord as { ageRestrictionEn?: string | null }).ageRestrictionEn ?? null,
+      ageRestrictionTr: (tourRecord as { ageRestrictionTr?: string | null }).ageRestrictionTr ?? null,
+      ageRestrictionZh: (tourRecord as { ageRestrictionZh?: string | null }).ageRestrictionZh ?? null,
+      ageGroups: ageGroups.map((g) => ({
+        id: g.id,
+        minAge: g.minAge,
+        maxAge: g.maxAge,
+        pricingType: (g.pricingType as 'free' | 'child' | 'adult' | 'not_allowed') ?? 'adult',
+        descriptionEn: g.descriptionEn,
+        descriptionTr: g.descriptionTr,
+        descriptionZh: g.descriptionZh ?? null,
+        sortOrder: g.sortOrder,
+      })),
       transferAirportTiers: normalizedByAirport,
       variants,
     };
@@ -152,7 +186,7 @@ export async function getTourVariantsForAdmin(tourId: string): Promise<TourVaria
 export type CreateVariantInput = {
   tourId: string;
   tourType: string | null;
-  reservationType: string;
+  reservationType: string | null;
   airport: string | null;
   titleEn: string;
   titleTr: string;
@@ -188,7 +222,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
       data: {
         tourId: data.tourId,
         tourType: data.tourType || null,
-        reservationType: data.reservationType,
+        reservationType: data.reservationType || null,
         airport: data.airport || null,
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
@@ -219,7 +253,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
           tourId: data.tourId,
           tourType: data.tourType || null,
           airport: data.airport || null,
-          reservationType: data.reservationType,
+          reservationType: data.reservationType || null,
           id: { not: createdVariant.id },
         },
         data: { isRecommended: false },
@@ -270,7 +304,7 @@ export async function updateVariant(variantId: string, data: UpdateVariantInput)
       tourId: string;
       tourType: string | null;
       airport: string | null;
-      reservationType: string;
+      reservationType: string | null;
       isRecommended: boolean;
     };
     if (updated.isRecommended) {

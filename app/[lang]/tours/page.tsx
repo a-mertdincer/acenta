@@ -41,9 +41,10 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                 descZh: t.descZh,
                 basePrice: t.basePrice,
                 fromPrice,
+                imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
             };
         })
-        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice }));
+        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null }));
 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
     const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
@@ -66,7 +67,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                     return (
                         <article key={tour.id} className="tour-card">
                             <TourCardImage
-                                src={getTourImagePath(tour.type)}
+                                src={tour.imageUrl ?? getTourImagePath(tour.type)}
                                 fallback={getTourImageFallback(tour.type)}
                                 alt={title}
                             />

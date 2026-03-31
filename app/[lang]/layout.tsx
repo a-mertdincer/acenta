@@ -6,6 +6,7 @@ import { Footer } from '../components/Footer';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { getSession } from '../actions/auth';
 import { getActiveCouponCountForUser } from '../actions/coupons';
+import { normalizeLocale, SUPPORTED_LOCALES, type SiteLocale } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   title: 'Kısmet Göreme Travel',
@@ -46,7 +47,7 @@ export default async function RootLayout(props: {
   params: Promise<{ lang: string }>;
 }) {
   const { children } = props;
-  let lang = 'en' as 'en' | 'tr' | 'zh';
+  let lang: SiteLocale = 'en';
   let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter; headerUserMenu?: typeof fallbackHeaderUserMenu } = {
     navigation: fallbackNav,
     footer: fallbackFooter,
@@ -57,7 +58,7 @@ export default async function RootLayout(props: {
 
   try {
     const params = await props.params;
-    lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
+    lang = normalizeLocale(params?.lang);
   } catch {
     // params failed, keep default lang
   }
@@ -83,6 +84,12 @@ export default async function RootLayout(props: {
 
   return (
     <html lang={lang}>
+      <head>
+        {SUPPORTED_LOCALES.map((locale) => (
+          <link key={locale} rel="alternate" hrefLang={locale} href={`/${locale}`} />
+        ))}
+        <link rel="alternate" hrefLang="x-default" href="/en" />
+      </head>
       <body>
         <Header
           lang={lang}

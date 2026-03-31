@@ -40,7 +40,14 @@ model Tour {
   transferAirportTiers Json?         // For type=TRANSFER: { ASR: [{ minPax, maxPax, price }], NAV: [...] }
   hasTourType        Boolean         @default(false) // Eco/Plus toggle for daily tours
   hasAirportSelect   Boolean         @default(false) // Airport (NAV/ASR) for transfer
+  hasReservationType Boolean         @default(true) // Private/Regular toggle
+  minAgeLimit        Int?
+  ageRestrictionEn   String?
+  ageRestrictionTr   String?
+  ageRestrictionZh   String?
   slug               String?         @unique // Optional URL slug e.g. green-tour
+  ageGroups          ProductAgeGroup[]
+  images             TourImage[]
   options            TourOption[]
   prices             TourDatePrice[]
   variants           TourVariant[]
@@ -54,7 +61,7 @@ model TourVariant {
   tourId             String
   tour               Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
   tourType           String?  // "eco" | "plus" | null
-  reservationType    String   // "regular" | "private"
+  reservationType    String?  // "regular" | "private" | null
   airport            String?  // "NAV" | "ASR" | null
   titleEn            String
   titleTr            String
@@ -243,4 +250,33 @@ model CariRecord {
   notes                 String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+}
+
+model ProductAgeGroup {
+  id             String   @id @default(uuid())
+  tourId          String
+  tour            Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  minAge          Int
+  maxAge          Int
+  pricingType     String   // free | child | adult | not_allowed
+  descriptionEn   String
+  descriptionTr   String
+  descriptionZh   String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TourImage {
+  id         String   @id @default(uuid())
+  tourId      String
+  tour        Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  url        String
+  altEn      String?
+  altTr      String?
+  altZh      String?
+  isPrimary  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

@@ -29,6 +29,7 @@ export type CariRecordRow = {
   profit: number | null;
   notes: string | null;
   completionStatus: 'MISSING' | 'COMPLETE' | 'CANCELLED';
+  missingFields: string[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -47,21 +48,25 @@ function extractHotelRoomFromReservationNotes(notes: string | null): { hotelName
   };
 }
 
+function getMissingCompletionFields(row: {
+  reservationStatus: string | null;
+  salesperson: string | null;
+  paidToAgency: string | null;
+}): string[] {
+  if (row.reservationStatus === 'CANCELLED') return [];
+  const missing: string[] = [];
+  if (!row.salesperson?.trim()) missing.push('salesperson');
+  if (!row.paidToAgency?.trim()) missing.push('paid_to_agency');
+  return missing;
+}
+
 function computeCompletionStatus(row: {
   reservationStatus: string | null;
-  costAmount: number | null;
-  costDescription: string | null;
-  paymentReceived: boolean;
   salesperson: string | null;
-  paymentDestination: string;
   paidToAgency: string | null;
 }): 'MISSING' | 'COMPLETE' | 'CANCELLED' {
   if (row.reservationStatus === 'CANCELLED') return 'CANCELLED';
-  const hasCost = row.costAmount != null || Boolean(row.costDescription?.trim());
-  const hasSalesperson = Boolean(row.salesperson?.trim());
-  const agencyStateOk = row.paymentDestination !== 'agency_direct' || Boolean(row.paidToAgency);
-  if (hasCost && hasSalesperson && row.paymentReceived && agencyStateOk) return 'COMPLETE';
-  return 'MISSING';
+  return getMissingCompletionFields(row).length === 0 ? 'COMPLETE' : 'MISSING';
 }
 
 async function getReservationStatusMap(reservationIds: string[]): Promise<Map<string, string>> {
@@ -124,11 +129,12 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
       notes: r.notes != null ? String(r.notes) : null,
       completionStatus: computeCompletionStatus({
         reservationStatus: r.reservationId != null ? reservationStatusMap.get(String(r.reservationId)) ?? null : null,
-        costAmount: r.costAmount != null ? Number(r.costAmount) : null,
-        costDescription: r.costDescription != null ? String(r.costDescription) : null,
-        paymentReceived: Boolean(r.paymentReceived),
         salesperson: r.salesperson != null ? String(r.salesperson) : null,
-        paymentDestination: String(r.paymentDestination ?? 'internal'),
+        paidToAgency: r.paidToAgency != null ? String(r.paidToAgency) : null,
+      }),
+      missingFields: getMissingCompletionFields({
+        reservationStatus: r.reservationId != null ? reservationStatusMap.get(String(r.reservationId)) ?? null : null,
+        salesperson: r.salesperson != null ? String(r.salesperson) : null,
         paidToAgency: r.paidToAgency != null ? String(r.paidToAgency) : null,
       }),
       createdAt: r.createdAt as Date,

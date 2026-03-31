@@ -1,4 +1,6 @@
-export type SiteLang = 'en' | 'tr' | 'zh';
+import type { SiteLocale } from './i18n';
+
+export type SiteLang = SiteLocale;
 
 export function formatEur(amount: number, lang: SiteLang): string {
   const locale = lang === 'tr' ? 'tr-TR' : lang === 'zh' ? 'zh-CN' : 'en-US';
@@ -6,7 +8,9 @@ export function formatEur(amount: number, lang: SiteLang): string {
 }
 
 export function formatTry(amount: number): string {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 }).format(amount);
+  // Display-only rounding rule for TR locale: always round up to nearest 5 TRY.
+  const rounded = Math.ceil(amount / 5) * 5;
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(rounded);
 }
 
 export function formatPriceByLang(amountEur: number, lang: SiteLang, eurTryRate: number | null): { primary: string; secondary: string | null } {

@@ -261,6 +261,12 @@ function mapDbTourToState(db: {
   transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
   transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }[];
+  minAgeLimit?: number | null;
+  ageRestrictionEn?: string | null;
+  ageRestrictionTr?: string | null;
+  ageRestrictionZh?: string | null;
+  ageGroups?: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; descriptionEn: string; descriptionTr: string; descriptionZh?: string | null }[];
+  images?: { url: string; isPrimary: boolean }[];
 }, _lang: Lang) {
   const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
   return {
@@ -275,6 +281,15 @@ function mapDbTourToState(db: {
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
     transferAirportTiers: db.transferAirportTiers ?? null,
+    minAgeLimit: db.minAgeLimit ?? null,
+    ageRestriction: _lang === 'tr' ? db.ageRestrictionTr : _lang === 'zh' ? db.ageRestrictionZh : db.ageRestrictionEn,
+    ageGroups: (db.ageGroups ?? []).map((group) => ({
+      minAge: group.minAge,
+      maxAge: group.maxAge,
+      pricingType: group.pricingType,
+      description: _lang === 'tr' ? group.descriptionTr : _lang === 'zh' ? (group.descriptionZh ?? group.descriptionEn) : group.descriptionEn,
+    })),
+    images: (db.images ?? []).map((img) => img.url),
     options: db.options.map((o) => ({
       id: o.id,
       title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
@@ -424,9 +439,11 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
         : null;
     const galleryMain = getTourImagePath(tour.type);
     const galleryFallback = getTourImageFallback(tour.type);
+    const dynamicImages = Array.isArray(tour.images) ? tour.images.filter((url: unknown): url is string => typeof url === 'string' && url.trim() !== '') : [];
+    const galleryMainSrc = dynamicImages[0] ?? galleryMain;
 
     const productSchema = useVariantBooking && tourWithVariants && tour
-        ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMain)
+        ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMainSrc)
         : null;
 
     return (
@@ -448,7 +465,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                     {formatShown(fromPrice).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(fromPrice).secondary}</small> : null}
                                 </p>
                             )}
-                            <TourDetailGallery mainSrc={galleryMain} fallbackSrc={galleryFallback} />
+                            <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]} />
                             <div style={{ marginTop: 'var(--space-lg)' }}>
                                 <h2>{t.description}</h2>
                                 <ProductDescription text={desc} />
@@ -462,6 +479,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 data={tourWithVariants!}
                                 title={title}
                                 options={tour.options ?? []}
+                                ageGroups={tour.ageGroups ?? []}
+                                minAgeLimit={tour.minAgeLimit ?? null}
+                                ageRestrictionText={tour.ageRestriction ?? null}
                             />
                         </div>
                     </div>
@@ -474,29 +494,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     {tour.type}
                 </span>
 
-                <TourDetailHeroImage type={tour.type} title={title} />
+                {dynamicImages.length > 0 ? (
+                    <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages} />
+                ) : (
+                    <TourDetailHeroImage type={tour.type} title={title} />
+                )}
 
                 <h2>{t.description}</h2>
                 <ProductDescription text={desc} />
 
-                {tour.options?.length > 0 && (
-                    <div style={{ marginTop: 'var(--space-xl)' }}>
-                        <h2>{t.optionalAddons}</h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-                            {tour.options.map((opt: any) => (
-                                <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedOptions.includes(opt.id) ? 'var(--color-bg-card)' : 'transparent' }}>
-                                    <div>
-                                        <input type="checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} style={{ marginRight: 'var(--space-sm)' }} />
-                                        <span style={{ fontWeight: '500' }}>{opt.title}</span>
-                                    </div>
-                                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
-                                        {opt.price === 0 ? t.free : `+€${opt.price}${opt.pricingMode === 'flat' ? '' : ` (${pax}x)`}`}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
 
             <div>
@@ -540,11 +546,46 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         </select>
                         <div style={{ marginTop: 'var(--space-sm)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                             <strong>{t.agePolicyTitle}</strong><br />
-                            {t.agePolicyInfant}<br />
-                            {t.agePolicyChild}<br />
-                            {t.agePolicyAdult}
+                            {(tour.ageGroups?.length ?? 0) > 0 ? (
+                                <>
+                                    {(tour.ageGroups ?? []).map((g: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; description: string }, idx: number) => {
+                                        const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
+                                        const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
+                                        return <span key={`${range}-${idx}`}>{icon} {range}: {g.description}<br /></span>;
+                                    })}
+                                    {tour.ageRestriction ? <span>⚠️ {tour.ageRestriction}</span> : null}
+                                </>
+                            ) : (
+                                <>
+                                    {t.agePolicyInfant}<br />
+                                    {t.agePolicyChild}<br />
+                                    {t.agePolicyAdult}
+                                </>
+                            )}
                         </div>
                     </div>
+
+                    {tour.options?.length > 0 && (
+                        <div style={{ marginBottom: 'var(--space-xl)' }}>
+                            <h4 style={{ marginBottom: 'var(--space-sm)' }}>{t.optionalAddons}</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                                {tour.options.map((opt: any) => {
+                                    const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * pax;
+                                    return (
+                                        <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-sm) var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedOptions.includes(opt.id) ? 'var(--color-bg-card)' : 'transparent' }}>
+                                            <div>
+                                                <input type="checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} style={{ marginRight: 'var(--space-sm)' }} />
+                                                <span style={{ fontWeight: '500' }}>{opt.title}</span>
+                                            </div>
+                                            <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
+                                                {opt.price === 0 ? t.free : `+${formatShown(displayPrice).primary}${opt.pricingMode === 'flat' ? '' : ` (${pax}x)`}`}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {isClosed && (
                         <p style={{ padding: 'var(--space-md)', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '8px', marginBottom: 'var(--space-md)' }}>

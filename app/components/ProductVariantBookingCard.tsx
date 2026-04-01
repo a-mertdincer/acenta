@@ -107,8 +107,6 @@ export function ProductVariantBookingCard({
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
-  const [hotelName, setHotelName] = useState('');
-  const [note, setNote] = useState('');
   const [selectedDirection, setSelectedDirection] = useState<TransferDirection>('arrival');
   const [flightArrival, setFlightArrival] = useState('');
   const [flightDeparture, setFlightDeparture] = useState('');
@@ -284,7 +282,6 @@ export function ProductVariantBookingCard({
         transferDirection: selectedDirection,
         transferFlightArrival: selectedDirection === 'arrival' || selectedDirection === 'roundtrip' ? flightArrival || null : null,
         transferFlightDeparture: selectedDirection === 'departure' || selectedDirection === 'roundtrip' ? flightDeparture || null : null,
-        transferHotelName: hotelName || null,
       }),
       childCount: children,
       adultCount: adults,
@@ -497,17 +494,6 @@ export function ProductVariantBookingCard({
           )}
         </>
       )}
-
-      <div style={{ marginBottom: 'var(--space-md)' }}>
-        <label className="form-label">{t.hotel}</label>
-        <input
-          type="text"
-          value={hotelName}
-          onChange={(e) => setHotelName(e.target.value)}
-          placeholder={data.hasAirportSelect ? 'e.g. Kelebek Cave Hotel' : ''}
-          style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
-        />
-      </div>
 
       <div className="age-group">
         <span className="age-group-label">{t.adults} *</span>

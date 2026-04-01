@@ -151,7 +151,9 @@ model Reservation {
   transferFlightArrival   String?
   transferFlightDeparture String?
   transferHotelName  String?
+  adultCount        Int?
   childCount        Int?          // 4-7 yaş çocuk sayısı
+  infantCount       Int?          // 0-3 yaş bebek sayısı
   // Misafir iptal talebi (operasyon onayına kadar bekler)
   cancellationRequestedAt   DateTime?
   cancellationRequestReason  String?

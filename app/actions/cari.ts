@@ -7,6 +7,9 @@ export type CariRecordRow = {
   id: string;
   reservationId: string | null;
   reservationStatus: string | null;
+  adultCount: number | null;
+  childCount: number | null;
+  infantCount: number | null;
   guestName: string;
   hotelName: string | null;
   roomNumber: string | null;
@@ -79,6 +82,26 @@ async function getReservationStatusMap(reservationIds: string[]): Promise<Map<st
   return new Map(rows.filter((r) => wanted.has(r.id)).map((r) => [r.id, r.status]));
 }
 
+async function getReservationPaxMap(
+  reservationIds: string[]
+): Promise<Map<string, { adults: number | null; children: number | null; infants: number | null }>> {
+  if (reservationIds.length === 0) return new Map();
+  const wanted = new Set(reservationIds);
+  const rows = await prisma.reservation.findMany({
+    select: { id: true, pax: true, adultCount: true, childCount: true, infantCount: true },
+  });
+  return new Map(
+    rows
+      .filter((r) => wanted.has(r.id))
+      .map((r) => {
+        const children = r.childCount ?? 0;
+        const infants = r.infantCount ?? 0;
+        const adults = r.adultCount ?? Math.max(1, (r.pax ?? 1) - children - infants);
+        return [r.id, { adults, children, infants }];
+      })
+  );
+}
+
 export async function getCariRecords(filters?: { month?: string; agent?: string }): Promise<CariRecordRow[]> {
   try {
     const session = await getSession();
@@ -101,11 +124,28 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
         .map((r) => r.reservationId)
         .filter((id): id is string => Boolean(id))
     );
+    const reservationPaxMap = await getReservationPaxMap(
+      (list ?? [])
+        .map((r) => r.reservationId)
+        .filter((id): id is string => Boolean(id))
+    );
     return (list ?? []).map((r: Record<string, unknown>) => ({
       id: String(r.id),
       reservationId: r.reservationId != null ? String(r.reservationId) : null,
       reservationStatus:
         r.reservationId != null ? reservationStatusMap.get(String(r.reservationId)) ?? null : null,
+      adultCount:
+        r.reservationId != null
+          ? reservationPaxMap.get(String(r.reservationId))?.adults ?? null
+          : null,
+      childCount:
+        r.reservationId != null
+          ? reservationPaxMap.get(String(r.reservationId))?.children ?? null
+          : null,
+      infantCount:
+        r.reservationId != null
+          ? reservationPaxMap.get(String(r.reservationId))?.infants ?? null
+          : null,
       guestName: String(r.guestName),
       hotelName: r.hotelName != null ? String(r.hotelName) : null,
       roomNumber: r.roomNumber != null ? String(r.roomNumber) : null,

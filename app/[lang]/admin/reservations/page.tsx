@@ -62,6 +62,22 @@ function getCancelReasonLabel(reason: string | null): string {
   }
 }
 
+function normalizePaxBreakdown(row: { pax: number; adultCount?: number | null; childCount?: number | null; infantCount?: number | null }) {
+  const children = Math.max(0, row.childCount ?? 0);
+  const infants = Math.max(0, row.infantCount ?? 0);
+  const adults = Math.max(1, row.adultCount ?? Math.max(1, row.pax - children - infants));
+  return { adults, children, infants };
+}
+
+function formatPaxShort(row: { pax: number; adultCount?: number | null; childCount?: number | null; infantCount?: number | null }): string {
+  const { adults, children, infants } = normalizePaxBreakdown(row);
+  const parts: string[] = [];
+  if (adults > 0) parts.push(`${adults}A`);
+  if (children > 0) parts.push(`${children}Ç`);
+  if (infants > 0) parts.push(`${infants}B`);
+  return parts.length > 0 ? parts.join(' + ') : String(row.pax);
+}
+
 interface ResRow {
   id: string;
   customer: string;
@@ -71,6 +87,9 @@ interface ResRow {
   variantTitle: string | null;
   date: string;
   pax: number;
+  adultCount: number | null;
+  childCount: number | null;
+  infantCount: number | null;
   total: string;
   totalPrice: number;
   status: string;
@@ -197,6 +216,9 @@ export default function AdminReservationsPage() {
             notes: string | null;
             options: string;
             transferAirport?: string | null;
+            adultCount?: number | null;
+            childCount?: number | null;
+            infantCount?: number | null;
             cancellationRequestedAt?: Date | null;
             cancellationRequestReason?: string | null;
             cancelReason?: string | null;
@@ -215,6 +237,9 @@ export default function AdminReservationsPage() {
             variantTitle: r.variant?.titleEn ?? null,
             date: r.date.toISOString().split('T')[0],
             pax: r.pax,
+            adultCount: (r as { adultCount?: number | null }).adultCount ?? null,
+            childCount: (r as { childCount?: number | null }).childCount ?? null,
+            infantCount: (r as { infantCount?: number | null }).infantCount ?? null,
             total: `€${r.totalPrice}`,
             totalPrice: r.totalPrice,
             status: r.status,
@@ -391,6 +416,9 @@ export default function AdminReservationsPage() {
               status: next.status,
               date: next.date.toISOString().split('T')[0],
               pax: next.pax,
+              adultCount: (next as { adultCount?: number | null }).adultCount ?? null,
+              childCount: (next as { childCount?: number | null }).childCount ?? null,
+              infantCount: (next as { infantCount?: number | null }).infantCount ?? null,
               total: `€${next.totalPrice}`,
               totalPrice: next.totalPrice,
               updatedAt: next.updatedAt.toISOString(),
@@ -735,7 +763,7 @@ export default function AdminReservationsPage() {
                         {res.variantTitle ?? '—'}
                       </td>
                       <td>{formatDate(res.date)}</td>
-                      <td className="admin-cell-num">{res.pax}</td>
+                      <td className="admin-cell-num">{formatPaxShort(res)}</td>
                       <td className="admin-cell-currency">{res.total}</td>
                       <td className="admin-cell-deposit">
                         {depositEditId === res.id ? (
@@ -874,6 +902,21 @@ export default function AdminReservationsPage() {
                               <h4>Konaklama / Notlar</h4>
                               <p>{res.displayNotes || '—'}</p>
                               <p><strong>Rez. tarihi:</strong> {formatDate(res.createdAt)}</p>
+                            </div>
+                            <div className="admin-expand-section">
+                              <h4>Kişi detayı</h4>
+                              {(() => {
+                                const breakdown = normalizePaxBreakdown(res);
+                                const pricedPeople = Math.max(1, breakdown.adults + breakdown.children);
+                                const unitPrice = res.totalPrice / pricedPeople;
+                                return (
+                                  <>
+                                    <p>👤 {breakdown.adults} Yetişkin x €{unitPrice.toFixed(2)} = €{(breakdown.adults * unitPrice).toFixed(2)}</p>
+                                    <p>👶 {breakdown.children} Çocuk (4-7) x €{unitPrice.toFixed(2)} = €{(breakdown.children * unitPrice).toFixed(2)}</p>
+                                    <p>🍼 {breakdown.infants} Bebek (0-3) = Ücretsiz</p>
+                                  </>
+                                );
+                              })()}
                             </div>
                             <div className="admin-expand-section">
                               <h4>Ödeme</h4>
@@ -1134,7 +1177,7 @@ export default function AdminReservationsPage() {
                 <p style={{ fontWeight: 600 }}>{res.customer}</p>
                 <p>{res.tour}</p>
                 <div className="admin-reservation-card-meta">
-                  {formatDate(res.date)} · {res.pax} kişi · {res.total}
+                  {formatDate(res.date)} · {formatPaxShort(res)} · {res.total}
                 </div>
                 {res.displayNotes && <p className="admin-reservation-card-meta">{res.displayNotes}</p>}
                 <p className="admin-reservation-card-meta">Depozit: €{res.depositPaid.toFixed(2)}</p>

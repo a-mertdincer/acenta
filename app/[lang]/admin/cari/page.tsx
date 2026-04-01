@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
-import { getCariRecords, getCariSummary, createCariRecord, updateCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
+import { getCariRecords, createCariRecord, updateCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
 
 const CURRENCIES = ['EUR', 'TRY', 'USD'] as const;
 const PAYMENT_METHODS = [{ value: 'cash', label: 'Nakit' }, { value: 'transfer', label: 'Havale' }, { value: 'card', label: 'Kredi Kartı' }];
@@ -53,8 +53,11 @@ export default function AdminCariPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [records, setRecords] = useState<CariRecordRow[]>([]);
-  const [summary, setSummary] = useState({ totalRevenue: 0, totalCost: 0, netProfit: 0, pendingPayment: 0 });
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterAgent, setFilterAgent] = useState('');
+  const [filterPayment, setFilterPayment] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,9 +86,8 @@ export default function AdminCariPage() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([getCariRecords({ month }), getCariSummary(month)]).then(([list, sum]) => {
+    getCariRecords({ month }).then((list) => {
       setRecords(list);
-      setSummary(sum);
       setLoading(false);
     });
   };
@@ -95,10 +97,9 @@ export default function AdminCariPage() {
     setTimeout(() => {
       if (cancelled) return;
       setLoading(true);
-      Promise.all([getCariRecords({ month }), getCariSummary(month)]).then(([list, sum]) => {
+      getCariRecords({ month }).then((list) => {
         if (cancelled) return;
         setRecords(list);
-        setSummary(sum);
         setLoading(false);
       });
     }, 0);
@@ -153,6 +154,54 @@ export default function AdminCariPage() {
 
   const currentEditing = editingId ? records.find((r) => r.id === editingId) : null;
   const missingSet = new Set(currentEditing?.missingFields ?? []);
+  const agentOptions = useMemo(
+    () => Array.from(new Set(records.map((r) => (r.agentName ?? '').trim()).filter(Boolean))).sort(),
+    [records]
+  );
+  const filteredRecords = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return records.filter((r) => {
+      if (filterAgent && (r.agentName ?? '') !== filterAgent) return false;
+      if (filterPayment && r.paymentMethod !== filterPayment) return false;
+      if (filterStatus && r.completionStatus !== filterStatus) return false;
+      if (!q) return true;
+      const searchable = [
+        r.guestName,
+        r.agentName ?? '',
+        r.activityType,
+        r.hotelName ?? '',
+        r.roomNumber ?? '',
+        r.paymentMethod,
+        r.salesperson ?? '',
+        r.notes ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return searchable.includes(q);
+    });
+  }, [records, search, filterAgent, filterPayment, filterStatus]);
+  const summary = useMemo(() => {
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let pendingPayment = 0;
+    for (const r of filteredRecords) {
+      if (r.reservationStatus === 'CANCELLED') continue;
+      totalRevenue += Number(r.salePrice) * Number(r.quantity);
+      if (r.costAmount != null) totalCost += Number(r.costAmount) * Number(r.quantity);
+      if (r.paidToAgency === 'pending') pendingPayment += (r.costAmount ?? 0) * (r.quantity ?? 1);
+    }
+    return { totalRevenue, totalCost, netProfit: totalRevenue - totalCost, pendingPayment };
+  }, [filteredRecords]);
+  const activeFilterChips = [
+    search ? `Arama: ${search}` : '',
+    filterAgent ? `Acenta: ${filterAgent}` : '',
+    filterPayment ? `Ödeme: ${filterPayment}` : '',
+    filterStatus
+      ? `Durum: ${
+          filterStatus === 'COMPLETE' ? '✅ Tamam' : filterStatus === 'MISSING' ? '⚠️ Eksik' : '❌ İptal'
+        }`
+      : '',
+  ].filter(Boolean);
 
   const startEdit = (row: CariRecordRow) => {
     setEditingId(row.id);
@@ -253,6 +302,66 @@ export default function AdminCariPage() {
         </div>
       </div>
 
+      <div className="card" style={{ padding: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 'var(--space-sm)' }}>
+          <Input
+            label="Ara"
+            placeholder="Müşteri adı, acenta, aktivite..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Acenta</label>
+            <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+              <option value="">Tümü</option>
+              {agentOptions.map((agent) => (
+                <option key={agent} value={agent}>{agent}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Ödeme</label>
+            <select value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+              <option value="">Tümü</option>
+              {PAYMENT_METHODS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Durum</label>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+              <option value="">Tümü</option>
+              <option value="COMPLETE">✅ Tamam</option>
+              <option value="MISSING">⚠️ Eksik</option>
+              <option value="CANCELLED">❌ İptal</option>
+            </select>
+          </div>
+        </div>
+        {activeFilterChips.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 'var(--space-sm)' }}>
+            {activeFilterChips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => {
+                  if (chip.startsWith('Arama:')) setSearch('');
+                  if (chip.startsWith('Acenta:')) setFilterAgent('');
+                  if (chip.startsWith('Ödeme:')) setFilterPayment('');
+                  if (chip.startsWith('Durum:')) setFilterStatus('');
+                }}
+                style={{ border: '1px solid var(--color-border)', borderRadius: 999, padding: '4px 10px', background: 'var(--color-bg-alt)', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                {chip} ×
+              </button>
+            ))}
+            <button type="button" onClick={() => { setSearch(''); setFilterAgent(''); setFilterPayment(''); setFilterStatus(''); }} style={{ border: 'none', background: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>
+              Tüm filtreleri temizle
+            </button>
+          </div>
+        )}
+      </div>
+
       {(showForm || editingId) && (
         <form onSubmit={editingId ? handleUpdate : handleSubmit} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
           <h2 style={{ marginBottom: 'var(--space-lg)' }}>{editingId ? 'Cari Kayıt Düzenle' : 'Yeni Cari Kayıt'}</h2>
@@ -319,7 +428,7 @@ export default function AdminCariPage() {
       <div className="card" style={{ overflowX: 'auto' }}>
         {loading ? (
           <p style={{ padding: 'var(--space-xl)' }}>Yükleniyor...</p>
-        ) : records.length === 0 ? (
+        ) : filteredRecords.length === 0 ? (
           <p style={{ padding: 'var(--space-xl)', color: 'var(--color-text-muted)' }}>Bu ay için kayıt yok. Yeni kayıt ekleyin.</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -338,11 +447,21 @@ export default function AdminCariPage() {
               </tr>
             </thead>
             <tbody>
-              {records.map((r) => (
+              {filteredRecords.map((r) => (
                 <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => startEdit(r)}>
                   <td style={{ padding: 'var(--space-md)' }}>{r.roomNumber ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.guestName}</td>
-                  <td style={{ padding: 'var(--space-md)' }}>{r.activityType} · {r.quantity} kişi · {formatDate(r.activityDate)}</td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    {r.activityType} · {(() => {
+                      const adults = r.adultCount ?? Math.max(1, r.quantity - (r.childCount ?? 0) - (r.infantCount ?? 0));
+                      const children = r.childCount ?? 0;
+                      const infants = r.infantCount ?? 0;
+                      if (adults === 0 && children === 0 && infants === 0) return `${r.quantity} kişi`;
+                      const parts = [`${adults}Y`, `${children}Ç`];
+                      if (infants > 0) parts.push(`${infants}B`);
+                      return parts.join('+');
+                    })()} · {formatDate(r.activityDate)}
+                  </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.agentName ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.saleCurrency} {r.salePrice.toFixed(2)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.costAmount != null ? `${r.costCurrency ?? 'EUR'} ${r.costAmount.toFixed(2)}` : '—'}</td>

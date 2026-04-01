@@ -81,8 +81,7 @@ export const useCartStore = create<CartState>()(
         }),
         {
             name: 'kismet-cart-storage',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            storage: safeStorage as any,
+            storage: safeStorage as unknown as any,
         }
     )
 );

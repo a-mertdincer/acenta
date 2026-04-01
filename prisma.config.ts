@@ -1,7 +1,6 @@
 // Load .env from project root when dotenv is available (npm run db:migrate).
 // When using npx prisma, ensure .env exists and contains DATABASE_URL.
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("dotenv/config");
 } catch {
   // ignore

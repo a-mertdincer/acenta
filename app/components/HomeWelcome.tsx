@@ -40,8 +40,7 @@ export function HomeWelcome({
             <div className="home-welcome-image-wrap">
               <img
                 src={welcomeImageSrc || welcomeImageFallback || ''}
-                alt=""
-                aria-hidden
+                alt="Cappadocia travel experience"
                 onError={(e) => {
                   const fallback = welcomeImageFallback || welcomeImageSrc;
                   if (fallback && e.currentTarget.src !== fallback) {

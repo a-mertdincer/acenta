@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, use, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { useCartStore } from '../../../store/cartStore';
@@ -66,6 +65,34 @@ function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' 
   if (pricingType === 'child') return 'Child price';
   if (pricingType === 'adult') return 'Adult price';
   return 'Not allowed';
+}
+
+function getAgePolicyDetail(
+  description: string | null | undefined,
+  label: string,
+  pricingType: 'free' | 'child' | 'adult' | 'not_allowed'
+): string | null {
+  const normalized = (description ?? '').trim();
+  if (!normalized) return null;
+  const value = normalized.toLowerCase();
+  const labelValue = label.toLowerCase();
+  const generic = [
+    'free of charge',
+    'child price applies',
+    'adult price applies',
+    'not allowed',
+    'ucretsiz',
+    'cocuk fiyati',
+    'yetiskin fiyati',
+    'kabul edilmez',
+  ];
+  if (value === labelValue || generic.includes(value)) {
+    return null;
+  }
+  if (pricingType !== 'not_allowed' && value === 'izin verilmez') {
+    return null;
+  }
+  return normalized;
 }
 
 function TourDetailHeroImage({ type, title }: { type: string; title: string }) {
@@ -306,7 +333,7 @@ function mapDbTourToState(db: {
       minAge: group.minAge,
       maxAge: group.maxAge,
       pricingType: group.pricingType,
-      description: _lang === 'tr' ? group.descriptionTr : _lang === 'zh' ? (group.descriptionZh ?? group.descriptionEn) : group.descriptionEn,
+      description: _lang === 'tr' ? group.descriptionTr : _lang === 'zh' ? (group.descriptionZh ?? '') : group.descriptionEn,
     })),
     images: (db.images ?? []).map((img) => img.url),
     options: db.options.map((o) => ({
@@ -510,7 +537,6 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 options={tour.options ?? []}
                                 ageGroups={tour.ageGroups ?? []}
                                 minAgeLimit={tour.minAgeLimit ?? null}
-                                ageRestrictionText={tour.ageRestriction ?? null}
                             />
                         </div>
                     </div>
@@ -606,10 +632,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                         const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
                                         const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
                                         const label = getAgePricingLabel(locale, g.pricingType);
-                                        const extra = g.description?.trim();
-                                        return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` - ${extra}` : ''}<br /></span>;
+                                        const extra = getAgePolicyDetail(g.description, label, g.pricingType);
+                                        return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` — ${extra}` : ''}<br /></span>;
                                     })}
-                                    {tour.ageRestriction ? <span>⚠️ {tour.ageRestriction}</span> : null}
                                 </>
                             ) : (
                                 <>

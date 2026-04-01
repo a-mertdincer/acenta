@@ -1,6 +1,5 @@
 import { getDictionary } from '../../dictionaries/getDictionary';
 import Link from 'next/link';
-import { Button } from '../../components/Button';
 import { TourCardImage } from '../../components/TourCardImage';
 import { getTourImagePath, getTourImageFallback } from '../../../lib/imagePaths';
 import { getTours } from '../../actions/tours';
@@ -55,9 +54,9 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                 lang={lang}
                 title={(dict.tours as { allTours?: string }).allTours ?? dict.navigation.tours}
             />
-            <div className="container tours-page" style={{ paddingTop: 0 }}>
-                <p className="text-center tours-page-subtitle" style={{ marginBottom: 'var(--space-xl)' }}>
-                    {(dict.home as { from?: string }).from} — {dict.home.popularExperiences}
+            <div className="container tours-page tours-page-topless">
+                <p className="text-center tours-page-subtitle tours-page-subtitle-spacing">
+                    {dict.home.popularExperiences}
                 </p>
 
                 <div className="tours-grid">
@@ -65,7 +64,8 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                     const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
                     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
                     return (
-                        <article key={tour.id} className="tour-card">
+                        <article key={tour.id} className="tour-card tour-card-clickable">
+                            <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
                             <TourCardImage
                                 src={tour.imageUrl ?? getTourImagePath(tour.type)}
                                 fallback={getTourImageFallback(tour.type)}
@@ -87,11 +87,10 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                                         </span>
                                       );
                                     })()}
-                                    <Link href={`/${lang}/tour/${tour.id}`}>
-                                        <Button className="tour-card-cta">{bookNowLabel}</Button>
-                                    </Link>
+                                    <span className="btn btn-primary tour-card-cta">{bookNowLabel}</span>
                                 </div>
                             </div>
+                            </Link>
                         </article>
                     );
                 })}

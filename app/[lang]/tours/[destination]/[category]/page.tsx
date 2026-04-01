@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDictionary } from '../../../../dictionaries/getDictionary';
-import { Button } from '../../../../components/Button';
 import { TourCardImage } from '../../../../components/TourCardImage';
 import { getTourImagePath, getTourImageFallback } from '../../../../../lib/imagePaths';
 import { getTours } from '../../../../actions/tours';
@@ -86,12 +85,12 @@ export default async function ToursCategoryPage(props: {
         currentDestination={destination}
         currentCategory={category}
       />
-      <div className="container tours-page" style={{ paddingTop: 0 }}>
-        <h1 className="text-center" style={{ marginBottom: 'var(--space-md)' }}>
+      <div className="container tours-page tours-page-topless">
+        <h1 className="text-center tours-category-title">
           {catLabel} — {destName}
         </h1>
         {tours.length === 0 ? (
-          <p className="text-center" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-center tours-category-empty">
             Bu kategoride henüz tur bulunmuyor.
           </p>
         ) : (
@@ -100,7 +99,8 @@ export default async function ToursCategoryPage(props: {
               const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
               const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
               return (
-                <article key={tour.id} className="tour-card">
+                <article key={tour.id} className="tour-card tour-card-clickable">
+                  <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
                   <TourCardImage
                     src={tour.imageUrl ?? getTourImagePath(tour.type)}
                     fallback={getTourImageFallback(tour.type)}
@@ -118,15 +118,14 @@ export default async function ToursCategoryPage(props: {
                         return (
                           <span className="tour-card-price">
                             {Number(tour.fromPrice ?? tour.basePrice) > 0 ? `${dict.home?.from ?? 'From'} ${shown.primary}` : contactForPriceLabel}
-                            {shown.secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{shown.secondary}</small> : null}
+                            {shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
                           </span>
                         );
                       })()}
-                      <Link href={`/${lang}/tour/${tour.id}`}>
-                        <Button className="tour-card-cta">{bookNowLabel}</Button>
-                      </Link>
+                      <span className="btn btn-primary tour-card-cta">{bookNowLabel}</span>
                     </div>
                   </div>
+                  </Link>
                 </article>
               );
             })}

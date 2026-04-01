@@ -48,7 +48,7 @@ export function ActivitiesDestinationSection({
         <h2 className="section-title home-section-title">{title}</h2>
 
         {destinations.length > 1 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)' }}>
+          <div className="activities-destination-tabs">
             {destinations.map((d) => {
               const isActive = selectedDest?.slug === d.slug;
               const href = `/${lang}/tours/${d.slug}`;
@@ -56,15 +56,7 @@ export function ActivitiesDestinationSection({
                 <Link
                   key={d.id}
                   href={href}
-                  style={{
-                    padding: 'var(--space-sm) var(--space-lg)',
-                    borderRadius: '8px',
-                    fontWeight: isActive ? 'bold' : 'normal',
-                    backgroundColor: isActive ? 'var(--color-primary)' : 'var(--color-bg-light)',
-                    color: isActive ? 'white' : 'var(--color-text-main)',
-                    textDecoration: 'none',
-                    border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                  }}
+                  className={`activities-destination-tab ${isActive ? 'is-active' : ''}`}
                 >
                   {getDestinationName(d, lang)}
                 </Link>
@@ -91,16 +83,12 @@ export function ActivitiesDestinationSection({
                   key={cat.id}
                   href={href}
                   className="home-activity-card activity-card-slide"
-                  style={{
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    border: isActive ? '2px solid var(--color-primary)' : undefined,
-                  }}
+                  data-active={isActive ? 'true' : 'false'}
                 >
                   <div className="activity-card-image-wrap">
                     <img
                       src={getActivityCategoryImage(cat.slug)}
-                      alt=""
+                      alt={`${getCategoryLabel(cat, lang)} in ${getDestinationName(selectedDest!, lang)}`}
                       loading="lazy"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = getActivityCategoryImage('daily-tours');

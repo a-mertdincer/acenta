@@ -596,6 +596,31 @@ main {
 .home-activity-card:hover::before {
   background: linear-gradient(to top, rgba(196, 91, 40, 0.08) 0%, transparent 60%);
 }
+.home-activity-card[data-active='true'] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+.activities-destination-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+.activities-destination-tab {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: 8px;
+  font-weight: 400;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-main);
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+}
+.activities-destination-tab.is-active {
+  font-weight: 700;
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
 .home-activity-icon {
   color: var(--color-primary);
   display: flex;
@@ -953,6 +978,18 @@ main {
   margin-bottom: var(--space-2xl);
   font-size: 1rem;
 }
+.tours-page-topless {
+  padding-top: 0;
+}
+.tours-page-subtitle-spacing {
+  margin-bottom: var(--space-xl);
+}
+.tours-category-title {
+  margin-bottom: var(--space-md);
+}
+.tours-category-empty {
+  color: var(--color-text-muted);
+}
 .tours-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -967,12 +1004,28 @@ main {
   flex-direction: column;
   transition: box-shadow var(--transition-normal);
 }
+.tour-card-clickable .tour-card-link-area {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 .tour-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 .tour-card .tour-card-image {
+  position: relative;
+  overflow: hidden;
   height: 220px;
   flex-shrink: 0;
+}
+.tour-card-image-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .tour-card-body {
   padding: var(--space-lg);
@@ -1026,6 +1079,11 @@ main {
   font-weight: 700;
   color: var(--color-primary);
   font-size: 1.25rem;
+}
+.tour-card-price-secondary {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 .tour-card-cta {
   min-width: 140px;

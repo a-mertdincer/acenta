@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Cappadocia activity image placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2b6cb0" />
+      <stop offset="100%" stop-color="#1a365d" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)" />
+  <circle cx="220" cy="220" r="90" fill="#f6ad55" opacity="0.9" />
+  <path d="M190 330c50 80 160 80 210 0" fill="#f6ad55" opacity="0.35" />
+  <path d="M130 620h940l-90-140H220z" fill="#fff" opacity="0.14" />
+  <text x="600" y="700" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="42" font-weight="600">
+    Kismet Goreme Travel
+  </text>
+</svg>

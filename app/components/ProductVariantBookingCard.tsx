@@ -62,6 +62,34 @@ function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' 
   return 'Not allowed';
 }
 
+function getAgePolicyDetail(
+  description: string | null | undefined,
+  label: string,
+  pricingType: 'free' | 'child' | 'adult' | 'not_allowed'
+): string | null {
+  const normalized = (description ?? '').trim();
+  if (!normalized) return null;
+  const value = normalized.toLowerCase();
+  const labelValue = label.toLowerCase();
+  const generic = [
+    'free of charge',
+    'child price applies',
+    'adult price applies',
+    'not allowed',
+    'ucretsiz',
+    'cocuk fiyati',
+    'yetiskin fiyati',
+    'kabul edilmez',
+  ];
+  if (value === labelValue || generic.includes(value)) {
+    return null;
+  }
+  if (pricingType !== 'not_allowed' && value === 'izin verilmez') {
+    return null;
+  }
+  return normalized;
+}
+
 export function ProductVariantBookingCard({
   tourId,
   tourType,
@@ -71,7 +99,6 @@ export function ProductVariantBookingCard({
   options,
   ageGroups = [],
   minAgeLimit = null,
-  ageRestrictionText = null,
 }: {
   tourId: string;
   tourType: string;
@@ -86,7 +113,6 @@ export function ProductVariantBookingCard({
     description: string;
   }[];
   minAgeLimit?: number | null;
-  ageRestrictionText?: string | null;
 }) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -583,10 +609,9 @@ export function ProductVariantBookingCard({
                 const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
                 const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
                 const label = getAgePricingLabel(lang, g.pricingType);
-                const extra = g.description?.trim();
-                return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` - ${extra}` : ''}<br /></span>;
+                const extra = getAgePolicyDetail(g.description, label, g.pricingType);
+                return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` — ${extra}` : ''}<br /></span>;
               })}
-            {ageRestrictionText ? <span>⚠️ {ageRestrictionText}</span> : null}
           </>
         ) : (
           <>

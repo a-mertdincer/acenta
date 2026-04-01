@@ -91,7 +91,7 @@ export function Footer({ lang, footer: f }: FooterProps) {
             <h3 className="site-footer-title">{footer.contact}</h3>
             <p className="site-footer-text">
               <span className="site-footer-label">{footer.phone}:</span>{' '}
-              <a href="tel:+903841212345" className="site-footer-link">+90 384 212 34 56</a>
+              <a href="tel:+903842123456" className="site-footer-link">+90 384 212 34 56</a>
               <br />
               <span className="site-footer-label">{footer.email}:</span>{' '}
               <a href="mailto:info@kismetgoreme.com" className="site-footer-link">info@kismetgoreme.com</a>

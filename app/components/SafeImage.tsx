@@ -21,13 +21,13 @@ export function SafeImage({ src, fallback, alt, className, fill, sizes }: SafeIm
 
   if (fill) {
     return (
-      <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
+      <div className={`${className ?? ''} safe-image-fill-wrap`.trim()}>
         <img
           src={currentSrc}
           alt={alt}
           sizes={sizes}
           onError={handleError}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          className="safe-image-fill-img"
         />
       </div>
     );

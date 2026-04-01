@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Adventure activity placeholder">
+  <rect width="1200" height="800" fill="#0f172a"/>
+  <path d="M80 650l230-300 180 220 180-260 260 340z" fill="#334155"/>
+  <path d="M0 680h1200v120H0z" fill="#1e293b"/>
+  <text x="600" y="720" text-anchor="middle" fill="#e2e8f0" font-size="46" font-family="Arial, sans-serif">Adventure Activity</text>
+</svg>

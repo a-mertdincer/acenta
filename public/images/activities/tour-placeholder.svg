@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Daily tour activity placeholder">
+  <rect width="1200" height="800" fill="#14532d"/>
+  <path d="M0 560c180-90 320-90 500 0s320 90 700 0v240H0z" fill="#166534"/>
+  <circle cx="930" cy="170" r="70" fill="#fde047"/>
+  <text x="600" y="710" text-anchor="middle" fill="#dcfce7" font-size="46" font-family="Arial, sans-serif">Daily Tour</text>
+</svg>

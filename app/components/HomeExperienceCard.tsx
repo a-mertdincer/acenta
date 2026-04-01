@@ -31,22 +31,14 @@ export function HomeExperienceCard({
   return (
     <div className="card card-hover">
       <Link href={`/${lang}/tour/${tourId}`} className="card-image-link">
-        <div
-          className="card-image-wrap"
-          style={{
-            backgroundImage: `url('${imgSrc}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        >
-          <span className="card-price-badge">{fromLabel} €{price}</span>
+        <div className="card-image-wrap">
           <img
-            src={imageSrc}
-            alt=""
-            aria-hidden
+            src={imgSrc}
+            alt={`${title} experience`}
             onError={() => setImgSrc(imageFallback)}
-            style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
+            className="card-image-fill"
           />
+          <span className="card-price-badge">{fromLabel} €{price}</span>
         </div>
       </Link>
       <div className="card-body">

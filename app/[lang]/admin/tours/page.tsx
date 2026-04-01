@@ -929,7 +929,7 @@ export default function AdminToursPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
                                 {tourImages.map((img) => (
                                     <div key={img.id} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-xs)' }}>
-                                        <img src={img.url} alt="" style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6 }} />
+                                        <img src={img.url} alt="Tour image preview" style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6 }} />
                                         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                                             <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await setPrimaryTourImage(img.id); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>{img.isPrimary ? '★ Ana' : '☆ Ana yap'}</button>
                                             <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await moveTourImage(img.id, 'up'); const refreshed = await getTourById(editTourId!); const rec = refreshed as { images?: { id: string; url: string; isPrimary: boolean }[] } | null; setTourImages((rec?.images ?? []).map((x) => ({ id: x.id, url: x.url, isPrimary: x.isPrimary }))); }}>↑</button>

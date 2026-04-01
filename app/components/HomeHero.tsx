@@ -18,20 +18,12 @@ export function HomeHero({ title, subtitle, bookLabel, exploreLabel, scrollLabel
 
   return (
     <section className="home-hero">
-      <div
-        className="home-hero-bg"
-        style={{
-          backgroundImage: `url('${heroImgSrc}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
+      <div className="home-hero-bg">
         <img
-          src={heroSrc}
-          alt=""
-          aria-hidden
+          src={heroImgSrc}
+          alt="Cappadocia panorama at sunrise"
           onError={() => setHeroImgSrc(heroFallback)}
-          style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
+          className="home-hero-bg-image"
         />
         <div className="home-hero-overlay" />
       </div>

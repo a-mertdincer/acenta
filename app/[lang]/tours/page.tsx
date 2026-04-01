@@ -83,7 +83,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                                       return (
                                         <span className="tour-card-price">
                                           {Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice) > 0 ? `${dict.home.from} ${shown.primary}` : contactForPriceLabel}
-                                          {shown.secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{shown.secondary}</small> : null}
+                                          {shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
                                         </span>
                                       );
                                     })()}

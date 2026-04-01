@@ -1,14 +1,14 @@
 export const ACTIVITY_CATEGORY_IMAGES: Record<string, string> = {
-  'hot-air-balloon': '/images/activities/default-activity.svg',
-  'daily-tours': '/images/activities/default-activity.svg',
-  'adventure-activities': '/images/activities/default-activity.svg',
-  'cultural-experiences': '/images/activities/default-activity.svg',
-  'private-tours': '/images/activities/default-activity.svg',
-  'transfers': '/images/activities/default-activity.svg',
-  'workshops': '/images/activities/default-activity.svg',
-  'boat-tours': '/images/activities/default-activity.svg',
-  'packages': '/images/activities/default-activity.svg',
-  'concierge': '/images/activities/default-activity.svg',
+  'hot-air-balloon': '/images/activities/balloon-placeholder.svg',
+  'daily-tours': '/images/activities/tour-placeholder.svg',
+  'adventure-activities': '/images/activities/adventure-placeholder.svg',
+  'cultural-experiences': '/images/activities/culture-placeholder.svg',
+  'private-tours': '/images/activities/tour-placeholder.svg',
+  'transfers': '/images/activities/transfer-placeholder.svg',
+  'workshops': '/images/activities/service-placeholder.svg',
+  'boat-tours': '/images/activities/adventure-placeholder.svg',
+  'packages': '/images/activities/service-placeholder.svg',
+  'concierge': '/images/activities/service-placeholder.svg',
 };
 
 const FALLBACK = '/images/activities/default-activity.svg';

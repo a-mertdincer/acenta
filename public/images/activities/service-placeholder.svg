@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Service activity placeholder">
+  <rect width="1200" height="800" fill="#312e81"/>
+  <circle cx="600" cy="320" r="190" fill="#4338ca"/>
+  <circle cx="600" cy="320" r="120" fill="#818cf8"/>
+  <rect x="420" y="570" width="360" height="90" rx="16" fill="#a5b4fc"/>
+  <text x="600" y="725" text-anchor="middle" fill="#e0e7ff" font-size="46" font-family="Arial, sans-serif">Premium Service</text>
+</svg>

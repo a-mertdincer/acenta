@@ -17,38 +17,29 @@ export function TourDetailGallery({
   const thumbSources = sources.slice(0, 4);
 
   return (
-    <div className="tour-detail-gallery" style={{ display: 'flex', gap: '12px', borderRadius: '12px', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+    <div className="tour-detail-gallery">
+      <div className="tour-detail-gallery-thumbs">
         {thumbSources.map((src, i) => (
           <button
             key={i}
             type="button"
             onClick={() => setMainSrcState(src)}
-            style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              padding: 0,
-              border: '2px solid transparent',
-              cursor: 'pointer',
-              backgroundColor: 'var(--color-bg-alt)',
-            }}
+            className="tour-detail-gallery-thumb-btn"
           >
             <img
               src={src}
               alt={`Tour gallery thumbnail ${i + 1}`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              className="tour-detail-gallery-thumb-img"
               onError={(e) => { (e.target as HTMLImageElement).src = fallbackSrc; }}
             />
           </button>
         ))}
       </div>
-      <div style={{ flex: 1, minHeight: '320px', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--color-bg-alt)' }}>
+      <div className="tour-detail-gallery-main">
         <img
           src={mainSrcState}
           alt="Tour"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          className="tour-detail-gallery-main-img"
           onError={(e) => { (e.target as HTMLImageElement).src = fallbackSrc; setMainSrcState(fallbackSrc); }}
         />
       </div>

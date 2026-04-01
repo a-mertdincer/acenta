@@ -409,23 +409,25 @@ export function ProductVariantBookingCard({
       {options.length > 0 && (
         <div style={{ marginBottom: 'var(--space-lg)' }}>
           <label className="form-label">{t.optionalAddons ?? 'Optional add-ons'}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="addons-list">
             {options.map((opt) => {
               const selected = selectedOptions.includes(opt.id);
               const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * Math.max(1, adults + children + infants);
+              const qtyLabel = opt.pricingMode === 'flat' ? '1x' : `${Math.max(1, adults + children + infants)}x`;
               return (
-                <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 10px', background: selected ? 'var(--color-bg-alt)' : 'transparent' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label key={opt.id} className={`addon-row ${selected ? 'is-selected' : ''}`}>
+                  <span className="addon-left">
                     <input
                       type="checkbox"
+                      className="addon-checkbox"
                       checked={selected}
                       onChange={() => {
                         setSelectedOptions((prev) => (prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]));
                       }}
                     />
-                    <span style={{ textTransform: 'none' }}>{opt.title}</span>
+                    <span className="addon-title">{opt.title}</span>
                   </span>
-                  <strong style={{ color: 'var(--color-primary)' }}>+{formatShown(displayPrice).primary}</strong>
+                  <strong className="addon-price">+{formatShown(displayPrice).primary} <span className="addon-multiplier">({qtyLabel})</span></strong>
                 </label>
               );
             })}

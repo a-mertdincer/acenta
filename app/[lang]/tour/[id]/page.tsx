@@ -649,17 +649,18 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     {tour.options?.length > 0 && (
                         <div style={{ marginBottom: 'var(--space-xl)' }}>
                             <h4 style={{ marginBottom: 'var(--space-sm)' }}>{t.optionalAddons}</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                            <div className="addons-list">
                                 {tour.options.map((opt: any) => {
                                     const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * pax;
+                                    const qtyLabel = opt.pricingMode === 'flat' ? '1x' : `${pax}x`;
                                     return (
-                                        <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-sm) var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedOptions.includes(opt.id) ? 'var(--color-bg-card)' : 'transparent' }}>
-                                            <div>
-                                                <input type="checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} style={{ marginRight: 'var(--space-sm)' }} />
-                                                <span style={{ fontWeight: '500', textTransform: 'none' }}>{opt.title}</span>
-                                            </div>
-                                            <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
-                                                {opt.price === 0 ? t.free : `+${formatShown(displayPrice).primary}${opt.pricingMode === 'flat' ? '' : ` (${pax}x)`}`}
+                                        <label key={opt.id} className={`addon-row ${selectedOptions.includes(opt.id) ? 'is-selected' : ''}`}>
+                                            <span className="addon-left">
+                                                <input type="checkbox" className="addon-checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} />
+                                                <span className="addon-title">{opt.title}</span>
+                                            </span>
+                                            <span className="addon-price">
+                                                {opt.price === 0 ? t.free : `+${formatShown(displayPrice).primary}`} <span className="addon-multiplier">({qtyLabel})</span>
                                             </span>
                                         </label>
                                     );

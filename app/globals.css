@@ -1439,6 +1439,58 @@ main {
   margin-left: 12px;
 }
 
+/* Optional add-ons: compact row list */
+.addons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.addon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+.addon-row.is-selected {
+  background: var(--color-bg-alt);
+}
+.addon-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.addon-checkbox {
+  margin: 0;
+}
+.addon-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-transform: none;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.addon-price {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+.addon-multiplier {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .stepper-control {
   display: flex;
   align-items: center;

@@ -1,0 +1,39 @@
+## Kod Kalite Kuralları — Kısmet Göreme Travel
+
+### TypeScript
+- `any` tipi kullanma, doğru tip tanımla
+- Unused import ve variable bırakma
+- Strict mode: tüm değişkenler tipli olmalı
+
+### CSS
+- Inline style (`style={{}}`) kullanma, CSS class kullan
+- Renklerde hardcoded değer yazma, CSS custom property kullan: var(--color-primary) vb.
+- Responsive tasarım: mobil (375px), tablet (768px), masaüstü (1280px) test et
+
+### API / Backend
+- Tüm API endpoint'lerinde input validation yap (zod veya manuel)
+- Admin endpoint'lerinde (`/api/admin/*`) rol kontrolü zorunlu — session.user.role === 'admin' kontrolü
+- Frontend'den gelen fiyat/indirim değerlerine güvenme, backend'de tekrar hesapla
+- Hata durumunda anlamlı mesaj dön, sadece 500 fırlatma
+
+### Database
+- Tablo değişikliklerinde migration dosyası oluştur
+- Nullable alanlar için default değer belirle
+- Foreign key ilişkilerinde cascade/restrict davranışını belirle
+
+### i18n
+- Hardcoded Türkçe/İngilizce metin yazma, çeviri key'i kullan
+- Yeni string eklediğinde EN ve TR çeviri dosyalarına ekle
+- Eksik çeviriler için EN fallback kullan
+
+### Güvenlik
+- Normal kullanıcı admin sayfalarına/API'lerine erişememeli
+- Kullanıcı girişi gereken sayfalarda auth kontrolü yap
+- Form input'larını sanitize et (XSS koruması)
+- Dosya yükleme varsa tip ve boyut kontrolü yap
+
+### Değişiklik Disiplini
+- Mevcut çalışan fonksiyonelliği bozma
+- Her değişiklikten sonra `npm run build` ile build kontrolü yap
+- Console.log bırakma (sadece console.error ve console.warn)
+- Değişiklik yaptığın dosyaları listele ve ne değiştiğini açıkla

@@ -7,14 +7,23 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
     "seed": "prisma db seed",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:migrate": "prisma migrate deploy",
-    "setup": "prisma migrate deploy && npm run seed"
+    "setup": "prisma migrate deploy && npm run seed",
+    "prepare": "husky"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings=0"
+    ]
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.8.1",
@@ -29,6 +38,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/negotiator": "^0.6.4",
     "@types/node": "^20",
@@ -37,6 +47,8 @@
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "playwright": "^1.58.2",
     "prisma": "^7.5.0",
     "tailwindcss": "^4",

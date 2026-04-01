@@ -203,14 +203,14 @@ export async function getCoupons(filter?: 'all' | 'active' | 'expired' | 'limit_
     let filtered = coupons;
     if (filter === 'active') {
       filtered = coupons.filter(
-        c =>
+        (c: CouponListItem) =>
           c.isActive &&
           c.bookingEnd >= today &&
           (c.usageLimit === 0 || c.usageCount < c.usageLimit)
       );
     } else if (filter === 'limit_reached') {
       filtered = coupons.filter(
-        c => c.isActive && c.usageLimit > 0 && c.usageCount >= c.usageLimit
+        (c: CouponListItem) => c.isActive && c.usageLimit > 0 && c.usageCount >= c.usageLimit
       );
     }
     return { ok: true, coupons: filtered };
@@ -622,7 +622,10 @@ export async function recordCouponUsage(params: {
 }): Promise<{ ok: boolean; error?: string }> {
   if (!params.usages.length) return { ok: true };
   try {
-    await prisma.$transaction(async tx => {
+    await prisma.$transaction(async (tx: {
+      coupon: typeof prisma.coupon;
+      couponUsage: typeof prisma.couponUsage;
+    }) => {
       const coupon = await tx.coupon.findUnique({
         where: { id: params.couponId },
       });

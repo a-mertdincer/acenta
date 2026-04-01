@@ -125,13 +125,13 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
     });
     const reservationStatusMap = await getReservationStatusMap(
       (list ?? [])
-        .map((r) => r.reservationId)
-        .filter((id): id is string => Boolean(id))
+        .map((r: { reservationId: string | null }) => r.reservationId)
+        .filter((id: string | null): id is string => Boolean(id))
     );
     const reservationPaxMap = await getReservationPaxMap(
       (list ?? [])
-        .map((r) => r.reservationId)
-        .filter((id): id is string => Boolean(id))
+        .map((r: { reservationId: string | null }) => r.reservationId)
+        .filter((id: string | null): id is string => Boolean(id))
     );
     return (list ?? []).map((r: Record<string, unknown>) => ({
       id: String(r.id),
@@ -199,8 +199,8 @@ export async function getCariSummary(month: string): Promise<{ totalRevenue: num
     });
     const reservationStatusMap = await getReservationStatusMap(
       (list ?? [])
-        .map((r) => r.reservationId)
-        .filter((id): id is string => Boolean(id))
+        .map((r: { reservationId: string | null }) => r.reservationId)
+        .filter((id: string | null): id is string => Boolean(id))
     );
     let totalRevenue = 0;
     let totalCost = 0;

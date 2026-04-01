@@ -15,7 +15,7 @@ async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSum
   if (tourIds.length === 0) return new Map();
   const wanted = new Set(tourIds);
   const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true, titleTr: true, type: true } });
-  const filtered = tours.filter((t) => wanted.has(t.id));
+  const filtered = tours.filter((t: TourSummary) => wanted.has(t.id));
   return new Map(filtered.map((t) => [t.id, t]));
 }
 

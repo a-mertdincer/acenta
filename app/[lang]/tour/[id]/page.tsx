@@ -473,11 +473,17 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             : null;
     const isTransferWithTiers = tour.type === 'TRANSFER' && (transferTiersForAirport?.length ?? tour.transferTiers?.length);
     const basePrice = datePrice?.price ?? tour.basePrice;
+    const adultUnitPrice = basePrice;
+    const hasChildPricingPolicy = Array.isArray(tour.ageGroups)
+      ? tour.ageGroups.some((g: { pricingType: string; maxAge: number }) => g.pricingType === 'child' && g.maxAge >= 4)
+      : false;
+    const explicitChildPrice = Number((tour as { childPrice?: number | null }).childPrice ?? 0);
+    const childUnitPrice = explicitChildPrice > 0 ? explicitChildPrice : hasChildPricingPolicy ? basePrice / 2 : basePrice;
     const isClosed = datePrice?.isClosed ?? false;
     const unitPrice = isTransferWithTiers
         ? getTransferPriceForPaxClient(transferTiersForAirport ?? tour.transferTiers, pax, basePrice)
         : basePrice;
-    let total = isTransferWithTiers ? unitPrice : (basePrice * (adults + children));
+    let total = isTransferWithTiers ? unitPrice : (adultUnitPrice * adults + childUnitPrice * children);
     selectedOptions.forEach(optId => {
         const opt = tour.options?.find((o: any) => o.id === optId);
         if (opt) total += opt.pricingMode === 'flat' ? opt.price : (opt.price * pax);
@@ -683,10 +689,33 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-sm)' }}>
                             {t.basePrice}: {formatShown(basePrice).primary} {t.perPerson}
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span>{isTransferWithTiers ? `${t.basePrice} (${pax} ${t.guests})` : t.baseSubtotal.replace('{pax}', String(pax))}</span>
-                            <span>{formatShown(isTransferWithTiers ? unitPrice : basePrice * (adults + children)).primary}</span>
-                        </div>
+                        {isTransferWithTiers ? (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span>{`${t.basePrice} (${pax} ${t.guests})`}</span>
+                                <span>{formatShown(unitPrice).primary}</span>
+                            </div>
+                        ) : (
+                            <>
+                                {adults > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span>{`${adults} ${lang === 'tr' ? 'Yetişkin' : lang === 'zh' ? '成人' : 'Adult'} × ${formatShown(adultUnitPrice).primary}`}</span>
+                                        <span>{formatShown(adultUnitPrice * adults).primary}</span>
+                                    </div>
+                                )}
+                                {children > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span>{`${children} ${lang === 'tr' ? 'Çocuk' : lang === 'zh' ? '儿童' : 'Child'} × ${formatShown(childUnitPrice).primary}`}</span>
+                                        <span>{formatShown(childUnitPrice * children).primary}</span>
+                                    </div>
+                                )}
+                                {infants > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
+                                        <span>{`${infants} ${lang === 'tr' ? 'Bebek' : lang === 'zh' ? '婴儿' : 'Infant'}`}</span>
+                                        <span>{t.free}</span>
+                                    </div>
+                                )}
+                            </>
+                        )}
                         {selectedOptions.map(optId => {
                             const opt = tour.options.find((o: any) => o.id === optId);
                             if (!opt) return null;

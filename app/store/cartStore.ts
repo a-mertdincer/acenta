@@ -54,6 +54,8 @@ export interface CartItem {
     transferFlightDeparture?: string | null;
     transferHotelName?: string | null;
     childCount?: number;
+    adultCount?: number;
+    infantCount?: number;
 }
 
 interface CartState {

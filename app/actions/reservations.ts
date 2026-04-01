@@ -54,6 +54,8 @@ export interface CreateReservationItem {
   transferFlightDeparture?: string | null;
   transferHotelName?: string | null;
   childCount?: number | null;
+  adultCount?: number | null;
+  infantCount?: number | null;
 }
 
 export interface CreateReservationInput {
@@ -102,6 +104,21 @@ export async function createReservations(input: CreateReservationInput): Promise
     const ids: string[] = [];
     const couponUsages: { reservationId: string; tourId: string; date: string; totalPrice: number; itemDiscount: number; itemTotalPrice: number }[] = [];
     const variantIds = [...new Set(input.items.map((i) => i.variantId).filter((v): v is string => Boolean(v)))];
+    const tourIds = [...new Set(input.items.map((i) => i.tourId))];
+    const tourRows = await prisma.tour.findMany({
+      select: { id: true, minAgeLimit: true },
+    });
+    const tourAgeMap = new Map(tourRows.map((t) => [t.id, t]));
+    const wantedTourIds = new Set(tourIds);
+    const ageGroupRows = (await prisma.productAgeGroup.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    })).filter((row) => wantedTourIds.has(row.tourId));
+    const ageGroupMap = new Map<string, { minAge: number; maxAge: number; pricingType: string }[]>();
+    ageGroupRows.forEach((row) => {
+      const list = ageGroupMap.get(row.tourId) ?? [];
+      list.push({ minAge: row.minAge, maxAge: row.maxAge, pricingType: row.pricingType });
+      ageGroupMap.set(row.tourId, list);
+    });
     const variantCapacityMap = new Map<string, { maxGroupSize: number | null; titleEn: string; titleTr: string }>();
     if (variantIds.length > 0) {
       const wanted = new Set(variantIds);
@@ -114,6 +131,24 @@ export async function createReservations(input: CreateReservationInput): Promise
     }
 
     for (const item of input.items) {
+      const adults = Math.max(1, item.adultCount ?? Math.max(1, item.pax - (item.childCount ?? 0) - (item.infantCount ?? 0)));
+      const children = Math.max(0, item.childCount ?? 0);
+      const infants = Math.max(0, item.infantCount ?? 0);
+      const computedPax = adults + children + infants;
+      if (computedPax !== item.pax) {
+        return { ok: false, error: 'Kisi dagilimi ile toplam kisi sayisi uyusmuyor.' };
+      }
+      const tourAge = tourAgeMap.get(item.tourId);
+      const minAgeLimit = tourAge?.minAgeLimit ?? null;
+      if (minAgeLimit != null) {
+        if (minAgeLimit >= 4 && infants > 0) return { ok: false, error: `Bu urunde ${minAgeLimit} yas altina izin verilmez.` };
+        if (minAgeLimit >= 8 && children > 0) return { ok: false, error: `Bu urunde ${minAgeLimit} yas altina izin verilmez.` };
+      }
+      const blockedGroups = (ageGroupMap.get(item.tourId) ?? []).filter((g) => g.pricingType === 'not_allowed');
+      const infantsBlocked = blockedGroups.some((g) => g.minAge <= 3 && g.maxAge >= 0);
+      const childrenBlocked = blockedGroups.some((g) => g.minAge <= 7 && g.maxAge >= 4);
+      if (infantsBlocked && infants > 0) return { ok: false, error: 'Bu urun secilen bebek yas grubu icin uygun degil.' };
+      if (childrenBlocked && children > 0) return { ok: false, error: 'Bu urun secilen cocuk yas grubu icin uygun degil.' };
       if (item.variantId) {
         const variantCap = variantCapacityMap.get(item.variantId);
         if (variantCap?.maxGroupSize != null && item.pax > variantCap.maxGroupSize) {

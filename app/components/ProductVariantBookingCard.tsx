@@ -43,6 +43,25 @@ function getVariantLabel(lang: Lang, variant: TourVariantDisplay): string {
   return lang === 'tr' ? variant.titleTr : lang === 'zh' ? variant.titleZh : variant.titleEn;
 }
 
+function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' | 'not_allowed'): string {
+  if (lang === 'tr') {
+    if (pricingType === 'free') return 'Ucretsiz';
+    if (pricingType === 'child') return 'Cocuk fiyati';
+    if (pricingType === 'adult') return 'Yetiskin fiyati';
+    return 'Kabul edilmez';
+  }
+  if (lang === 'zh') {
+    if (pricingType === 'free') return '免费';
+    if (pricingType === 'child') return '儿童价格';
+    if (pricingType === 'adult') return '成人价格';
+    return '不接受';
+  }
+  if (pricingType === 'free') return 'Free of charge';
+  if (pricingType === 'child') return 'Child price';
+  if (pricingType === 'adult') return 'Adult price';
+  return 'Not allowed';
+}
+
 export function ProductVariantBookingCard({
   tourId,
   tourType,
@@ -268,6 +287,8 @@ export function ProductVariantBookingCard({
         transferHotelName: hotelName || null,
       }),
       childCount: children,
+      adultCount: adults,
+      infantCount: infants,
     });
     setCartToastTitle(variantTitle);
     setCartToastOpen(true);
@@ -321,6 +342,7 @@ export function ProductVariantBookingCard({
             value={(selection.reservationType ?? 'regular') as 'regular' | 'private'}
             onChange={(v) => setSelection((s) => ({ ...s, reservationType: v }))}
             lang={lang}
+            showTypeMeta={data.hasReservationType}
             labels={{
               regular: t.regular,
               private: t.private,
@@ -378,7 +400,7 @@ export function ProductVariantBookingCard({
                         setSelectedOptions((prev) => (prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]));
                       }}
                     />
-                    <span>{opt.title}</span>
+                    <span style={{ textTransform: 'none' }}>{opt.title}</span>
                   </span>
                   <strong style={{ color: 'var(--color-primary)' }}>+{formatShown(displayPrice).primary}</strong>
                 </label>
@@ -574,7 +596,9 @@ export function ProductVariantBookingCard({
               .map((g, idx) => {
                 const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
                 const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
-                return <span key={`${range}-${idx}`}>{icon} {range}: {g.description}<br /></span>;
+                const label = getAgePricingLabel(lang, g.pricingType);
+                const extra = g.description?.trim();
+                return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` - ${extra}` : ''}<br /></span>;
               })}
             {ageRestrictionText ? <span>⚠️ {ageRestrictionText}</span> : null}
           </>

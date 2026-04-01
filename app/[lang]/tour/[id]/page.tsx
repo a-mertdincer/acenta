@@ -49,6 +49,25 @@ function buildProductSchema(
 
 type TransferAirport = 'ASR' | 'NAV';
 
+function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' | 'not_allowed'): string {
+  if (lang === 'tr') {
+    if (pricingType === 'free') return 'Ucretsiz';
+    if (pricingType === 'child') return 'Cocuk fiyati';
+    if (pricingType === 'adult') return 'Yetiskin fiyati';
+    return 'Kabul edilmez';
+  }
+  if (lang === 'zh') {
+    if (pricingType === 'free') return '免费';
+    if (pricingType === 'child') return '儿童价格';
+    if (pricingType === 'adult') return '成人价格';
+    return '不接受';
+  }
+  if (pricingType === 'free') return 'Free of charge';
+  if (pricingType === 'child') return 'Child price';
+  if (pricingType === 'adult') return 'Adult price';
+  return 'Not allowed';
+}
+
 function TourDetailHeroImage({ type, title }: { type: string; title: string }) {
   const [src, setSrc] = useState(() => getTourImagePath(type));
   const fallback = getTourImageFallback(type);
@@ -337,7 +356,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
 
     const [tour, setTour] = useState<any>(null);
     const [tourWithVariants, setTourWithVariants] = useState<Awaited<ReturnType<typeof getTourWithVariants>>>(null);
-    const [pax, setPax] = useState(1);
+    const [adults, setAdults] = useState(1);
+    const [children, setChildren] = useState(0);
+    const [infants, setInfants] = useState(0);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     const [selectedAirport, setSelectedAirport] = useState<TransferAirport>('ASR');
@@ -345,6 +366,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [cartToastOpen, setCartToastOpen] = useState(false);
     const [cartToastTitle, setCartToastTitle] = useState('');
     const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
+    const showChildren = (tour?.minAgeLimit != null ? tour.minAgeLimit < 8 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { pricingType: string; maxAge: number }) => g.pricingType === 'child' && g.maxAge >= 4) : true);
+    const showInfants = (tour?.minAgeLimit != null ? tour.minAgeLimit < 4 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { minAge: number; pricingType: string }) => g.minAge <= 3 && g.pricingType !== 'not_allowed') : true);
 
     useEffect(() => {
         const d = new Date();
@@ -384,6 +407,11 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
       return () => clearTimeout(timer);
     }, [cartToastOpen]);
 
+    useEffect(() => {
+        if (!showChildren && children !== 0) setChildren(0);
+        if (!showInfants && infants !== 0) setInfants(0);
+    }, [showChildren, showInfants, children, infants]);
+
     if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>Loading...</div>;
 
     // Transfer sayfasında layout atlamasını önle: varyant verisi gelene kadar aynı layout ile skeleton göster
@@ -411,6 +439,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
     const formatShown = (eur: number) => formatPriceByLang(eur, locale, eurTryRate);
 
+    const pax = adults + children + infants;
     const transferTiersForAirport =
         tour.type === 'TRANSFER' && tour.transferAirportTiers
             ? (tour.transferAirportTiers[selectedAirport] ?? tour.transferAirportTiers.ASR ?? tour.transferTiers)
@@ -421,7 +450,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const unitPrice = isTransferWithTiers
         ? getTransferPriceForPaxClient(transferTiersForAirport ?? tour.transferTiers, pax, basePrice)
         : basePrice;
-    let total = isTransferWithTiers ? unitPrice : basePrice * pax;
+    let total = isTransferWithTiers ? unitPrice : (basePrice * (adults + children));
     selectedOptions.forEach(optId => {
         const opt = tour.options?.find((o: any) => o.id === optId);
         if (opt) total += opt.pricingMode === 'flat' ? opt.price : (opt.price * pax);
@@ -541,9 +570,34 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
 
                     <div style={{ marginBottom: 'var(--space-xl)' }}>
                         <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>{t.passengers}</label>
-                        <select value={pax} onChange={(e) => setPax(Number(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Passenger{n > 1 ? 's' : ''}</option>)}
-                        </select>
+                        <div className="age-group">
+                            <span className="age-group-label">{lang === 'tr' ? 'Yetiskin' : lang === 'zh' ? '成人' : 'Adults'}</span>
+                            <div className="stepper-control">
+                                <button type="button" className="stepper-btn" disabled={adults <= 1} onClick={() => setAdults((n) => Math.max(1, n - 1))}>-</button>
+                                <span>{adults}</span>
+                                <button type="button" className="stepper-btn" onClick={() => setAdults((n) => n + 1)}>+</button>
+                            </div>
+                        </div>
+                        {showChildren && (
+                            <div className="age-group">
+                                <span className="age-group-label">{lang === 'tr' ? 'Cocuk' : lang === 'zh' ? '儿童' : 'Children'}</span>
+                                <div className="stepper-control">
+                                    <button type="button" className="stepper-btn" disabled={children <= 0} onClick={() => setChildren((n) => Math.max(0, n - 1))}>-</button>
+                                    <span>{children}</span>
+                                    <button type="button" className="stepper-btn" onClick={() => setChildren((n) => n + 1)}>+</button>
+                                </div>
+                            </div>
+                        )}
+                        {showInfants && (
+                            <div className="age-group">
+                                <span className="age-group-label">{lang === 'tr' ? 'Bebek' : lang === 'zh' ? '婴儿' : 'Infants'}</span>
+                                <div className="stepper-control">
+                                    <button type="button" className="stepper-btn" disabled={infants <= 0} onClick={() => setInfants((n) => Math.max(0, n - 1))}>-</button>
+                                    <span>{infants}</span>
+                                    <button type="button" className="stepper-btn" onClick={() => setInfants((n) => n + 1)}>+</button>
+                                </div>
+                            </div>
+                        )}
                         <div style={{ marginTop: 'var(--space-sm)', padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                             <strong>{t.agePolicyTitle}</strong><br />
                             {(tour.ageGroups?.length ?? 0) > 0 ? (
@@ -551,7 +605,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                     {(tour.ageGroups ?? []).map((g: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; description: string }, idx: number) => {
                                         const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
                                         const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
-                                        return <span key={`${range}-${idx}`}>{icon} {range}: {g.description}<br /></span>;
+                                        const label = getAgePricingLabel(locale, g.pricingType);
+                                        const extra = g.description?.trim();
+                                        return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` - ${extra}` : ''}<br /></span>;
                                     })}
                                     {tour.ageRestriction ? <span>⚠️ {tour.ageRestriction}</span> : null}
                                 </>
@@ -575,7 +631,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                         <label key={opt.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-sm) var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedOptions.includes(opt.id) ? 'var(--color-bg-card)' : 'transparent' }}>
                                             <div>
                                                 <input type="checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} style={{ marginRight: 'var(--space-sm)' }} />
-                                                <span style={{ fontWeight: '500' }}>{opt.title}</span>
+                                                <span style={{ fontWeight: '500', textTransform: 'none' }}>{opt.title}</span>
                                             </div>
                                             <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
                                                 {opt.price === 0 ? t.free : `+${formatShown(displayPrice).primary}${opt.pricingMode === 'flat' ? '' : ` (${pax}x)`}`}
@@ -603,7 +659,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <span>{isTransferWithTiers ? `${t.basePrice} (${pax} ${t.guests})` : t.baseSubtotal.replace('{pax}', String(pax))}</span>
-                            <span>{formatShown(isTransferWithTiers ? unitPrice : basePrice * pax).primary}</span>
+                            <span>{formatShown(isTransferWithTiers ? unitPrice : basePrice * (adults + children)).primary}</span>
                         </div>
                         {selectedOptions.map(optId => {
                             const opt = tour.options.find((o: any) => o.id === optId);
@@ -647,6 +703,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             }),
                             totalPrice: total,
                             ...(tour.type === 'TRANSFER' && { transferAirport: selectedAirport }),
+                            childCount: children,
+                            adultCount: adults,
+                            infantCount: infants,
                         });
                         setCartToastTitle(itemTitle);
                         setCartToastOpen(true);

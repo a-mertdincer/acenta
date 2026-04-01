@@ -125,6 +125,8 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                 ...(item.transferFlightDeparture != null && { transferFlightDeparture: item.transferFlightDeparture }),
                 ...(item.transferHotelName != null && { transferHotelName: item.transferHotelName }),
                 ...(item.childCount != null && { childCount: item.childCount }),
+                ...(item.adultCount != null && { adultCount: item.adultCount }),
+                ...(item.infantCount != null && { infantCount: item.infantCount }),
             })),
         });
 

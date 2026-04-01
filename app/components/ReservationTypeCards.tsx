@@ -10,12 +10,14 @@ export function ReservationTypeCards({
   onChange,
   lang,
   labels,
+  showTypeMeta = true,
 }: {
   variants: TourVariantDisplay[];
   value: ReservationTypeVariant;
   onChange: (v: ReservationTypeVariant) => void;
   lang: 'en' | 'tr' | 'zh';
   labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
+  showTypeMeta?: boolean;
 }) {
   const regular = variants.find((v) => v.reservationType === 'regular');
   const privateV = variants.find((v) => v.reservationType === 'private');
@@ -33,14 +35,14 @@ export function ReservationTypeCards({
           onClick={() => onChange('regular')}
         >
           {regular.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
-          <span className="reservation-card-icon" aria-hidden>🚐</span>
+          {showTypeMeta && <span className="reservation-card-icon" aria-hidden>🚐</span>}
           <strong className="reservation-card-title">{title(regular)}</strong>
-          <span className="reservation-card-subtitle">({labels.group})</span>
+          {showTypeMeta && <span className="reservation-card-subtitle">({labels.group})</span>}
           <span className="reservation-card-price">{priceLabel(regular)}</span>
           {regular.maxGroupSize != null && (
             <span className="reservation-card-meta">Max {regular.maxGroupSize} {labels.perPerson.replace(/\/.*/, '')}</span>
           )}
-          <span className="reservation-card-cta">{labels.regular}</span>
+          {showTypeMeta && <span className="reservation-card-cta">{labels.regular}</span>}
         </button>
       )}
       {privateV && (
@@ -50,11 +52,11 @@ export function ReservationTypeCards({
           onClick={() => onChange('private')}
         >
           {privateV.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
-          <span className="reservation-card-icon" aria-hidden>🚗</span>
+          {showTypeMeta && <span className="reservation-card-icon" aria-hidden>🚗</span>}
           <strong className="reservation-card-title">{title(privateV)}</strong>
-          <span className="reservation-card-subtitle">({labels.onlyYou})</span>
+          {showTypeMeta && <span className="reservation-card-subtitle">({labels.onlyYou})</span>}
           <span className="reservation-card-price">{priceLabel(privateV)}</span>
-          <span className="reservation-card-cta">{labels.private}</span>
+          {showTypeMeta && <span className="reservation-card-cta">{labels.private}</span>}
         </button>
       )}
     </div>

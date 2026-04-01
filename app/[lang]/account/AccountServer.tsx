@@ -23,6 +23,7 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
     return <AdminAccountClient lang={lang} profile={profile} labels={accountDict} />;
   }
   const reservations = await getReservationsByUserId(profile.id);
+  type ReservationItem = Awaited<ReturnType<typeof getReservationsByUserId>>[number];
   const couponsRes = await getMyCoupons();
   const coupons = couponsRes.ok ? couponsRes.coupons ?? [] : [];
 
@@ -32,7 +33,7 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
     orderBy: { usedAt: 'desc' },
     take: 20,
   });
-  const couponHistory = couponHistoryRaw.map((u) => ({
+  const couponHistory = couponHistoryRaw.map((u: { id: string; usedAt: Date; coupon: { code: string } | null; tourName: string; discountAmount: number }) => ({
     id: u.id,
     usedAt: u.usedAt.toISOString(),
     couponCode: u.coupon?.code ?? '-',
@@ -40,7 +41,7 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
     discountAmount: u.discountAmount,
   }));
 
-  const serializedReservations = reservations.map((res) => ({
+  const serializedReservations = reservations.map((res: ReservationItem) => ({
     id: res.id,
     tourId: res.tourId,
     date: res.date.toISOString(),
@@ -56,9 +57,9 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
     discountAmount: res.discountAmount ?? null,
   }));
 
-  const completedReservations = reservations.filter((r) => r.status !== 'CANCELLED');
+  const completedReservations = reservations.filter((r: ReservationItem) => r.status !== 'CANCELLED');
   const totalReservations = completedReservations.length;
-  const totalSpend = completedReservations.reduce((sum, r) => sum + r.totalPrice, 0);
+  const totalSpend = completedReservations.reduce((sum: number, r: ReservationItem) => sum + r.totalPrice, 0);
   const today = new Date();
   const activeCouponCount = coupons.filter((c) => c.isActive && c.bookingStart <= today && c.bookingEnd >= today).length;
 

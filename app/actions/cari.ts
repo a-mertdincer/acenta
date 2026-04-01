@@ -79,7 +79,11 @@ async function getReservationStatusMap(reservationIds: string[]): Promise<Map<st
   const rows = await prisma.reservation.findMany({
     select: { id: true, status: true },
   });
-  return new Map(rows.filter((r) => wanted.has(r.id)).map((r) => [r.id, r.status]));
+  return new Map(
+    rows
+      .filter((r: { id: string; status: string }) => wanted.has(r.id))
+      .map((r: { id: string; status: string }) => [r.id, r.status])
+  );
 }
 
 async function getReservationPaxMap(
@@ -92,8 +96,8 @@ async function getReservationPaxMap(
   });
   return new Map(
     rows
-      .filter((r) => wanted.has(r.id))
-      .map((r) => {
+      .filter((r: { id: string; pax: number | null; adultCount: number | null; childCount: number | null; infantCount: number | null }) => wanted.has(r.id))
+      .map((r: { id: string; pax: number | null; adultCount: number | null; childCount: number | null; infantCount: number | null }) => {
         const children = r.childCount ?? 0;
         const infants = r.infantCount ?? 0;
         const adults = r.adultCount ?? Math.max(1, (r.pax ?? 1) - children - infants);

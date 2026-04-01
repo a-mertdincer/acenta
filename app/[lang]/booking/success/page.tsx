@@ -31,7 +31,9 @@ export default async function BookingSuccessPage(props: {
 
   const fromAccount = from === 'account';
 
-  const serialized = reservations.map((r) => ({
+  type ReservationDetail = Awaited<ReturnType<typeof getReservationDetailsByIds>>[number];
+
+  const serialized = reservations.map((r: ReservationDetail) => ({
     id: r.id,
     guestName: r.guestName,
     guestEmail: r.guestEmail,

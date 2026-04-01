@@ -406,7 +406,7 @@ export default function AdminReservationsPage() {
 
   const refreshSingleReservation = async (id: string) => {
     const list = await getReservations();
-    const next = list.find((r) => r.id === id);
+    const next = list.find((r: { id: string }) => r.id === id);
     if (!next) return;
     setReservations((prev) =>
       prev.map((p) =>

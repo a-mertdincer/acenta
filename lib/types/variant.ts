@@ -3,8 +3,9 @@
  */
 
 export type TourTypeVariant = 'eco' | 'plus';
-export type ReservationTypeVariant = 'regular' | 'private';
+export type ReservationTypeVariant = 'regular' | 'private' | 'option1' | 'option2' | 'option3';
 export type AirportVariant = 'NAV' | 'ASR';
+export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
 
 export interface VariantSelection {
   tourType: TourTypeVariant | null;       // eco | plus; null when product has no Tour Type
@@ -79,10 +80,21 @@ export function getActiveVariant(
 }
 
 /** Default selection for a tour: hasTourType → eco, hasAirportSelect → NAV, reservationType → regular. */
-export function getDefaultVariantSelection(hasTourType: boolean, hasAirportSelect: boolean, hasReservationType = true): VariantSelection {
+export function getDefaultVariantSelection(
+  hasTourType: boolean,
+  hasAirportSelect: boolean,
+  hasReservationType = true,
+  reservationTypeMode: ReservationTypeMode = 'private_regular'
+): VariantSelection {
+  const defaultReservationType: ReservationTypeVariant | null =
+    hasReservationType
+      ? reservationTypeMode === 'option2' || reservationTypeMode === 'option3'
+        ? 'option1'
+        : 'regular'
+      : null;
   return {
     tourType: hasTourType ? 'eco' : null,
-    reservationType: hasReservationType ? 'regular' : null,
+    reservationType: defaultReservationType,
     airport: hasAirportSelect ? 'NAV' : null,
   };
 }

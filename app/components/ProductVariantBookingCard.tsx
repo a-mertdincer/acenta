@@ -14,6 +14,7 @@ import {
   calculateVariantTotal,
   type VariantSelection,
   type TourVariantDisplay,
+  type ReservationTypeVariant,
 } from '@/lib/types/variant';
 import type { TourWithVariantsResult } from '@/app/actions/variants';
 import enDict from '@/app/dictionaries/en.json';
@@ -120,8 +121,8 @@ export function ProductVariantBookingCard({
   const { eurTryRate } = useExchangeRate(lang === 'tr');
 
   const defaultSelection = useMemo(
-    () => getDefaultVariantSelection(data.hasTourType, data.hasAirportSelect, data.hasReservationType),
-    [data.hasTourType, data.hasAirportSelect, data.hasReservationType]
+    () => getDefaultVariantSelection(data.hasTourType, data.hasAirportSelect, data.hasReservationType, data.reservationTypeMode),
+    [data.hasTourType, data.hasAirportSelect, data.hasReservationType, data.reservationTypeMode]
   );
 
   const [selection, setSelection] = useState<VariantSelection>(defaultSelection);
@@ -237,7 +238,7 @@ export function ProductVariantBookingCard({
     if (matchingVariants.length === 0) return;
     const fallback = matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
     setSelectedVariantId(fallback.id);
-    setSelection((s) => ({ ...s, reservationType: data.hasReservationType ? (fallback.reservationType as 'regular' | 'private' | null) : null }));
+    setSelection((s) => ({ ...s, reservationType: data.hasReservationType ? (fallback.reservationType as ReservationTypeVariant | null) : null }));
   }, [activeVariant, matchingVariants, data.hasReservationType]);
 
   const total = useMemo(() => {
@@ -362,10 +363,10 @@ export function ProductVariantBookingCard({
           <label className="form-label">{t.reservationType} *</label>
           <ReservationTypeCards
             variants={matchingVariants}
-            value={(selection.reservationType ?? 'regular') as 'regular' | 'private'}
-            onChange={(v) => setSelection((s) => ({ ...s, reservationType: v }))}
+            value={selection.reservationType ?? ''}
+            onChange={(v) => setSelection((s) => ({ ...s, reservationType: v as ReservationTypeVariant }))}
             lang={lang}
-            showTypeMeta={data.hasReservationType}
+            showTypeMeta={data.reservationTypeMode === 'private_regular'}
             labels={{
               regular: t.regular,
               private: t.private,
@@ -390,7 +391,7 @@ export function ProductVariantBookingCard({
                   className={`reservation-card ${variant.isRecommended ? 'recommended' : ''} ${selected ? 'selected' : ''}`}
                   onClick={() => {
                     setSelectedVariantId(variant.id);
-                    setSelection((s) => ({ ...s, reservationType: variant.reservationType as 'regular' | 'private' | null }));
+                    setSelection((s) => ({ ...s, reservationType: variant.reservationType as ReservationTypeVariant | null }));
                   }}
                 >
                   {variant.isRecommended && <span className="recommended-badge">★ {t.recommended ?? 'Recommended'}</span>}

@@ -15,6 +15,7 @@ function revalidateTours() {
 }
 
 export type TourType = 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'CONCIERGE' | 'PACKAGE';
+export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
 
 export type TransferTier = { minPax: number; maxPax: number; price: number };
 
@@ -37,6 +38,7 @@ export interface TourWithOptions {
   hasTourType?: boolean;
   hasAirportSelect?: boolean;
   hasReservationType?: boolean;
+  reservationTypeMode?: ReservationTypeMode;
   minAgeLimit?: number | null;
   ageRestrictionEn?: string | null;
   ageRestrictionTr?: string | null;
@@ -113,6 +115,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
         hasTourType: Boolean((t as { hasTourType?: boolean }).hasTourType),
         hasAirportSelect: Boolean((t as { hasAirportSelect?: boolean }).hasAirportSelect),
         hasReservationType: Boolean((t as { hasReservationType?: boolean }).hasReservationType ?? true),
+        reservationTypeMode: ((t as { reservationTypeMode?: string }).reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular',
         minAgeLimit: (t as { minAgeLimit?: number | null }).minAgeLimit ?? null,
         ageRestrictionEn: (t as { ageRestrictionEn?: string | null }).ageRestrictionEn ?? null,
         ageRestrictionTr: (t as { ageRestrictionTr?: string | null }).ageRestrictionTr ?? null,
@@ -190,6 +193,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       hasTourType?: boolean;
       hasAirportSelect?: boolean;
       hasReservationType?: boolean;
+      reservationTypeMode?: string;
       minAgeLimit?: number | null;
       ageRestrictionEn?: string | null;
       ageRestrictionTr?: string | null;
@@ -211,6 +215,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
       hasReservationType: Boolean(tourRecord.hasReservationType ?? true),
+      reservationTypeMode: (tourRecord.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular',
       minAgeLimit: tourRecord.minAgeLimit ?? null,
       ageRestrictionEn: tourRecord.ageRestrictionEn ?? null,
       ageRestrictionTr: tourRecord.ageRestrictionTr ?? null,
@@ -485,6 +490,7 @@ export type CreateTourInput = {
   hasTourType?: boolean;
   hasAirportSelect?: boolean;
   hasReservationType?: boolean;
+  reservationTypeMode?: ReservationTypeMode;
   minAgeLimit?: number | null;
   ageRestrictionEn?: string | null;
   ageRestrictionTr?: string | null;
@@ -504,6 +510,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
+    const reservationTypeMode: ReservationTypeMode = data.reservationTypeMode ?? (data.hasReservationType === false ? 'none' : 'private_regular');
     await prisma.tour.create({
       data: {
         type: data.type,
@@ -519,7 +526,8 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         category: data.category?.trim() || null,
         hasTourType: data.hasTourType ?? false,
         hasAirportSelect: data.hasAirportSelect ?? false,
-        hasReservationType: data.hasReservationType ?? true,
+        hasReservationType: reservationTypeMode !== 'none',
+        reservationTypeMode,
         minAgeLimit: data.minAgeLimit ?? null,
         ageRestrictionEn: data.ageRestrictionEn?.trim() || null,
         ageRestrictionTr: data.ageRestrictionTr?.trim() || null,
@@ -554,6 +562,12 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
+    const reservationTypeMode: ReservationTypeMode | undefined =
+      data.reservationTypeMode !== undefined
+        ? data.reservationTypeMode
+        : data.hasReservationType !== undefined
+          ? (data.hasReservationType ? 'private_regular' : 'none')
+          : undefined;
     await prisma.tour.update({
       where: { id: tourId },
       data: {
@@ -570,7 +584,8 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         category: data.category?.trim() || null,
         ...(data.hasTourType !== undefined && { hasTourType: data.hasTourType }),
         ...(data.hasAirportSelect !== undefined && { hasAirportSelect: data.hasAirportSelect }),
-        ...(data.hasReservationType !== undefined && { hasReservationType: data.hasReservationType }),
+        ...(reservationTypeMode !== undefined && { reservationTypeMode }),
+        ...(reservationTypeMode !== undefined && { hasReservationType: reservationTypeMode !== 'none' }),
         ...(data.minAgeLimit !== undefined && { minAgeLimit: data.minAgeLimit }),
         ...(data.ageRestrictionEn !== undefined && { ageRestrictionEn: data.ageRestrictionEn?.trim() || null }),
         ...(data.ageRestrictionTr !== undefined && { ageRestrictionTr: data.ageRestrictionTr?.trim() || null }),
@@ -594,7 +609,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         });
       }
     }
-    if (data.hasReservationType === false) {
+    if (reservationTypeMode === 'none') {
       await prisma.tourVariant.updateMany({
         where: { tourId },
         data: { reservationType: null },

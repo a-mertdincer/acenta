@@ -4,7 +4,7 @@ import { getSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import type { TourVariantDisplay } from '@/lib/types/variant';
 import { parsePriceTiers, validateContinuousPriceTiers } from '@/lib/pricingTiers';
-import type { TransferAirportTiers } from '@/app/actions/tours';
+import type { ReservationTypeMode, TransferAirportTiers } from '@/app/actions/tours';
 
 type PrismaWithTourVariant = typeof prisma & {
   tourVariant: {
@@ -28,6 +28,7 @@ export type TourWithVariantsResult = {
   hasTourType: boolean;
   hasAirportSelect: boolean;
   hasReservationType: boolean;
+  reservationTypeMode: ReservationTypeMode;
   minAgeLimit: number | null;
   ageRestrictionEn: string | null;
   ageRestrictionTr: string | null;
@@ -148,6 +149,7 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
       hasReservationType: Boolean((tourRecord as { hasReservationType?: boolean }).hasReservationType ?? true),
+      reservationTypeMode: ((tourRecord as { reservationTypeMode?: string }).reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular',
       minAgeLimit: (tourRecord as { minAgeLimit?: number | null }).minAgeLimit ?? null,
       ageRestrictionEn: (tourRecord as { ageRestrictionEn?: string | null }).ageRestrictionEn ?? null,
       ageRestrictionTr: (tourRecord as { ageRestrictionTr?: string | null }).ageRestrictionTr ?? null,

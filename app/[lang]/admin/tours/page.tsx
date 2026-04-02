@@ -17,8 +17,10 @@ type AgeGroupDraft = {
     descriptionZh: string;
 };
 
+type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
+
 export default function AdminToursPage() {
-    const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; hasReservationType?: boolean }[]>([]);
+    const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; hasReservationType?: boolean; reservationTypeMode?: ReservationTypeMode }[]>([]);
     const [loading, setLoading] = useState(true);
     const [dailyDate, setDailyDate] = useState('');
     const [dailyTourId, setDailyTourId] = useState('');
@@ -60,6 +62,7 @@ export default function AdminToursPage() {
     const [newHasTourType, setNewHasTourType] = useState(false);
     const [newHasAirportSelect, setNewHasAirportSelect] = useState(false);
     const [newHasReservationType, setNewHasReservationType] = useState(true);
+    const [newReservationTypeMode, setNewReservationTypeMode] = useState<ReservationTypeMode>('private_regular');
     const [newMinAgeLimit, setNewMinAgeLimit] = useState('');
     const [newAgeRestrictionEn, setNewAgeRestrictionEn] = useState('');
     const [newAgeRestrictionTr, setNewAgeRestrictionTr] = useState('');
@@ -86,6 +89,7 @@ export default function AdminToursPage() {
     const [tourEditHasTourType, setTourEditHasTourType] = useState(false);
     const [tourEditHasAirportSelect, setTourEditHasAirportSelect] = useState(false);
     const [tourEditHasReservationType, setTourEditHasReservationType] = useState(true);
+    const [tourEditReservationTypeMode, setTourEditReservationTypeMode] = useState<ReservationTypeMode>('private_regular');
     const [tourEditMinAgeLimit, setTourEditMinAgeLimit] = useState('');
     const [tourEditAgeRestrictionEn, setTourEditAgeRestrictionEn] = useState('');
     const [tourEditAgeRestrictionTr, setTourEditAgeRestrictionTr] = useState('');
@@ -117,9 +121,43 @@ export default function AdminToursPage() {
     const createCategories = getCategoriesForDestination(newDestination);
     const editCategories = getCategoriesForDestination(tourEditDestination);
 
+    const getReservationTypeOptions = (mode: ReservationTypeMode): { value: string; label: string }[] => {
+        if (mode === 'option2') {
+            return [
+                { value: 'option1', label: 'Option 1' },
+                { value: 'option2', label: 'Option 2' },
+            ];
+        }
+        if (mode === 'option3') {
+            return [
+                { value: 'option1', label: 'Option 1' },
+                { value: 'option2', label: 'Option 2' },
+                { value: 'option3', label: 'Option 3' },
+            ];
+        }
+        return [
+            { value: 'regular', label: 'Regular (Paylaşımlı)' },
+            { value: 'private', label: 'Private (Özel)' },
+        ];
+    };
+    const normalizeReservationType = (mode: ReservationTypeMode, value: string | null | undefined): string | null => {
+        if (mode === 'none') return null;
+        const options = getReservationTypeOptions(mode);
+        const picked = (value ?? '').trim();
+        if (options.some((opt) => opt.value === picked)) return picked;
+        return options[0]?.value ?? null;
+    };
+
     useEffect(() => {
         getTours().then((list) => {
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
+            setTours(list.map((t) => ({
+                id: t.id,
+                titleEn: t.titleEn,
+                type: t.type,
+                basePrice: t.basePrice,
+                hasReservationType: t.hasReservationType,
+                reservationTypeMode: (t.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular',
+            })));
             if (list.length > 0 && !dailyTourId) setDailyTourId(list[0].id);
             setLoading(false);
         });
@@ -144,6 +182,7 @@ export default function AdminToursPage() {
                 hasTourType?: boolean;
                 hasAirportSelect?: boolean;
                 hasReservationType?: boolean;
+                reservationTypeMode?: ReservationTypeMode;
                 minAgeLimit?: number | null;
                 ageRestrictionEn?: string | null;
                 ageRestrictionTr?: string | null;
@@ -171,7 +210,9 @@ export default function AdminToursPage() {
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
             setTourEditHasAirportSelect(Boolean(rec.hasAirportSelect));
-            setTourEditHasReservationType(Boolean(rec.hasReservationType ?? true));
+            const mode = rec.reservationTypeMode ?? (rec.hasReservationType === false ? 'none' : 'private_regular');
+            setTourEditReservationTypeMode(mode);
+            setTourEditHasReservationType(mode !== 'none');
             setTourEditMinAgeLimit(rec.minAgeLimit != null ? String(rec.minAgeLimit) : '');
             setTourEditAgeRestrictionEn(rec.ageRestrictionEn ?? '');
             setTourEditAgeRestrictionTr(rec.ageRestrictionTr ?? '');
@@ -203,18 +244,41 @@ export default function AdminToursPage() {
             setNewHasAirportSelect(true);
             setNewHasTourType(false);
             setNewHasReservationType(true);
+            setNewReservationTypeMode('private_regular');
             return;
         }
         if (newType === 'TOUR') {
             setNewHasTourType(true);
             setNewHasAirportSelect(false);
             setNewHasReservationType(true);
+            setNewReservationTypeMode('private_regular');
             return;
         }
         setNewHasTourType(false);
         setNewHasAirportSelect(false);
         setNewHasReservationType(false);
+        setNewReservationTypeMode('none');
     }, [newType]);
+
+    useEffect(() => {
+        setNewHasReservationType(newReservationTypeMode !== 'none');
+        setNewVariant((prev) => ({
+            ...prev,
+            reservationType: normalizeReservationType(newReservationTypeMode, prev.reservationType ?? null),
+        }));
+    }, [newReservationTypeMode]);
+
+    useEffect(() => {
+        setTourEditHasReservationType(tourEditReservationTypeMode !== 'none');
+        setNewVariant((prev) => ({
+            ...prev,
+            reservationType: normalizeReservationType(tourEditReservationTypeMode, prev.reservationType ?? null),
+        }));
+        setEditVariant((prev) => ({
+            ...prev,
+            reservationType: normalizeReservationType(tourEditReservationTypeMode, prev.reservationType ?? null),
+        }));
+    }, [tourEditReservationTypeMode]);
 
     const handleDailySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -323,7 +387,7 @@ export default function AdminToursPage() {
         setSeedLoading(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType, reservationTypeMode: (t.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular' })));
             if (list.length > 0) setDailyTourId(list[0].id);
         } else alert(result.error ?? 'Yüklenemedi');
     };
@@ -349,7 +413,8 @@ export default function AdminToursPage() {
             category: newCategory || null,
             hasTourType: newHasTourType,
             hasAirportSelect: newHasAirportSelect,
-            hasReservationType: newHasReservationType,
+            hasReservationType: newReservationTypeMode !== 'none',
+            reservationTypeMode: newReservationTypeMode,
             minAgeLimit: newMinAgeLimit === '' ? null : parseInt(newMinAgeLimit, 10),
             ageRestrictionEn: newAgeRestrictionEn || null,
             ageRestrictionTr: newAgeRestrictionTr || null,
@@ -359,7 +424,7 @@ export default function AdminToursPage() {
         setCreateSaving(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType, reservationTypeMode: (t.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular' })));
             if (list.length > 0) setDailyTourId(list[list.length - 1].id);
             setShowNewTourForm(false);
             setNewTitleEn('');
@@ -373,6 +438,7 @@ export default function AdminToursPage() {
             setNewHasTourType(false);
             setNewHasAirportSelect(false);
             setNewHasReservationType(true);
+            setNewReservationTypeMode('private_regular');
             setNewMinAgeLimit('');
             setNewAgeRestrictionEn('');
             setNewAgeRestrictionTr('');
@@ -406,7 +472,8 @@ export default function AdminToursPage() {
             capacity: parseInt(tourEditCapacity, 10) || 0,
             hasTourType: tourEditHasTourType,
             hasAirportSelect: tourEditHasAirportSelect,
-            hasReservationType: tourEditHasReservationType,
+            hasReservationType: tourEditReservationTypeMode !== 'none',
+            reservationTypeMode: tourEditReservationTypeMode,
             minAgeLimit: tourEditMinAgeLimit === '' ? null : parseInt(tourEditMinAgeLimit, 10),
             ageRestrictionEn: tourEditAgeRestrictionEn || null,
             ageRestrictionTr: tourEditAgeRestrictionTr || null,
@@ -416,7 +483,7 @@ export default function AdminToursPage() {
         setEditSaving(false);
         if (result.ok) {
             const list = await getTours();
-            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
+            setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType, reservationTypeMode: (t.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular' })));
             setEditTourId(null);
         } else alert(result.error ?? 'Tur güncellenemedi');
     };
@@ -431,10 +498,11 @@ export default function AdminToursPage() {
         const includes = typeof newVariant.includes === 'string' ? (newVariant.includes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (newVariant.includes ?? []);
         const excludes = typeof newVariant.excludes === 'string' ? (newVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (newVariant.excludes ?? []);
         const routeStops = typeof newVariant.routeStops === 'string' ? (newVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (newVariant.routeStops ?? []);
+        const reservationType = normalizeReservationType(tourEditReservationTypeMode, newVariant.reservationType ?? null);
         const result = await createVariant({
             tourId: editTourId,
             tourType: newVariant.tourType ?? null,
-            reservationType: tourEditHasReservationType ? (newVariant.reservationType ?? 'regular') : null,
+            reservationType,
             airport: newVariant.airport ?? null,
             titleEn: newVariant.titleEn!.trim(),
             titleTr: (newVariant.titleTr ?? '').trim() || newVariant.titleEn!.trim(),
@@ -452,7 +520,7 @@ export default function AdminToursPage() {
             adultPrice: Number(newVariant.adultPrice) || 0,
             childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditHasReservationType && newVariant.reservationType === 'private' ? (newVariant.privatePriceTiers ?? null) : null,
+            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? (newVariant.privatePriceTiers ?? null) : null,
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,
             isRecommended: Boolean(newVariant.isRecommended),
@@ -461,7 +529,7 @@ export default function AdminToursPage() {
         if (result.ok) {
             getTourVariantsForAdmin(editTourId!).then(setVariants);
             setShowAddVariant(false);
-            setNewVariant({ tourType: null, reservationType: 'regular', airport: null, titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '', includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null, adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: variants.length, isActive: true, isRecommended: false });
+            setNewVariant({ tourType: null, reservationType: normalizeReservationType(tourEditReservationTypeMode, null), airport: null, titleEn: '', titleTr: '', titleZh: '', descEn: '', descTr: '', descZh: '', includes: [], excludes: [], duration: null, languages: null, vehicleType: null, maxGroupSize: null, routeStops: null, adultPrice: 0, childPrice: null, pricingType: 'per_person', privatePriceTiers: null, sortOrder: variants.length, isActive: true, isRecommended: false });
         } else alert(result.error);
     };
 
@@ -477,7 +545,7 @@ export default function AdminToursPage() {
         setShowAddVariant(false);
         setEditVariant({
             tourType: v.tourType,
-            reservationType: v.reservationType,
+            reservationType: normalizeReservationType(tourEditReservationTypeMode, v.reservationType),
             airport: v.airport,
             titleEn: v.titleEn,
             titleTr: v.titleTr,
@@ -512,9 +580,10 @@ export default function AdminToursPage() {
         const includes = typeof editVariant.includes === 'string' ? (editVariant.includes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (editVariant.includes ?? []);
         const excludes = typeof editVariant.excludes === 'string' ? (editVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (editVariant.excludes ?? []);
         const routeStops = typeof editVariant.routeStops === 'string' ? (editVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (editVariant.routeStops ?? []);
+        const reservationType = normalizeReservationType(tourEditReservationTypeMode, editVariant.reservationType ?? null);
         const result = await updateVariant(editingVariantId, {
             tourType: editVariant.tourType ?? null,
-            reservationType: tourEditHasReservationType ? (editVariant.reservationType ?? 'regular') : null,
+            reservationType,
             airport: editVariant.airport ?? null,
             titleEn: editVariant.titleEn?.trim(),
             titleTr: (editVariant.titleTr ?? '').trim() || editVariant.titleEn?.trim(),
@@ -532,7 +601,7 @@ export default function AdminToursPage() {
             adultPrice: Number(editVariant.adultPrice) || 0,
             childPrice: editVariant.childPrice != null ? Number(editVariant.childPrice) : null,
             pricingType: (editVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditHasReservationType && editVariant.reservationType === 'private' ? (editVariant.privatePriceTiers ?? null) : null,
+            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? (editVariant.privatePriceTiers ?? null) : null,
             sortOrder: editVariant.sortOrder ?? 0,
             isActive: editVariant.isActive !== false,
             isRecommended: Boolean(editVariant.isRecommended),
@@ -558,7 +627,7 @@ export default function AdminToursPage() {
             return;
         }
         const list = await getTours();
-        setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType })));
+        setTours(list.map((t) => ({ id: t.id, titleEn: t.titleEn, type: t.type, basePrice: t.basePrice, hasReservationType: t.hasReservationType, reservationTypeMode: (t.reservationTypeMode as ReservationTypeMode | undefined) ?? 'private_regular' })));
         if (editTourId === tourId) {
             setEditTourId(null);
             setVariants([]);
@@ -759,9 +828,31 @@ export default function AdminToursPage() {
                             <span>Havalimanı (NAV/ASR) seçeneği var</span>
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                            <input type="checkbox" checked={newHasReservationType} onChange={(e) => setNewHasReservationType(e.target.checked)} />
+                            <input
+                                type="checkbox"
+                                checked={newHasReservationType}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setNewHasReservationType(checked);
+                                    if (!checked) setNewReservationTypeMode('none');
+                                    else if (newReservationTypeMode === 'none') setNewReservationTypeMode('private_regular');
+                                }}
+                            />
                             <span>Private/Regular seçeneği var</span>
                         </label>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Reservation Type Seçenek Sayısı</label>
+                            <select
+                                value={newReservationTypeMode}
+                                onChange={(e) => setNewReservationTypeMode(e.target.value as ReservationTypeMode)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                <option value="private_regular">Private/Regular</option>
+                                <option value="option2">2 Seçenek (Option 1 / Option 2)</option>
+                                <option value="option3">3 Seçenek (Option 1 / Option 2 / Option 3)</option>
+                                <option value="none">Yok</option>
+                            </select>
+                        </div>
                         <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                 <strong>Yaş Politikası</strong>
@@ -876,9 +967,31 @@ export default function AdminToursPage() {
                             <span>Havalimanı (NAV/ASR) seçeneği var</span>
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                            <input type="checkbox" checked={tourEditHasReservationType} onChange={(e) => setTourEditHasReservationType(e.target.checked)} />
+                            <input
+                                type="checkbox"
+                                checked={tourEditHasReservationType}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setTourEditHasReservationType(checked);
+                                    if (!checked) setTourEditReservationTypeMode('none');
+                                    else if (tourEditReservationTypeMode === 'none') setTourEditReservationTypeMode('private_regular');
+                                }}
+                            />
                             <span>Private/Regular seçeneği var</span>
                         </label>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Reservation Type Seçenek Sayısı</label>
+                            <select
+                                value={tourEditReservationTypeMode}
+                                onChange={(e) => setTourEditReservationTypeMode(e.target.value as ReservationTypeMode)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                <option value="private_regular">Private/Regular</option>
+                                <option value="option2">2 Seçenek (Option 1 / Option 2)</option>
+                                <option value="option3">3 Seçenek (Option 1 / Option 2 / Option 3)</option>
+                                <option value="none">Yok</option>
+                            </select>
+                        </div>
                         <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                 <strong>Yaş Politikası</strong>
@@ -971,10 +1084,15 @@ export default function AdminToursPage() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
-                                    {tourEditHasReservationType ? (
-                                        <select value={newVariant.reservationType ?? 'regular'} onChange={(e) => setNewVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                                            <option value="regular">Regular (Paylaşımlı)</option>
-                                            <option value="private">Private (Özel)</option>
+                                    {tourEditReservationTypeMode !== 'none' ? (
+                                        <select
+                                            value={normalizeReservationType(tourEditReservationTypeMode, newVariant.reservationType ?? null) ?? ''}
+                                            onChange={(e) => setNewVariant((v) => ({ ...v, reservationType: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                                        >
+                                            {getReservationTypeOptions(tourEditReservationTypeMode).map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
                                         </select>
                                     ) : (
                                         <div style={{ padding: '0.5rem', borderRadius: 4, border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -1009,7 +1127,7 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {tourEditHasReservationType && newVariant.reservationType === 'private' && (
+                                {tourEditReservationTypeMode === 'private_regular' && newVariant.reservationType === 'private' && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                             <strong>Private kişi-fiyat kademeleri</strong>
@@ -1116,10 +1234,15 @@ export default function AdminToursPage() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Rezervasyon tipi</label>
-                                    {tourEditHasReservationType ? (
-                                        <select value={editVariant.reservationType ?? 'regular'} onChange={(e) => setEditVariant((v) => ({ ...v, reservationType: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
-                                            <option value="regular">Regular (Paylaşımlı)</option>
-                                            <option value="private">Private (Özel)</option>
+                                    {tourEditReservationTypeMode !== 'none' ? (
+                                        <select
+                                            value={normalizeReservationType(tourEditReservationTypeMode, editVariant.reservationType ?? null) ?? ''}
+                                            onChange={(e) => setEditVariant((v) => ({ ...v, reservationType: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                                        >
+                                            {getReservationTypeOptions(tourEditReservationTypeMode).map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
                                         </select>
                                     ) : (
                                         <div style={{ padding: '0.5rem', borderRadius: 4, border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
@@ -1154,7 +1277,7 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {tourEditHasReservationType && editVariant.reservationType === 'private' && (
+                                {tourEditReservationTypeMode === 'private_regular' && editVariant.reservationType === 'private' && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                                             <strong>Private kişi-fiyat kademeleri</strong>

@@ -2,8 +2,6 @@
 
 import type { TourVariantDisplay } from '@/lib/types/variant';
 
-type ReservationTypeVariant = 'regular' | 'private';
-
 export function ReservationTypeCards({
   variants,
   value,
@@ -13,52 +11,56 @@ export function ReservationTypeCards({
   showTypeMeta = true,
 }: {
   variants: TourVariantDisplay[];
-  value: ReservationTypeVariant;
-  onChange: (v: ReservationTypeVariant) => void;
+  value: string;
+  onChange: (v: string) => void;
   lang: 'en' | 'tr' | 'zh';
   labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
   showTypeMeta?: boolean;
 }) {
-  const regular = variants.find((v) => v.reservationType === 'regular');
-  const privateV = variants.find((v) => v.reservationType === 'private');
+  const cards = variants.filter((v) => Boolean(v.reservationType));
 
   const title = (v: TourVariantDisplay) => (lang === 'tr' ? v.titleTr : lang === 'zh' ? v.titleZh : v.titleEn);
   const priceLabel = (v: TourVariantDisplay) =>
     v.pricingType === 'per_person' ? `${labels.perPerson} €${v.adultPrice}` : `${labels.perVehicle} €${v.adultPrice}`;
+  const iconFor = (reservationType: string | null) => {
+    if (!showTypeMeta) return null;
+    if (reservationType === 'regular') return '🚐';
+    if (reservationType === 'private') return '🚗';
+    return null;
+  };
+  const subtitleFor = (reservationType: string | null) => {
+    if (!showTypeMeta) return null;
+    if (reservationType === 'regular') return `(${labels.group})`;
+    if (reservationType === 'private') return `(${labels.onlyYou})`;
+    return null;
+  };
+  const ctaFor = (reservationType: string | null) => {
+    if (!showTypeMeta) return null;
+    if (reservationType === 'regular') return labels.regular;
+    if (reservationType === 'private') return labels.private;
+    return null;
+  };
 
   return (
     <div className="reservation-cards">
-      {regular && (
+      {cards.map((variant) => (
         <button
+          key={variant.id}
           type="button"
-          className={`reservation-card ${regular.isRecommended ? 'recommended' : ''} ${value === 'regular' ? 'selected' : ''}`}
-          onClick={() => onChange('regular')}
+          className={`reservation-card ${variant.isRecommended ? 'recommended' : ''} ${value === variant.reservationType ? 'selected' : ''}`}
+          onClick={() => onChange(variant.reservationType ?? '')}
         >
-          {regular.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
-          {showTypeMeta && <span className="reservation-card-icon" aria-hidden>🚐</span>}
-          <strong className="reservation-card-title">{title(regular)}</strong>
-          {showTypeMeta && <span className="reservation-card-subtitle">({labels.group})</span>}
-          <span className="reservation-card-price">{priceLabel(regular)}</span>
-          {regular.maxGroupSize != null && (
-            <span className="reservation-card-meta">Max {regular.maxGroupSize} {labels.perPerson.replace(/\/.*/, '')}</span>
+          {variant.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
+          {iconFor(variant.reservationType) && <span className="reservation-card-icon" aria-hidden>{iconFor(variant.reservationType)}</span>}
+          <strong className="reservation-card-title">{title(variant)}</strong>
+          {subtitleFor(variant.reservationType) && <span className="reservation-card-subtitle">{subtitleFor(variant.reservationType)}</span>}
+          <span className="reservation-card-price">{priceLabel(variant)}</span>
+          {showTypeMeta && variant.maxGroupSize != null && (
+            <span className="reservation-card-meta">Max {variant.maxGroupSize} {labels.perPerson.replace(/\/.*/, '')}</span>
           )}
-          {showTypeMeta && <span className="reservation-card-cta">{labels.regular}</span>}
+          {ctaFor(variant.reservationType) && <span className="reservation-card-cta">{ctaFor(variant.reservationType)}</span>}
         </button>
-      )}
-      {privateV && (
-        <button
-          type="button"
-          className={`reservation-card ${privateV.isRecommended ? 'recommended' : ''} ${value === 'private' ? 'selected' : ''}`}
-          onClick={() => onChange('private')}
-        >
-          {privateV.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
-          {showTypeMeta && <span className="reservation-card-icon" aria-hidden>🚗</span>}
-          <strong className="reservation-card-title">{title(privateV)}</strong>
-          {showTypeMeta && <span className="reservation-card-subtitle">({labels.onlyYou})</span>}
-          <span className="reservation-card-price">{priceLabel(privateV)}</span>
-          {showTypeMeta && <span className="reservation-card-cta">{labels.private}</span>}
-        </button>
-      )}
+      ))}
     </div>
   );
 }

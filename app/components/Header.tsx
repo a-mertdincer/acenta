@@ -140,19 +140,19 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
   ];
 
   const langLabels: Record<string, string> = {
-    en: 'EN English',
-    tr: 'TR Türkçe',
-    zh: 'ZH 中文',
-    es: 'ES Español',
-    it: 'IT Italiano',
-    ru: 'RU Русский',
-    de: 'DE Deutsch',
-    fr: 'FR Français',
-    ko: 'KO 한국어',
-    ja: 'JA 日本語',
-    nl: 'NL Nederlands',
-    pl: 'PL Polski',
-    ro: 'RO Română',
+    en: 'English',
+    tr: 'Türkçe',
+    zh: '中文',
+    es: 'Español',
+    it: 'Italiano',
+    ru: 'Русский',
+    de: 'Deutsch',
+    fr: 'Français',
+    ko: '한국어',
+    ja: '日本語',
+    nl: 'Nederlands',
+    pl: 'Polski',
+    ro: 'Română',
   };
   const currentPathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '';
 

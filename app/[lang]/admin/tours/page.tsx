@@ -147,6 +147,11 @@ export default function AdminToursPage() {
         if (options.some((opt) => opt.value === picked)) return picked;
         return options[0]?.value ?? null;
     };
+    const isReservationTypeCompatible = (mode: ReservationTypeMode, value: string | null | undefined): boolean => {
+        if (mode === 'none') return value == null || value === '';
+        const options = getReservationTypeOptions(mode);
+        return options.some((opt) => opt.value === (value ?? ''));
+    };
 
     useEffect(() => {
         getTours().then((list) => {
@@ -499,6 +504,11 @@ export default function AdminToursPage() {
         const excludes = typeof newVariant.excludes === 'string' ? (newVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (newVariant.excludes ?? []);
         const routeStops = typeof newVariant.routeStops === 'string' ? (newVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (newVariant.routeStops ?? []);
         const reservationType = normalizeReservationType(tourEditReservationTypeMode, newVariant.reservationType ?? null);
+        if (tourEditReservationTypeMode !== 'none' && !reservationType) {
+            alert('Rezervasyon tipi zorunludur.');
+            setVariantSaving(false);
+            return;
+        }
         const result = await createVariant({
             tourId: editTourId,
             tourType: newVariant.tourType ?? null,
@@ -581,6 +591,11 @@ export default function AdminToursPage() {
         const excludes = typeof editVariant.excludes === 'string' ? (editVariant.excludes as string).split('\n').map((s) => s.trim()).filter(Boolean) : (editVariant.excludes ?? []);
         const routeStops = typeof editVariant.routeStops === 'string' ? (editVariant.routeStops as string).split(',').map((s) => s.trim()).filter(Boolean) : (editVariant.routeStops ?? []);
         const reservationType = normalizeReservationType(tourEditReservationTypeMode, editVariant.reservationType ?? null);
+        if (tourEditReservationTypeMode !== 'none' && !reservationType) {
+            alert('Rezervasyon tipi zorunludur.');
+            setVariantSaving(false);
+            return;
+        }
         const result = await updateVariant(editingVariantId, {
             tourType: editVariant.tourType ?? null,
             reservationType,
@@ -1067,6 +1082,11 @@ export default function AdminToursPage() {
                     <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-md)', fontSize: '0.95rem' }}>
                         Bu ürün için Eco/Plus, Regular/Private veya Havalimanı varyantları. Müşteri ürün sayfasında tek kart içinde seçim yapar.
                     </p>
+                    {tourEditReservationTypeMode !== 'none' && variants.some((v) => !isReservationTypeCompatible(tourEditReservationTypeMode, v.reservationType)) && (
+                        <div style={{ marginBottom: 'var(--space-md)', padding: 'var(--space-sm)', borderRadius: 8, border: '1px solid #f59e0b', background: '#fff7ed', color: '#9a3412', fontSize: '0.9rem' }}>
+                            Bu ürünün reservation type modu ile uyumsuz varyantlar var. Frontend&apos;de görünür olması için varyantları düzenleyip doğru seçeneklere (Option 1/2/3 veya Regular/Private) atayın.
+                        </div>
+                    )}
                     <Button type="button" variant="secondary" style={{ marginBottom: 'var(--space-lg)' }} onClick={() => setShowAddVariant((v) => !v)}>
                         {showAddVariant ? 'Formu kapat' : '+ Yeni varyant ekle'}
                     </Button>
@@ -1387,19 +1407,23 @@ export default function AdminToursPage() {
                                 <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                                     <th style={{ padding: 'var(--space-md)' }}>Başlık (EN)</th>
                                     <th style={{ padding: 'var(--space-md)' }}>Tip</th>
+                                    <th style={{ padding: 'var(--space-md)' }}>Reservation Type</th>
                                     <th style={{ padding: 'var(--space-md)' }}>Fiyat</th>
                                     <th style={{ padding: 'var(--space-md)' }}>İşlem</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {variants.length === 0 ? (
-                                    <tr><td colSpan={4} style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>Varyant yok. Yukarıdan ekleyin.</td></tr>
+                                    <tr><td colSpan={5} style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>Varyant yok. Yukarıdan ekleyin.</td></tr>
                                 ) : (
                                     variants.map((v) => (
                                         <tr key={v.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                             <td style={{ padding: 'var(--space-md)' }}>{v.titleEn}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>
                                                 {[v.tourType, v.reservationType, v.airport].filter(Boolean).join(' / ') || 'Serbest'}
+                                            </td>
+                                            <td style={{ padding: 'var(--space-md)' }}>
+                                                {v.reservationType ?? 'NULL'}
                                             </td>
                                             <td style={{ padding: 'var(--space-md)' }}>€{v.adultPrice} {v.pricingType === 'per_vehicle' ? '(araç)' : '(kişi)'}</td>
                                             <td style={{ padding: 'var(--space-md)' }}>

@@ -190,16 +190,21 @@ export function ProductVariantBookingCard({
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [data.variants, selection.tourType, selection.airport]);
+  const variantsWithReservationType = useMemo(
+    () => matchingVariants.filter((v) => Boolean(v.reservationType)),
+    [matchingVariants]
+  );
+  const useReservationTypeCards = data.hasReservationType && variantsWithReservationType.length > 0;
 
   const activeVariant = useMemo(() => {
-    if (data.hasReservationType) return getActiveVariant(data.variants, selection);
+    if (useReservationTypeCards) return getActiveVariant(data.variants, selection);
     if (matchingVariants.length === 0) return null;
     if (selectedVariantId) {
       const picked = matchingVariants.find((v) => v.id === selectedVariantId);
       if (picked) return picked;
     }
     return matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
-  }, [data.hasReservationType, data.variants, selection, matchingVariants, selectedVariantId]);
+  }, [useReservationTypeCards, data.variants, selection, matchingVariants, selectedVariantId]);
   const transferAirportTiers = useMemo(
     () => data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null,
     [data.transferAirportTiers, selection.airport]
@@ -238,8 +243,8 @@ export function ProductVariantBookingCard({
     if (matchingVariants.length === 0) return;
     const fallback = matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
     setSelectedVariantId(fallback.id);
-    setSelection((s) => ({ ...s, reservationType: data.hasReservationType ? (fallback.reservationType as ReservationTypeVariant | null) : null }));
-  }, [activeVariant, matchingVariants, data.hasReservationType]);
+    setSelection((s) => ({ ...s, reservationType: useReservationTypeCards ? (fallback.reservationType as ReservationTypeVariant | null) : null }));
+  }, [activeVariant, matchingVariants, useReservationTypeCards]);
 
   const total = useMemo(() => {
     if (!activeVariant) return 0;
@@ -358,11 +363,11 @@ export function ProductVariantBookingCard({
         </>
       )}
 
-      {data.hasReservationType ? (
+      {useReservationTypeCards ? (
         <>
           <label className="form-label">{t.reservationType} *</label>
           <ReservationTypeCards
-            variants={matchingVariants}
+            variants={variantsWithReservationType}
             value={selection.reservationType ?? ''}
             onChange={(v) => setSelection((s) => ({ ...s, reservationType: v as ReservationTypeVariant }))}
             lang={lang}

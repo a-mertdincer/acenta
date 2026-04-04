@@ -224,7 +224,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
       data: {
         tourId: data.tourId,
         tourType: data.tourType || null,
-        reservationType: data.reservationType || null,
+        reservationType: data.reservationType ?? null,
         airport: data.airport || null,
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
@@ -255,7 +255,7 @@ export async function createVariant(data: CreateVariantInput): Promise<{ ok: boo
           tourId: data.tourId,
           tourType: data.tourType || null,
           airport: data.airport || null,
-          reservationType: data.reservationType || null,
+          reservationType: data.reservationType ?? null,
           id: { not: createdVariant.id },
         },
         data: { isRecommended: false },

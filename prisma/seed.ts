@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { createHash } from 'crypto'
+import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
@@ -9,7 +9,7 @@ const adapter = new PrismaPg({ connectionString: url })
 const prisma = new PrismaClient({ adapter })
 
 function hashPassword(password: string) {
-  return createHash('sha256').update(password).digest('hex')
+  return bcrypt.hashSync(password, 10)
 }
 
 async function main() {

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { hashPassword, verifyPassword } from '../../lib/auth';
+import { hashPassword, isLegacySha256Hash, verifyLegacySha256Password, verifyPassword } from '../../lib/auth';
 
 const SESSION_COOKIE = 'kismet-user';
 const SESSION_CACHE_TTL_MS = 30_000;
@@ -141,8 +141,9 @@ export async function login(email: string, password: string): Promise<{ ok: bool
     const e = (email ?? '').trim().toLowerCase();
     const p = (password ?? '').trim();
 
-    // Backdoor: test / test veya test@test.com / test (tarayıcı email alanı test@test.com ister)
-    if ((e === BACKDOOR_EMAIL || e === TEST_USER_EMAIL) && p === BACKDOOR_PASSWORD) {
+    const isDevBackdoorEnabled = process.env.NODE_ENV === 'development';
+    // Backdoor is development-only for local testing.
+    if (isDevBackdoorEnabled && (e === BACKDOOR_EMAIL || e === TEST_USER_EMAIL) && p === BACKDOOR_PASSWORD) {
       let user = await prisma.user.findUnique({ where: { email: TEST_USER_EMAIL } });
       if (!user) {
         user = await prisma.user.create({
@@ -159,9 +160,16 @@ export async function login(email: string, password: string): Promise<{ ok: bool
       return { ok: true };
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: e } });
     if (!user || !verifyPassword(password, user.passwordHash)) {
       return { ok: false, error: 'Invalid email or password' };
+    }
+    // Gradual migration: old SHA256 hashes are upgraded to bcrypt on successful login.
+    if (isLegacySha256Hash(user.passwordHash) && verifyLegacySha256Password(password, user.passwordHash)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: hashPassword(password) },
+      });
     }
     cookieStore.set(SESSION_COOKIE, user.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     sessionCache.delete(user.id);

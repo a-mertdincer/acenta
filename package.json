@@ -29,6 +29,7 @@
     "@formatjs/intl-localematcher": "^0.8.1",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.5.0",
+    "bcryptjs": "^3.0.3",
     "negotiator": "^1.0.0",
     "next": "16.1.6",
     "pg": "^8.18.0",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/negotiator": "^0.6.4",
     "@types/node": "^20",
     "@types/react": "^19",

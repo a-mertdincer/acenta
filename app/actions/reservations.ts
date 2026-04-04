@@ -16,23 +16,23 @@ async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSum
   const wanted = new Set(tourIds);
   const tours = await prisma.tour.findMany({ select: { id: true, titleEn: true, titleTr: true, type: true } });
   const filtered = tours.filter((t: TourSummary) => wanted.has(t.id));
-  return new Map(filtered.map((t) => [t.id, t]));
+  return new Map(filtered.map((t: TourSummary) => [t.id, t]));
 }
 
 async function getVariantSummaryMap(variantIds: string[]): Promise<Map<string, VariantSummary>> {
   if (variantIds.length === 0) return new Map();
   const wanted = new Set(variantIds);
   const variants = await prisma.tourVariant.findMany({ select: { id: true, titleEn: true, titleTr: true } });
-  const filtered = variants.filter((v) => wanted.has(v.id));
-  return new Map(filtered.map((v) => [v.id, v]));
+  const filtered = variants.filter((v: VariantSummary) => wanted.has(v.id));
+  return new Map(filtered.map((v: VariantSummary) => [v.id, v]));
 }
 
 async function getUserSummaryMap(userIds: string[]): Promise<Map<string, UserSummary>> {
   if (userIds.length === 0) return new Map();
   const wanted = new Set(userIds);
   const users = await prisma.user.findMany({ select: { id: true, name: true, email: true, createdAt: true } });
-  const filtered = users.filter((u) => wanted.has(u.id));
-  return new Map(filtered.map((u) => [u.id, u]));
+  const filtered = users.filter((u: UserSummary) => wanted.has(u.id));
+  return new Map(filtered.map((u: UserSummary) => [u.id, u]));
 }
 
 export type CancellationReason = 'free_cancel' | 'customer_request' | 'wrong_reservation' | 'other';
@@ -108,13 +108,13 @@ export async function createReservations(input: CreateReservationInput): Promise
     const tourRows = await prisma.tour.findMany({
       select: { id: true, minAgeLimit: true },
     });
-    const tourAgeMap = new Map(tourRows.map((t) => [t.id, t]));
+    const tourAgeMap = new Map(tourRows.map((t: { id: string; minAgeLimit: number | null }) => [t.id, t]));
     const wantedTourIds = new Set(tourIds);
     const ageGroupRows = (await prisma.productAgeGroup.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    })).filter((row) => wantedTourIds.has(row.tourId));
+    })).filter((row: { tourId: string; minAge: number; maxAge: number; pricingType: string; sortOrder: number; createdAt: Date }) => wantedTourIds.has(row.tourId));
     const ageGroupMap = new Map<string, { minAge: number; maxAge: number; pricingType: string }[]>();
-    ageGroupRows.forEach((row) => {
+    ageGroupRows.forEach((row: { tourId: string; minAge: number; maxAge: number; pricingType: string }) => {
       const list = ageGroupMap.get(row.tourId) ?? [];
       list.push({ minAge: row.minAge, maxAge: row.maxAge, pricingType: row.pricingType });
       ageGroupMap.set(row.tourId, list);
@@ -124,8 +124,8 @@ export async function createReservations(input: CreateReservationInput): Promise
       const wanted = new Set(variantIds);
       const variants = await prisma.tourVariant.findMany({ select: { id: true, maxGroupSize: true, titleEn: true, titleTr: true } });
       variants
-        .filter((v) => wanted.has(v.id))
-        .forEach((v) => {
+        .filter((v: { id: string; maxGroupSize: number | null; titleEn: string; titleTr: string }) => wanted.has(v.id))
+        .forEach((v: { id: string; maxGroupSize: number | null; titleEn: string; titleTr: string }) => {
           variantCapacityMap.set(v.id, { maxGroupSize: v.maxGroupSize, titleEn: v.titleEn, titleTr: v.titleTr });
         });
     }

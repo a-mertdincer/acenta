@@ -13,12 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
 
       - name: TypeScript Check
-        run: npx tsc --noEmit
+        run: rm -f tsconfig.tsbuildinfo && npx tsc --noEmit
 
       - name: ESLint
         run: npx eslint .
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps

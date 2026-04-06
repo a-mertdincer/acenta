@@ -29,7 +29,7 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
               <Link href={`/${lang}/attractions/${row.slug}`} className="tour-card-link-area" aria-label={name}>
                 <div className="tour-card-image">
                   <img
-                    src={row.imageUrl ?? '/images/categories/daily-tours.svg'}
+                    src={row.imageUrl ?? '/images/activities/tour-placeholder.svg'}
                     alt={name}
                     className="tour-card-image-img"
                   />

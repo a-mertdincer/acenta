@@ -13,7 +13,7 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
         <h1>{dict.navigation.aboutUs ?? 'About Us'}</h1>
         <p className="about-page-intro">{home.welcomeTagline ?? 'Your trusted travel partner in Cappadocia'}</p>
         <div className="about-page-hero">
-          <img src="/images/categories/cultural-experiences.svg" alt="About Kismet Goreme Travel" />
+          <img src="/images/activities/culture-placeholder.svg" alt="About Kismet Goreme Travel" />
         </div>
         <div className="about-page-card">
           <h2>{home.welcomeHeading ?? 'Welcome to Kismet Goreme'}</h2>

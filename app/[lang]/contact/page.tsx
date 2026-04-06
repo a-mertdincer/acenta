@@ -33,12 +33,12 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
         </div>
         <div className="contact-form-card">
           <h2>{lang === 'tr' ? 'Bize Mesaj Gonderin' : lang === 'zh' ? '给我们留言' : 'Send us a message'}</h2>
-          <form className="contact-form-grid" onSubmit={(e) => e.preventDefault()}>
+          <form className="contact-form-grid" action="#">
             <InputLike label={lang === 'tr' ? 'Ad Soyad' : lang === 'zh' ? '姓名' : 'Name'} />
             <InputLike label={lang === 'tr' ? 'E-posta' : lang === 'zh' ? '电子邮件' : 'Email'} />
             <SelectLike label={lang === 'tr' ? 'Konu' : lang === 'zh' ? '主题' : 'Subject'} />
             <TextareaLike label={lang === 'tr' ? 'Mesaj' : lang === 'zh' ? '消息' : 'Message'} />
-            <button type="submit" className="btn btn-primary">
+            <button type="button" className="btn btn-primary">
               {lang === 'tr' ? 'Gonder' : lang === 'zh' ? '发送' : 'Send'}
             </button>
           </form>

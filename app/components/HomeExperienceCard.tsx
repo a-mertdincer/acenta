@@ -13,6 +13,7 @@ interface HomeExperienceCardProps {
   imageSrc: string;
   imageFallback: string;
   bookLabel?: string;
+  categoryBadge?: string;
 }
 
 export function HomeExperienceCard({
@@ -25,6 +26,7 @@ export function HomeExperienceCard({
   imageSrc,
   imageFallback,
   bookLabel = 'View',
+  categoryBadge,
 }: HomeExperienceCardProps) {
   const [imgSrc, setImgSrc] = useState(imageSrc);
 
@@ -42,6 +44,7 @@ export function HomeExperienceCard({
         </div>
       </Link>
       <div className="card-body">
+        {categoryBadge ? <span className="tour-type-badge">{categoryBadge}</span> : null}
         <h3>{title}</h3>
         <p className="card-desc">{desc}</p>
         <div className="card-footer">

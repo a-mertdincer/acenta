@@ -68,6 +68,8 @@ export default async function ToursCategoryPage(props: {
       basePrice: t.basePrice,
       fromPrice,
       imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
+      destination: t.destination ?? destination,
+      category: t.category ?? category,
     };
   });
 
@@ -98,6 +100,7 @@ export default async function ToursCategoryPage(props: {
             {tours.map((tour) => {
               const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
               const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+              const badgeCategory = tour.category ? getCategoryBySlug(tour.destination ?? destination, tour.category) : null;
               return (
                 <article key={tour.id} className="tour-card tour-card-clickable">
                   <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
@@ -109,7 +112,7 @@ export default async function ToursCategoryPage(props: {
                   <div className="tour-card-body">
                     <div className="tour-card-header">
                       <h2 className="tour-card-title">{title}</h2>
-                      <span className="tour-type-badge">{tour.type}</span>
+                      <span className="tour-type-badge">{badgeCategory ? getCategoryLabel(badgeCategory, lang) : tour.type}</span>
                     </div>
                     <p className="tour-card-desc">{desc}</p>
                     <div className="tour-card-footer">

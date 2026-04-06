@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
+import { getCategoryQuerySlugs, normalizeCategorySlug } from '@/lib/destinations';
 
 function revalidateTours() {
   ['en', 'tr', 'zh'].forEach(lang => {
@@ -31,6 +33,21 @@ export interface TourWithOptions {
   descTr: string;
   descEn: string;
   descZh: string;
+  itineraryEn?: string | null;
+  itineraryTr?: string | null;
+  itineraryZh?: string | null;
+  knowBeforeEn?: string | null;
+  knowBeforeTr?: string | null;
+  knowBeforeZh?: string | null;
+  notSuitableEn?: string | null;
+  notSuitableTr?: string | null;
+  notSuitableZh?: string | null;
+  notAllowedEn?: string | null;
+  notAllowedTr?: string | null;
+  notAllowedZh?: string | null;
+  faqsEn?: { question: string; answer: string }[] | null;
+  faqsTr?: { question: string; answer: string }[] | null;
+  faqsZh?: { question: string; answer: string }[] | null;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -75,9 +92,20 @@ export interface TourDatePriceResult {
 
 export async function getTours(filters?: { destination?: string; category?: string }): Promise<TourWithOptions[]> {
   try {
-    const where: { destination?: string; category?: string | null } = {};
+    const where: {
+      destination?: string;
+      category?: string | null;
+      OR?: { category: string }[];
+    } = {};
     if (filters?.destination) where.destination = filters.destination;
-    if (filters?.category !== undefined) where.category = filters.category || null;
+    if (filters?.category !== undefined) {
+      if (!filters.category) {
+        where.category = null;
+      } else {
+        const querySlugs = getCategoryQuerySlugs(filters.category);
+        where.OR = querySlugs.map((category) => ({ category }));
+      }
+    }
     const tours = await prisma.tour.findMany({
       where: Object.keys(where).length ? where : undefined,
       orderBy: { createdAt: 'asc' },
@@ -99,7 +127,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
       });
       imageMap.set(img.tourId, list);
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
@@ -110,8 +138,25 @@ export async function getTours(filters?: { destination?: string; category?: stri
         descTr: t.descTr,
         descEn: t.descEn,
         descZh: t.descZh,
+        itineraryEn: t.itineraryEn ?? null,
+        itineraryTr: t.itineraryTr ?? null,
+        itineraryZh: t.itineraryZh ?? null,
+        knowBeforeEn: t.knowBeforeEn ?? null,
+        knowBeforeTr: t.knowBeforeTr ?? null,
+        knowBeforeZh: t.knowBeforeZh ?? null,
+        notSuitableEn: t.notSuitableEn ?? null,
+        notSuitableTr: t.notSuitableTr ?? null,
+        notSuitableZh: t.notSuitableZh ?? null,
+        notAllowedEn: t.notAllowedEn ?? null,
+        notAllowedTr: t.notAllowedTr ?? null,
+        notAllowedZh: t.notAllowedZh ?? null,
+        faqsEn: Array.isArray(t.faqsEn) ? (t.faqsEn as { question: string; answer: string }[]) : null,
+        faqsTr: Array.isArray(t.faqsTr) ? (t.faqsTr as { question: string; answer: string }[]) : null,
+        faqsZh: Array.isArray(t.faqsZh) ? (t.faqsZh as { question: string; answer: string }[]) : null,
         basePrice: t.basePrice,
         capacity: t.capacity,
+        destination: t.destination ?? 'cappadocia',
+        category: t.category ? normalizeCategorySlug(t.category) : null,
         hasTourType: Boolean((t as { hasTourType?: boolean }).hasTourType),
         hasAirportSelect: Boolean((t as { hasAirportSelect?: boolean }).hasAirportSelect),
         hasReservationType: Boolean((t as { hasReservationType?: boolean }).hasReservationType ?? true),
@@ -150,6 +195,25 @@ function parseTransferAirportTiers(json: unknown): TransferAirportTiers | null {
   if ((ASR?.length ?? 0) > 0 || (NAV?.length ?? 0) > 0)
     return { ASR: ASR ?? [], NAV: NAV ?? [] };
   return null;
+}
+
+function parseFaqArray(value: unknown): { question: string; answer: string }[] | null {
+  if (!Array.isArray(value)) return null;
+  const rows = value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const item = entry as { question?: unknown; answer?: unknown };
+      const question = typeof item.question === 'string' ? item.question.trim() : '';
+      const answer = typeof item.answer === 'string' ? item.answer.trim() : '';
+      if (!question || !answer) return null;
+      return { question, answer };
+    })
+    .filter((entry): entry is { question: string; answer: string } => Boolean(entry));
+  return rows.length > 0 ? rows : null;
+}
+
+function jsonInputOrNull(value: { question: string; answer: string }[] | null | undefined): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+  return value && value.length > 0 ? (value as Prisma.InputJsonValue) : Prisma.JsonNull;
 }
 
 function buildTransferAirportTiers(
@@ -208,6 +272,21 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       descTr: tour.descTr,
       descEn: tour.descEn,
       descZh: tour.descZh,
+      itineraryEn: (tour as { itineraryEn?: string | null }).itineraryEn ?? null,
+      itineraryTr: (tour as { itineraryTr?: string | null }).itineraryTr ?? null,
+      itineraryZh: (tour as { itineraryZh?: string | null }).itineraryZh ?? null,
+      knowBeforeEn: (tour as { knowBeforeEn?: string | null }).knowBeforeEn ?? null,
+      knowBeforeTr: (tour as { knowBeforeTr?: string | null }).knowBeforeTr ?? null,
+      knowBeforeZh: (tour as { knowBeforeZh?: string | null }).knowBeforeZh ?? null,
+      notSuitableEn: (tour as { notSuitableEn?: string | null }).notSuitableEn ?? null,
+      notSuitableTr: (tour as { notSuitableTr?: string | null }).notSuitableTr ?? null,
+      notSuitableZh: (tour as { notSuitableZh?: string | null }).notSuitableZh ?? null,
+      notAllowedEn: (tour as { notAllowedEn?: string | null }).notAllowedEn ?? null,
+      notAllowedTr: (tour as { notAllowedTr?: string | null }).notAllowedTr ?? null,
+      notAllowedZh: (tour as { notAllowedZh?: string | null }).notAllowedZh ?? null,
+      faqsEn: parseFaqArray((tour as { faqsEn?: unknown }).faqsEn),
+      faqsTr: parseFaqArray((tour as { faqsTr?: unknown }).faqsTr),
+      faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
       basePrice: tour.basePrice,
       capacity: tour.capacity,
       destination: t.destination ?? 'cappadocia',
@@ -483,6 +562,21 @@ export type CreateTourInput = {
   descEn: string;
   descTr: string;
   descZh: string;
+  itineraryEn?: string | null;
+  itineraryTr?: string | null;
+  itineraryZh?: string | null;
+  knowBeforeEn?: string | null;
+  knowBeforeTr?: string | null;
+  knowBeforeZh?: string | null;
+  notSuitableEn?: string | null;
+  notSuitableTr?: string | null;
+  notSuitableZh?: string | null;
+  notAllowedEn?: string | null;
+  notAllowedTr?: string | null;
+  notAllowedZh?: string | null;
+  faqsEn?: { question: string; answer: string }[] | null;
+  faqsTr?: { question: string; answer: string }[] | null;
+  faqsZh?: { question: string; answer: string }[] | null;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -520,6 +614,21 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         descEn: data.descEn.trim(),
         descTr: data.descTr.trim(),
         descZh: data.descZh.trim(),
+        itineraryEn: data.itineraryEn?.trim() || null,
+        itineraryTr: data.itineraryTr?.trim() || null,
+        itineraryZh: data.itineraryZh?.trim() || null,
+        knowBeforeEn: data.knowBeforeEn?.trim() || null,
+        knowBeforeTr: data.knowBeforeTr?.trim() || null,
+        knowBeforeZh: data.knowBeforeZh?.trim() || null,
+        notSuitableEn: data.notSuitableEn?.trim() || null,
+        notSuitableTr: data.notSuitableTr?.trim() || null,
+        notSuitableZh: data.notSuitableZh?.trim() || null,
+        notAllowedEn: data.notAllowedEn?.trim() || null,
+        notAllowedTr: data.notAllowedTr?.trim() || null,
+        notAllowedZh: data.notAllowedZh?.trim() || null,
+        faqsEn: jsonInputOrNull(data.faqsEn),
+        faqsTr: jsonInputOrNull(data.faqsTr),
+        faqsZh: jsonInputOrNull(data.faqsZh),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
@@ -578,6 +687,21 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         descEn: data.descEn.trim(),
         descTr: data.descTr.trim(),
         descZh: data.descZh.trim(),
+        itineraryEn: data.itineraryEn?.trim() || null,
+        itineraryTr: data.itineraryTr?.trim() || null,
+        itineraryZh: data.itineraryZh?.trim() || null,
+        knowBeforeEn: data.knowBeforeEn?.trim() || null,
+        knowBeforeTr: data.knowBeforeTr?.trim() || null,
+        knowBeforeZh: data.knowBeforeZh?.trim() || null,
+        notSuitableEn: data.notSuitableEn?.trim() || null,
+        notSuitableTr: data.notSuitableTr?.trim() || null,
+        notSuitableZh: data.notSuitableZh?.trim() || null,
+        notAllowedEn: data.notAllowedEn?.trim() || null,
+        notAllowedTr: data.notAllowedTr?.trim() || null,
+        notAllowedZh: data.notAllowedZh?.trim() || null,
+        faqsEn: jsonInputOrNull(data.faqsEn),
+        faqsTr: jsonInputOrNull(data.faqsTr),
+        faqsZh: jsonInputOrNull(data.faqsZh),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',

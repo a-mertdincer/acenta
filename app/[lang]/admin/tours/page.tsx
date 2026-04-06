@@ -17,6 +17,11 @@ type AgeGroupDraft = {
     descriptionZh: string;
 };
 
+type FaqItemDraft = {
+    question: string;
+    answer: string;
+};
+
 type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
 
 export default function AdminToursPage() {
@@ -55,6 +60,21 @@ export default function AdminToursPage() {
     const [newDescEn, setNewDescEn] = useState('');
     const [newDescTr, setNewDescTr] = useState('');
     const [newDescZh, setNewDescZh] = useState('');
+    const [newItineraryEn, setNewItineraryEn] = useState('');
+    const [newItineraryTr, setNewItineraryTr] = useState('');
+    const [newItineraryZh, setNewItineraryZh] = useState('');
+    const [newKnowBeforeEn, setNewKnowBeforeEn] = useState('');
+    const [newKnowBeforeTr, setNewKnowBeforeTr] = useState('');
+    const [newKnowBeforeZh, setNewKnowBeforeZh] = useState('');
+    const [newNotSuitableEn, setNewNotSuitableEn] = useState('');
+    const [newNotSuitableTr, setNewNotSuitableTr] = useState('');
+    const [newNotSuitableZh, setNewNotSuitableZh] = useState('');
+    const [newNotAllowedEn, setNewNotAllowedEn] = useState('');
+    const [newNotAllowedTr, setNewNotAllowedTr] = useState('');
+    const [newNotAllowedZh, setNewNotAllowedZh] = useState('');
+    const [newFaqsEn, setNewFaqsEn] = useState<FaqItemDraft[]>([]);
+    const [newFaqsTr, setNewFaqsTr] = useState<FaqItemDraft[]>([]);
+    const [newFaqsZh, setNewFaqsZh] = useState<FaqItemDraft[]>([]);
     const [newBasePrice, setNewBasePrice] = useState('0');
     const [newCapacity, setNewCapacity] = useState('10');
     const [newDestination, setNewDestination] = useState('cappadocia');
@@ -82,6 +102,21 @@ export default function AdminToursPage() {
     const [tourEditDescEn, setTourEditDescEn] = useState('');
     const [tourEditDescTr, setTourEditDescTr] = useState('');
     const [tourEditDescZh, setTourEditDescZh] = useState('');
+    const [tourEditItineraryEn, setTourEditItineraryEn] = useState('');
+    const [tourEditItineraryTr, setTourEditItineraryTr] = useState('');
+    const [tourEditItineraryZh, setTourEditItineraryZh] = useState('');
+    const [tourEditKnowBeforeEn, setTourEditKnowBeforeEn] = useState('');
+    const [tourEditKnowBeforeTr, setTourEditKnowBeforeTr] = useState('');
+    const [tourEditKnowBeforeZh, setTourEditKnowBeforeZh] = useState('');
+    const [tourEditNotSuitableEn, setTourEditNotSuitableEn] = useState('');
+    const [tourEditNotSuitableTr, setTourEditNotSuitableTr] = useState('');
+    const [tourEditNotSuitableZh, setTourEditNotSuitableZh] = useState('');
+    const [tourEditNotAllowedEn, setTourEditNotAllowedEn] = useState('');
+    const [tourEditNotAllowedTr, setTourEditNotAllowedTr] = useState('');
+    const [tourEditNotAllowedZh, setTourEditNotAllowedZh] = useState('');
+    const [tourEditFaqsEn, setTourEditFaqsEn] = useState<FaqItemDraft[]>([]);
+    const [tourEditFaqsTr, setTourEditFaqsTr] = useState<FaqItemDraft[]>([]);
+    const [tourEditFaqsZh, setTourEditFaqsZh] = useState<FaqItemDraft[]>([]);
     const [tourEditBasePrice, setTourEditBasePrice] = useState('0');
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
     const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
@@ -152,6 +187,38 @@ export default function AdminToursPage() {
         const options = getReservationTypeOptions(mode);
         return options.some((opt) => opt.value === (value ?? ''));
     };
+    const addFaqItem = (target: 'newEn' | 'newTr' | 'newZh' | 'editEn' | 'editTr' | 'editZh') => {
+        const updater = (prev: FaqItemDraft[]) => [...prev, { question: '', answer: '' }];
+        if (target === 'newEn') return setNewFaqsEn(updater);
+        if (target === 'newTr') return setNewFaqsTr(updater);
+        if (target === 'newZh') return setNewFaqsZh(updater);
+        if (target === 'editEn') return setTourEditFaqsEn(updater);
+        if (target === 'editTr') return setTourEditFaqsTr(updater);
+        return setTourEditFaqsZh(updater);
+    };
+    const updateFaqItem = (
+        target: 'newEn' | 'newTr' | 'newZh' | 'editEn' | 'editTr' | 'editZh',
+        index: number,
+        key: 'question' | 'answer',
+        value: string
+    ) => {
+        const updater = (prev: FaqItemDraft[]) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item));
+        if (target === 'newEn') return setNewFaqsEn(updater);
+        if (target === 'newTr') return setNewFaqsTr(updater);
+        if (target === 'newZh') return setNewFaqsZh(updater);
+        if (target === 'editEn') return setTourEditFaqsEn(updater);
+        if (target === 'editTr') return setTourEditFaqsTr(updater);
+        return setTourEditFaqsZh(updater);
+    };
+    const removeFaqItem = (target: 'newEn' | 'newTr' | 'newZh' | 'editEn' | 'editTr' | 'editZh', index: number) => {
+        const updater = (prev: FaqItemDraft[]) => prev.filter((_, i) => i !== index);
+        if (target === 'newEn') return setNewFaqsEn(updater);
+        if (target === 'newTr') return setNewFaqsTr(updater);
+        if (target === 'newZh') return setNewFaqsZh(updater);
+        if (target === 'editEn') return setTourEditFaqsEn(updater);
+        if (target === 'editTr') return setTourEditFaqsTr(updater);
+        return setTourEditFaqsZh(updater);
+    };
 
     useEffect(() => {
         getTours().then((list) => {
@@ -192,6 +259,21 @@ export default function AdminToursPage() {
                 ageRestrictionEn?: string | null;
                 ageRestrictionTr?: string | null;
                 ageRestrictionZh?: string | null;
+                itineraryEn?: string | null;
+                itineraryTr?: string | null;
+                itineraryZh?: string | null;
+                knowBeforeEn?: string | null;
+                knowBeforeTr?: string | null;
+                knowBeforeZh?: string | null;
+                notSuitableEn?: string | null;
+                notSuitableTr?: string | null;
+                notSuitableZh?: string | null;
+                notAllowedEn?: string | null;
+                notAllowedTr?: string | null;
+                notAllowedZh?: string | null;
+                faqsEn?: { question: string; answer: string }[] | null;
+                faqsTr?: { question: string; answer: string }[] | null;
+                faqsZh?: { question: string; answer: string }[] | null;
                 ageGroups?: {
                     minAge: number;
                     maxAge: number;
@@ -211,6 +293,21 @@ export default function AdminToursPage() {
             setTourEditDescEn(t.descEn);
             setTourEditDescTr(t.descTr);
             setTourEditDescZh(t.descZh);
+            setTourEditItineraryEn(rec.itineraryEn ?? '');
+            setTourEditItineraryTr(rec.itineraryTr ?? '');
+            setTourEditItineraryZh(rec.itineraryZh ?? '');
+            setTourEditKnowBeforeEn(rec.knowBeforeEn ?? '');
+            setTourEditKnowBeforeTr(rec.knowBeforeTr ?? '');
+            setTourEditKnowBeforeZh(rec.knowBeforeZh ?? '');
+            setTourEditNotSuitableEn(rec.notSuitableEn ?? '');
+            setTourEditNotSuitableTr(rec.notSuitableTr ?? '');
+            setTourEditNotSuitableZh(rec.notSuitableZh ?? '');
+            setTourEditNotAllowedEn(rec.notAllowedEn ?? '');
+            setTourEditNotAllowedTr(rec.notAllowedTr ?? '');
+            setTourEditNotAllowedZh(rec.notAllowedZh ?? '');
+            setTourEditFaqsEn(Array.isArray(rec.faqsEn) ? rec.faqsEn : []);
+            setTourEditFaqsTr(Array.isArray(rec.faqsTr) ? rec.faqsTr : []);
+            setTourEditFaqsZh(Array.isArray(rec.faqsZh) ? rec.faqsZh : []);
             setTourEditBasePrice(String(t.basePrice));
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
@@ -412,6 +509,21 @@ export default function AdminToursPage() {
             descEn: newDescEn.trim() || '-',
             descTr: newDescTr.trim() || '-',
             descZh: newDescZh.trim() || '-',
+            itineraryEn: newItineraryEn.trim() || null,
+            itineraryTr: newItineraryTr.trim() || null,
+            itineraryZh: newItineraryZh.trim() || null,
+            knowBeforeEn: newKnowBeforeEn.trim() || null,
+            knowBeforeTr: newKnowBeforeTr.trim() || null,
+            knowBeforeZh: newKnowBeforeZh.trim() || null,
+            notSuitableEn: newNotSuitableEn.trim() || null,
+            notSuitableTr: newNotSuitableTr.trim() || null,
+            notSuitableZh: newNotSuitableZh.trim() || null,
+            notAllowedEn: newNotAllowedEn.trim() || null,
+            notAllowedTr: newNotAllowedTr.trim() || null,
+            notAllowedZh: newNotAllowedZh.trim() || null,
+            faqsEn: newFaqsEn.filter((f) => f.question.trim() && f.answer.trim()),
+            faqsTr: newFaqsTr.filter((f) => f.question.trim() && f.answer.trim()),
+            faqsZh: newFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
             basePrice: parseFloat(newBasePrice) || 0,
             capacity: parseInt(newCapacity, 10) || 0,
             destination: newDestination,
@@ -438,6 +550,21 @@ export default function AdminToursPage() {
             setNewDescEn('');
             setNewDescTr('');
             setNewDescZh('');
+            setNewItineraryEn('');
+            setNewItineraryTr('');
+            setNewItineraryZh('');
+            setNewKnowBeforeEn('');
+            setNewKnowBeforeTr('');
+            setNewKnowBeforeZh('');
+            setNewNotSuitableEn('');
+            setNewNotSuitableTr('');
+            setNewNotSuitableZh('');
+            setNewNotAllowedEn('');
+            setNewNotAllowedTr('');
+            setNewNotAllowedZh('');
+            setNewFaqsEn([]);
+            setNewFaqsTr([]);
+            setNewFaqsZh([]);
             setNewBasePrice('0');
             setNewCapacity('10');
             setNewHasTourType(false);
@@ -469,6 +596,21 @@ export default function AdminToursPage() {
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
             descEn: tourEditDescEn.trim() || '-',
+            itineraryEn: tourEditItineraryEn.trim() || null,
+            itineraryTr: tourEditItineraryTr.trim() || null,
+            itineraryZh: tourEditItineraryZh.trim() || null,
+            knowBeforeEn: tourEditKnowBeforeEn.trim() || null,
+            knowBeforeTr: tourEditKnowBeforeTr.trim() || null,
+            knowBeforeZh: tourEditKnowBeforeZh.trim() || null,
+            notSuitableEn: tourEditNotSuitableEn.trim() || null,
+            notSuitableTr: tourEditNotSuitableTr.trim() || null,
+            notSuitableZh: tourEditNotSuitableZh.trim() || null,
+            notAllowedEn: tourEditNotAllowedEn.trim() || null,
+            notAllowedTr: tourEditNotAllowedTr.trim() || null,
+            notAllowedZh: tourEditNotAllowedZh.trim() || null,
+            faqsEn: tourEditFaqsEn.filter((f) => f.question.trim() && f.answer.trim()),
+            faqsTr: tourEditFaqsTr.filter((f) => f.question.trim() && f.answer.trim()),
+            faqsZh: tourEditFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
             destination: tourEditDestination,
             category: tourEditCategory || null,
             descTr: tourEditDescTr.trim() || '-',
@@ -790,12 +932,7 @@ export default function AdminToursPage() {
                                 onChange={(e) => setNewType(e.target.value as TourType)}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                             >
-                                <option value="BALLOON">BALLOON</option>
                                 <option value="TOUR">TOUR</option>
-                                <option value="TRANSFER">TRANSFER</option>
-                                <option value="ACTIVITY">ACTIVITY</option>
-                                <option value="CONCIERGE">CONCIERGE</option>
-                                <option value="PACKAGE">PACKAGE</option>
                             </select>
                         </div>
                         <div>
@@ -829,6 +966,44 @@ export default function AdminToursPage() {
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (ZH)</label>
                             <textarea value={newDescZh} onChange={(e) => setNewDescZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                        </div>
+                        <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
+                            <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Urun Detay Bolumleri</strong>
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (EN)</label>
+                            <textarea value={newItineraryEn} onChange={(e) => setNewItineraryEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (TR)</label>
+                            <textarea value={newItineraryTr} onChange={(e) => setNewItineraryTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (ZH)</label>
+                            <textarea value={newItineraryZh} onChange={(e) => setNewItineraryZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (EN)</label>
+                            <textarea value={newKnowBeforeEn} onChange={(e) => setNewKnowBeforeEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (TR)</label>
+                            <textarea value={newKnowBeforeTr} onChange={(e) => setNewKnowBeforeTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (ZH)</label>
+                            <textarea value={newKnowBeforeZh} onChange={(e) => setNewKnowBeforeZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (EN)</label>
+                            <textarea value={newNotSuitableEn} onChange={(e) => setNewNotSuitableEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (TR)</label>
+                            <textarea value={newNotSuitableTr} onChange={(e) => setNewNotSuitableTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (ZH)</label>
+                            <textarea value={newNotSuitableZh} onChange={(e) => setNewNotSuitableZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (EN)</label>
+                            <textarea value={newNotAllowedEn} onChange={(e) => setNewNotAllowedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (TR)</label>
+                            <textarea value={newNotAllowedTr} onChange={(e) => setNewNotAllowedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (ZH)</label>
+                            <textarea value={newNotAllowedZh} onChange={(e) => setNewNotAllowedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <div style={{ marginBottom: 10 }}>
+                                <strong>FAQs (EN)</strong>
+                                <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('newEn')}>+ FAQ</Button>
+                                {newFaqsEn.map((faq, idx) => (
+                                    <div key={`new-en-${idx}`} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                                        <Input label="Question" value={faq.question} onChange={(e) => updateFaqItem('newEn', idx, 'question', e.target.value)} />
+                                        <Input label="Answer" value={faq.answer} onChange={(e) => updateFaqItem('newEn', idx, 'answer', e.target.value)} />
+                                        <Button type="button" variant="secondary" onClick={() => removeFaqItem('newEn', idx)}>Sil</Button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} />
@@ -968,6 +1143,44 @@ export default function AdminToursPage() {
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (ZH)</label>
                             <textarea value={tourEditDescZh} onChange={(e) => setTourEditDescZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} />
+                        </div>
+                        <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
+                            <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Urun Detay Bolumleri</strong>
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (EN)</label>
+                            <textarea value={tourEditItineraryEn} onChange={(e) => setTourEditItineraryEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (TR)</label>
+                            <textarea value={tourEditItineraryTr} onChange={(e) => setTourEditItineraryTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (ZH)</label>
+                            <textarea value={tourEditItineraryZh} onChange={(e) => setTourEditItineraryZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (EN)</label>
+                            <textarea value={tourEditKnowBeforeEn} onChange={(e) => setTourEditKnowBeforeEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (TR)</label>
+                            <textarea value={tourEditKnowBeforeTr} onChange={(e) => setTourEditKnowBeforeTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Know Before You Go (ZH)</label>
+                            <textarea value={tourEditKnowBeforeZh} onChange={(e) => setTourEditKnowBeforeZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (EN)</label>
+                            <textarea value={tourEditNotSuitableEn} onChange={(e) => setTourEditNotSuitableEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (TR)</label>
+                            <textarea value={tourEditNotSuitableTr} onChange={(e) => setTourEditNotSuitableTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Suitable For (ZH)</label>
+                            <textarea value={tourEditNotSuitableZh} onChange={(e) => setTourEditNotSuitableZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (EN)</label>
+                            <textarea value={tourEditNotAllowedEn} onChange={(e) => setTourEditNotAllowedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (TR)</label>
+                            <textarea value={tourEditNotAllowedTr} onChange={(e) => setTourEditNotAllowedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (ZH)</label>
+                            <textarea value={tourEditNotAllowedZh} onChange={(e) => setTourEditNotAllowedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <div style={{ marginBottom: 10 }}>
+                                <strong>FAQs (EN)</strong>
+                                <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('editEn')}>+ FAQ</Button>
+                                {tourEditFaqsEn.map((faq, idx) => (
+                                    <div key={`edit-en-${idx}`} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                                        <Input label="Question" value={faq.question} onChange={(e) => updateFaqItem('editEn', idx, 'question', e.target.value)} />
+                                        <Input label="Answer" value={faq.answer} onChange={(e) => updateFaqItem('editEn', idx, 'answer', e.target.value)} />
+                                        <Button type="button" variant="secondary" onClick={() => removeFaqItem('editEn', idx)}>Sil</Button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} />

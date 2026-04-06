@@ -2,12 +2,10 @@ import { getDictionary } from '../dictionaries/getDictionary';
 import { getHeroPath, getHeroFallback, getTourImagePath, getTourImageFallback } from '../../lib/imagePaths';
 import { HomeHero } from '../components/HomeHero';
 import { HomeExperienceCard } from '../components/HomeExperienceCard';
-import { HomeWelcome } from '../components/HomeWelcome';
-import { ActivitiesDestinationSection } from '../components/ActivitiesDestinationSection';
-import { HomeWhyUs } from '../components/HomeWhyUs';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
 import Link from 'next/link';
+import { getActiveDestinations, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
 
 const MOCK_CARDS = [
   { titleKey: 'standardBalloon', descKey: 'standardBalloonDesc', price: 150, tourId: 'mock-balloon', type: 'BALLOON' },
@@ -17,25 +15,22 @@ const MOCK_CARDS = [
 
 const FALLBACK_HOME = {
   title: 'Experience the Magic of Cappadocia',
-  subtitle: 'Discover breathtaking landscapes and hot air balloon rides with Kısmet Göreme Travel.',
-  bookBalloon: 'Book a Balloon',
-  exploreTours: 'Explore Tours',
+  subtitle: 'Find and book your perfect adventure in minutes.',
   from: 'From',
-  welcomeTagline: '',
-  welcomeHeading: 'Welcome to Kısmet Göreme',
-  welcomeBody1: 'Based in the heart of Göreme, Kısmet Göreme Travel specialises in tailor-made experiences across Turkey.',
-  welcomeBody2: "Whether it's hot air balloon flights over Cappadocia, guided valley walks, or unique experiences, we offer authentic hospitality.",
+  checkIn: 'Check-in',
+  checkOut: 'Check-out',
+  guests: 'Guests',
+  allActivities: 'All Activities',
+  search: 'Search',
+  topStatsTours: 'Tours',
+  topStatsBooked: 'Booked',
+  topStatsRating: 'Rating',
+  topStatsAwards: 'Awards',
   bestSellingTours: 'Best Selling Tours',
-  activitiesTitle: 'Activities & Services',
-  whyUsTitle: 'Why choose us',
-  whyUs1: 'Premium experiences',
-  whyUs2: 'Local experts',
-  whyUs3: 'Best price guarantee',
   ctaTitle: "Need help? We're here for you.",
   ctaSubtitle: 'Let us plan your perfect Cappadocia experience.',
   ctaButton: 'View all tours',
   viewAllTours: 'View all tours',
-  scrollToExplore: 'Scroll to explore',
 };
 
 const FALLBACK_TOURS_DICT: Record<string, string> = {
@@ -49,20 +44,22 @@ const FALLBACK_TOURS_DICT: Record<string, string> = {
 };
 
 export default async function Home(props: { params: Promise<{ lang: string }> }) {
-  let lang = 'en' as 'en' | 'tr' | 'zh';
+  let lang = 'en' as Lang;
   let homeDict: Record<string, string> = FALLBACK_HOME;
   let toursDict: Record<string, string> = FALLBACK_TOURS_DICT;
-  let tours: { id: string; type: string; title: string; desc: string; price: number }[] = MOCK_CARDS.map((c) => ({
+  let tours: { id: string; type: string; title: string; desc: string; price: number; category: string | null; destination: string }[] = MOCK_CARDS.map((c) => ({
     id: c.tourId,
     type: c.type,
     title: FALLBACK_TOURS_DICT[c.titleKey] ?? c.titleKey,
     desc: FALLBACK_TOURS_DICT[c.descKey] ?? '',
     price: c.price,
+    category: c.type === 'BALLOON' ? 'balloon-flights' : c.type === 'TRANSFER' ? 'transfers' : 'daily-tours',
+    destination: 'cappadocia',
   }));
 
   try {
     const params = await props.params;
-    lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as 'en' | 'tr' | 'zh';
+    lang = (params?.lang && ['en', 'tr', 'zh'].includes(params.lang) ? params.lang : 'en') as Lang;
 
     const dict = await getDictionary(lang);
     if (dict?.home && typeof dict.home === 'object') homeDict = { ...FALLBACK_HOME, ...(dict.home as Record<string, string>) };
@@ -83,6 +80,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             title: String(lang === 'tr' ? t.titleTr : lang === 'zh' ? t.titleZh : t.titleEn ?? ''),
             desc: String(lang === 'tr' ? t.descTr : lang === 'zh' ? t.descZh : t.descEn ?? ''),
             price: fromPrice,
+            category: t.category ? normalizeCategorySlug(String(t.category)) : null,
+            destination: String(t.destination ?? 'cappadocia'),
           };
         } catch {
           return {
@@ -91,6 +90,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             title: String(t.titleEn ?? t.titleTr ?? t.titleZh ?? ''),
             desc: '',
             price: Number(t.basePrice) || 0,
+            category: null,
+            destination: 'cappadocia',
           };
         }
       });
@@ -101,6 +102,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         title: toursDict[c.titleKey] ?? c.titleKey,
         desc: toursDict[c.descKey] ?? '',
         price: c.price,
+        category: c.type === 'BALLOON' ? 'balloon-flights' : c.type === 'TRANSFER' ? 'transfers' : 'daily-tours',
+        destination: 'cappadocia',
       }));
     }
   } catch (_e) {
@@ -110,50 +113,74 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   const heroSrc = getHeroPath();
   const heroFallback = getHeroFallback();
   const bookNowLabel = toursDict.bookNow ?? 'Book Now';
+  const defaultDestination = getActiveDestinations()[0];
+  const activityOptions = (defaultDestination?.categories ?? []).map((category) => ({
+    value: category.slug,
+    label: getCategoryLabel(category, lang),
+  }));
+
+  const groupedTours = tours.reduce((acc, tour) => {
+    const destination = defaultDestination?.slug ?? tour.destination ?? 'cappadocia';
+    const categorySlug = tour.category ?? 'daily-tours';
+    const category = defaultDestination?.categories.find((c) => c.slug === categorySlug || c.id === categorySlug);
+    const groupTitle = category ? getCategoryLabel(category, lang) : (lang === 'tr' ? 'Diger Deneyimler' : lang === 'zh' ? '其他体验' : 'Other Experiences');
+    const list = acc.get(groupTitle) ?? [];
+    list.push(tour);
+    acc.set(groupTitle, list);
+    return acc;
+  }, new Map<string, typeof tours>());
 
   return (
     <>
       <HomeHero
         title={homeDict.title ?? FALLBACK_HOME.title}
         subtitle={homeDict.subtitle ?? FALLBACK_HOME.subtitle}
-        bookLabel={homeDict.bookBalloon ?? FALLBACK_HOME.bookBalloon}
-        exploreLabel={homeDict.exploreTours ?? FALLBACK_HOME.exploreTours}
-        scrollLabel={typeof homeDict.scrollToExplore === 'string' ? homeDict.scrollToExplore : undefined}
         lang={lang}
         heroSrc={heroSrc}
         heroFallback={heroFallback}
+        checkInLabel={homeDict.checkIn ?? FALLBACK_HOME.checkIn}
+        checkOutLabel={homeDict.checkOut ?? FALLBACK_HOME.checkOut}
+        guestsLabel={homeDict.guests ?? FALLBACK_HOME.guests}
+        activitiesLabel={homeDict.allActivities ?? FALLBACK_HOME.allActivities}
+        allActivitiesLabel={homeDict.allActivities ?? FALLBACK_HOME.allActivities}
+        searchLabel={homeDict.search ?? FALLBACK_HOME.search}
+        activityOptions={activityOptions}
       />
 
-      <div className="fade-in-up">
-        <HomeWelcome
-          tagline={homeDict.welcomeTagline ?? ''}
-          heading={homeDict.welcomeHeading ?? FALLBACK_HOME.welcomeHeading}
-          body1={homeDict.welcomeBody1 ?? FALLBACK_HOME.welcomeBody1}
-          body2={homeDict.welcomeBody2 ?? FALLBACK_HOME.welcomeBody2}
-          welcomeImageSrc={heroSrc}
-          welcomeImageFallback={heroFallback}
-        />
-      </div>
+      <section className="home-sales-stats">
+        <div className="container home-sales-stats-row">
+          <div className="home-sales-stat"><strong>30+</strong><span>{homeDict.topStatsTours ?? FALLBACK_HOME.topStatsTours}</span></div>
+          <div className="home-sales-stat"><strong>12500+</strong><span>{homeDict.topStatsBooked ?? FALLBACK_HOME.topStatsBooked}</span></div>
+          <div className="home-sales-stat"><strong>4.9/5.0</strong><span>{homeDict.topStatsRating ?? FALLBACK_HOME.topStatsRating}</span></div>
+          <div className="home-sales-stat"><strong>15+</strong><span>{homeDict.topStatsAwards ?? FALLBACK_HOME.topStatsAwards}</span></div>
+        </div>
+      </section>
 
-      <section className="home-experiences page-section section-alt fade-in-up">
+      <section className="home-experiences page-section section-alt">
         <div className="container">
           <h2 className="home-section-title">{homeDict.bestSellingTours ?? FALLBACK_HOME.bestSellingTours}</h2>
-          <div className="home-cards">
-            {tours.map((tour) => (
-              <HomeExperienceCard
-                key={tour.id}
-                lang={lang}
-                title={tour.title}
-                desc={tour.desc}
-                fromLabel={homeDict.from ?? FALLBACK_HOME.from}
-                price={tour.price}
-                tourId={tour.id}
-                imageSrc={getTourImagePath(tour.type)}
-                imageFallback={getTourImageFallback(tour.type)}
-                bookLabel={bookNowLabel}
-              />
-            ))}
-          </div>
+          {Array.from(groupedTours.entries()).map(([groupTitle, groupItems]) => (
+            <div key={groupTitle} className="home-group">
+              <h3 className="home-group-title">{groupTitle}</h3>
+              <div className="home-cards">
+                {groupItems.map((tour) => (
+                  <HomeExperienceCard
+                    key={tour.id}
+                    lang={lang}
+                    title={tour.title}
+                    desc={tour.desc}
+                    fromLabel={homeDict.from ?? FALLBACK_HOME.from}
+                    price={tour.price}
+                    tourId={tour.id}
+                    imageSrc={getTourImagePath(tour.type)}
+                    imageFallback={getTourImageFallback(tour.type)}
+                    bookLabel={bookNowLabel}
+                    categoryBadge={groupTitle}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
           <div className="home-view-all">
             <Link href={`/${lang}/tours`} className="btn btn-secondary">
               {homeDict.viewAllTours ?? FALLBACK_HOME.viewAllTours}
@@ -162,31 +189,12 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         </div>
       </section>
 
-      <div className="fade-in-up">
-        <ActivitiesDestinationSection
-          lang={lang}
-          title={homeDict.activitiesTitle ?? FALLBACK_HOME.activitiesTitle}
-          viewAllLabel={homeDict.viewAllTours ?? FALLBACK_HOME.viewAllTours}
-        />
-      </div>
-
-      <div className="fade-in-up">
-        <HomeWhyUs
-          title={homeDict.whyUsTitle ?? FALLBACK_HOME.whyUsTitle}
-          point1={homeDict.whyUs1 ?? FALLBACK_HOME.whyUs1}
-          point2={homeDict.whyUs2 ?? FALLBACK_HOME.whyUs2}
-          point3={homeDict.whyUs3 ?? FALLBACK_HOME.whyUs3}
-        />
-      </div>
-
-      <div className="fade-in-up">
-        <HomeCta
+      <HomeCta
         lang={lang}
         title={homeDict.ctaTitle ?? FALLBACK_HOME.ctaTitle}
         buttonLabel={homeDict.viewAllTours ?? homeDict.ctaButton ?? FALLBACK_HOME.viewAllTours}
         subtitle={typeof homeDict.ctaSubtitle === 'string' ? homeDict.ctaSubtitle : FALLBACK_HOME.ctaSubtitle}
-        />
-      </div>
+      />
     </>
   );
 }

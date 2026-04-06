@@ -32,15 +32,15 @@ const DESTINATIONS: DestinationConfig[] = [
     nameZh: '卡帕多奇亚',
     active: true,
     categories: [
-      { id: 'hot-air-balloon', slug: 'hot-air-balloon', labelEn: 'Hot Air Balloon', labelTr: 'Balon Turu', labelZh: '热气球' },
+      { id: 'hot-air-balloon', slug: 'balloon-flights', labelEn: 'Balloon Flights', labelTr: 'Balon Ucuslari', labelZh: '热气球飞行' },
       { id: 'daily-tours', slug: 'daily-tours', labelEn: 'Daily Tours', labelTr: 'Gün Turları', labelZh: '一日游' },
       { id: 'adventure-activities', slug: 'adventure-activities', labelEn: 'Adventure Activities', labelTr: 'Macera Aktiviteleri', labelZh: '探险活动' },
       { id: 'cultural-experiences', slug: 'cultural-experiences', labelEn: 'Cultural Experiences', labelTr: 'Kültürel Deneyimler', labelZh: '文化体验' },
-      { id: 'private-tours', slug: 'private-tours', labelEn: 'Private Tours', labelTr: 'Özel Turlar', labelZh: '私人游' },
       { id: 'transfers', slug: 'transfers', labelEn: 'Transfers', labelTr: 'Transferler', labelZh: '接送' },
       { id: 'workshops', slug: 'workshops', labelEn: 'Workshops', labelTr: 'Atölyeler', labelZh: '工作坊' },
       { id: 'packages', slug: 'packages', labelEn: 'Packages', labelTr: 'Paketler', labelZh: '套餐' },
       { id: 'concierge', slug: 'concierge', labelEn: 'Concierge', labelTr: 'Concierge', labelZh: '礼宾服务' },
+      { id: 'rent-a-car-bike', slug: 'rent-a-car-bike', labelEn: 'Rent a Car/Bike', labelTr: 'Arac/Motosiklet Kiralama', labelZh: '租车/租摩托' },
     ],
   },
   {
@@ -90,7 +90,8 @@ export function getCategoriesForDestination(destinationSlug: string): CategoryCo
 
 export function getCategoryBySlug(destinationSlug: string, categorySlug: string): CategoryConfig | null {
   const cats = getCategoriesForDestination(destinationSlug);
-  return cats.find((c) => c.slug === categorySlug) ?? null;
+  const normalized = normalizeCategorySlug(categorySlug);
+  return cats.find((c) => c.slug === normalized || c.id === normalized) ?? null;
 }
 
 export function isDestinationSlug(slug: string): boolean {
@@ -103,4 +104,18 @@ export function getDestinationName(dest: DestinationConfig, lang: Lang): string 
 
 export function getCategoryLabel(cat: CategoryConfig, lang: Lang): string {
   return lang === 'tr' ? cat.labelTr : lang === 'zh' ? cat.labelZh : cat.labelEn;
+}
+
+export function normalizeCategorySlug(input: string): string {
+  if (input === 'hot-air-balloon') return 'balloon-flights';
+  if (input === 'balloon-flights') return 'balloon-flights';
+  if (input === 'rent-a-car' || input === 'rent-bike') return 'rent-a-car-bike';
+  return input;
+}
+
+export function getCategoryQuerySlugs(input: string): string[] {
+  const normalized = normalizeCategorySlug(input);
+  if (normalized === 'balloon-flights') return ['balloon-flights', 'hot-air-balloon'];
+  if (normalized === 'rent-a-car-bike') return ['rent-a-car-bike', 'rent-a-car', 'rent-bike'];
+  return [normalized];
 }

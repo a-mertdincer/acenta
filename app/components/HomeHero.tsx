@@ -5,15 +5,32 @@ import { useState } from 'react';
 interface HomeHeroProps {
   title: string;
   subtitle: string;
-  bookLabel: string;
-  exploreLabel: string;
-  scrollLabel?: string;
   lang: string;
   heroSrc: string;
   heroFallback: string;
+  checkInLabel: string;
+  checkOutLabel: string;
+  guestsLabel: string;
+  activitiesLabel: string;
+  searchLabel: string;
+  allActivitiesLabel: string;
+  activityOptions: Array<{ value: string; label: string }>;
 }
 
-export function HomeHero({ title, subtitle, bookLabel, exploreLabel, scrollLabel, lang, heroSrc, heroFallback }: HomeHeroProps) {
+export function HomeHero({
+  title,
+  subtitle,
+  lang,
+  heroSrc,
+  heroFallback,
+  checkInLabel,
+  checkOutLabel,
+  guestsLabel,
+  activitiesLabel,
+  searchLabel,
+  allActivitiesLabel,
+  activityOptions,
+}: HomeHeroProps) {
   const [heroImgSrc, setHeroImgSrc] = useState(heroSrc);
 
   return (
@@ -30,18 +47,38 @@ export function HomeHero({ title, subtitle, bookLabel, exploreLabel, scrollLabel
       <div className="home-hero-content">
         <h1 className="home-hero-title">{title}</h1>
         <p className="home-hero-subtitle">{subtitle}</p>
-        <div className="home-hero-ctas">
-          <a href={`/${lang}/tours`} className="btn btn-primary">
-            {bookLabel}
-          </a>
-          <a href={`/${lang}/tours`} className="btn btn-secondary">
-            {exploreLabel}
-          </a>
-        </div>
-        <a href="#welcome" className="home-hero-scroll" aria-label={scrollLabel ?? 'Scroll to explore'}>
-          <span className="home-hero-scroll-text">{scrollLabel ?? 'Scroll to explore'}</span>
-          <span className="home-hero-scroll-chevron" aria-hidden>▼</span>
-        </a>
+        <form action={`/${lang}/tours`} method="get" className="home-hero-search" aria-label={searchLabel}>
+          <label className="home-hero-search-field">
+            <span>{checkInLabel}</span>
+            <input type="date" name="checkIn" className="home-hero-search-input" />
+          </label>
+          <label className="home-hero-search-field">
+            <span>{checkOutLabel}</span>
+            <input type="date" name="checkOut" className="home-hero-search-input" />
+          </label>
+          <label className="home-hero-search-field">
+            <span>{guestsLabel}</span>
+            <select name="guests" className="home-hero-search-input">
+              {Array.from({ length: 20 }, (_, i) => i + 1).map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="home-hero-search-field">
+            <span>{activitiesLabel}</span>
+            <select name="category" className="home-hero-search-input">
+              <option value="">{allActivitiesLabel}</option>
+              {activityOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="home-hero-search-btn" aria-label={searchLabel}>🔍</button>
+        </form>
       </div>
     </section>
   );

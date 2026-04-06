@@ -6,12 +6,15 @@ import Image from 'next/image';
 import { useCartStore, type CartItem } from '../store/cartStore';
 import { SUPPORTED_LOCALES, type SiteLocale } from '@/lib/i18n';
 import { usePathname } from 'next/navigation';
+import { getCategoriesForDestination, getCategoryLabel } from '@/lib/destinations';
 
 type Lang = SiteLocale;
 
 interface NavDict {
   home: string;
   tours: string;
+  aboutUs: string;
+  contact: string;
   cart: string;
   login: string;
   signUp: string;
@@ -95,6 +98,8 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
   const [mounted, setMounted] = useState(false);
   const [canHover, setCanHover] = useState(true);
   const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
+  const [toursMenuOpen, setToursMenuOpen] = useState(false);
+  const [mobileToursOpen, setMobileToursOpen] = useState(false);
   const [removedItem, setRemovedItem] = useState<{ title: string; item: Omit<CartItem, 'id'> } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const cartPreviewRef = useRef<HTMLDivElement>(null);
@@ -133,12 +138,6 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
     };
   }, []);
 
-  const navLinks = [
-    { href: `/${lang}`, label: nav.home },
-    { href: `/${lang}/tours`, label: nav.tours },
-    ...(isAdmin ? [{ href: `/${lang}/admin`, label: nav.admin }] : []),
-  ];
-
   const langLabels: Record<string, string> = {
     en: 'English',
     tr: 'Türkçe',
@@ -155,6 +154,25 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
     ro: 'Română',
   };
   const currentPathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '';
+  const categoryLabelLang = (lang === 'tr' || lang === 'zh' ? lang : 'en') as 'en' | 'tr' | 'zh';
+  const toursCategories = getCategoriesForDestination('cappadocia');
+  const categoryEmoji: Record<string, string> = {
+    'balloon-flights': '🎈',
+    'daily-tours': '🗺',
+    'adventure-activities': '🏔',
+    'cultural-experiences': '🏛',
+    workshops: '🎨',
+    packages: '📦',
+    concierge: '🎩',
+    transfers: '🚐',
+    'rent-a-car-bike': '🚗',
+  };
+  const toursMenuItems = toursCategories.map((category) => ({
+    slug: category.slug,
+    label: `${categoryEmoji[category.slug] ?? '•'} ${getCategoryLabel(category, categoryLabelLang)}`,
+    href: `/${lang}/tours/cappadocia/${category.slug}`,
+  }));
+  const soonLabel = lang === 'tr' ? 'Yakinda' : lang === 'zh' ? '即将推出' : 'Soon';
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -256,11 +274,93 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
 
           <nav className={`site-nav ${mobileOpen ? 'site-nav-open' : ''}`}>
             <div className="site-nav-links">
-              {navLinks.map((item) => (
-                <Link key={item.href} href={item.href} className="site-nav-link" onClick={() => setMobileOpen(false)}>
-                  {item.label}
+              <Link href={`/${lang}`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
+                {nav.home}
+              </Link>
+              <div
+                className={`site-nav-tours-wrap ${toursMenuOpen ? 'open' : ''}`}
+                onMouseEnter={() => canHover && setToursMenuOpen(true)}
+                onMouseLeave={() => canHover && setToursMenuOpen(false)}
+              >
+                <button
+                  type="button"
+                  className="site-nav-link site-nav-link-button"
+                  onClick={() => {
+                    if (mobileOpen) {
+                      setMobileToursOpen((v) => !v);
+                    } else {
+                      window.location.href = `/${lang}/tours`;
+                    }
+                  }}
+                  aria-expanded={mobileOpen ? mobileToursOpen : toursMenuOpen}
+                >
+                  {nav.tours}
+                </button>
+                <div className={`site-nav-tours-dropdown ${toursMenuOpen ? 'open' : ''}`}>
+                  {toursMenuItems.map((item) => (
+                    <Link
+                      key={item.slug}
+                      href={item.href}
+                      className="site-nav-tours-item"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setToursMenuOpen(false);
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      {item.slug === 'rent-a-car-bike' ? <small>{soonLabel}</small> : null}
+                    </Link>
+                  ))}
+                  <div className="site-nav-tours-sep" />
+                  <Link
+                    href={`/${lang}/tours`}
+                    className="site-nav-tours-item site-nav-tours-all"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setToursMenuOpen(false);
+                    }}
+                  >
+                    {lang === 'tr' ? '📋 Tum Turlar' : lang === 'zh' ? '📋 所有旅游' : '📋 All Tours'}
+                  </Link>
+                </div>
+                <div className={`site-nav-tours-mobile ${mobileToursOpen ? 'open' : ''}`}>
+                  {toursMenuItems.map((item) => (
+                    <Link
+                      key={`m-${item.slug}`}
+                      href={item.href}
+                      className="site-nav-tours-item"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setMobileToursOpen(false);
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      {item.slug === 'rent-a-car-bike' ? <small>{soonLabel}</small> : null}
+                    </Link>
+                  ))}
+                  <Link
+                    href={`/${lang}/tours`}
+                    className="site-nav-tours-item site-nav-tours-all"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setMobileToursOpen(false);
+                    }}
+                  >
+                    {lang === 'tr' ? '📋 Tum Turlar' : lang === 'zh' ? '📋 所有旅游' : '📋 All Tours'}
+                  </Link>
+                </div>
+              </div>
+              <Link href={`/${lang}/about`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
+                {nav.aboutUs}
+              </Link>
+              <Link href={`/${lang}/contact`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
+                {nav.contact}
+              </Link>
+              {isAdmin ? (
+                <Link href={`/${lang}/admin`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
+                  {nav.admin}
                 </Link>
-              ))}
+              ) : null}
             </div>
 
             <div className="site-nav-actions">

@@ -302,8 +302,75 @@ function ProductDescription({ text }: { text: string }) {
   );
 }
 
+type FaqItem = { question: string; answer: string };
+
+function parseLineList(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split('\n')
+    .map((line) => line.replace(/^[\s\-*•]+/, '').trim())
+    .filter(Boolean);
+}
+
+function StickyAnchorBar({
+  sections,
+}: {
+  sections: { id: string; label: string }[];
+}) {
+  const [activeId, setActiveId] = useState(sections[0]?.id ?? '');
+
+  useEffect(() => {
+    const nodes = sections
+      .map((section) => document.getElementById(section.id))
+      .filter((node): node is HTMLElement => Boolean(node));
+    if (nodes.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]?.target?.id) {
+          setActiveId(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-120px 0px -55% 0px', threshold: [0.15, 0.35, 0.6] }
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [sections]);
+
+  return (
+    <div className="tour-anchor-bar">
+      {sections.map((section) => (
+        <a
+          key={section.id}
+          href={`#${section.id}`}
+          className={`tour-anchor-link ${activeId === section.id ? 'active' : ''}`}
+        >
+          {section.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function mapDbTourToState(db: {
   id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
+  itineraryEn?: string | null;
+  itineraryTr?: string | null;
+  itineraryZh?: string | null;
+  knowBeforeEn?: string | null;
+  knowBeforeTr?: string | null;
+  knowBeforeZh?: string | null;
+  notSuitableEn?: string | null;
+  notSuitableTr?: string | null;
+  notSuitableZh?: string | null;
+  notAllowedEn?: string | null;
+  notAllowedTr?: string | null;
+  notAllowedZh?: string | null;
+  faqsEn?: { question: string; answer: string }[] | null;
+  faqsTr?: { question: string; answer: string }[] | null;
+  faqsZh?: { question: string; answer: string }[] | null;
   transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
   transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }[];
@@ -324,6 +391,11 @@ function mapDbTourToState(db: {
     descEn: db.descEn,
     descTr: db.descTr,
     descZh: db.descZh,
+    itinerary: _lang === 'tr' ? db.itineraryTr : _lang === 'zh' ? db.itineraryZh : db.itineraryEn,
+    knowBefore: _lang === 'tr' ? db.knowBeforeTr : _lang === 'zh' ? db.knowBeforeZh : db.knowBeforeEn,
+    notSuitable: _lang === 'tr' ? db.notSuitableTr : _lang === 'zh' ? db.notSuitableZh : db.notSuitableEn,
+    notAllowed: _lang === 'tr' ? db.notAllowedTr : _lang === 'zh' ? db.notAllowedZh : db.notAllowedEn,
+    faqs: (_lang === 'tr' ? db.faqsTr : _lang === 'zh' ? db.faqsZh : db.faqsEn) ?? [],
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
     transferAirportTiers: db.transferAirportTiers ?? null,
@@ -392,6 +464,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
     const [cartToastOpen, setCartToastOpen] = useState(false);
     const [cartToastTitle, setCartToastTitle] = useState('');
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
     const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
     const showChildren = (tour?.minAgeLimit != null ? tour.minAgeLimit < 8 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { pricingType: string; maxAge: number }) => g.pricingType === 'child' && g.maxAge >= 4) : true);
     const showInfants = (tour?.minAgeLimit != null ? tour.minAgeLimit < 4 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { minAge: number; pricingType: string }) => g.minAge <= 3 && g.pricingType !== 'not_allowed') : true);
@@ -503,6 +576,18 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const galleryFallback = getTourImageFallback(tour.type);
     const dynamicImages = Array.isArray(tour.images) ? tour.images.filter((url: unknown): url is string => typeof url === 'string' && url.trim() !== '') : [];
     const galleryMainSrc = dynamicImages[0] ?? galleryMain;
+    const itineraryItems = parseLineList(tour.itinerary);
+    const knowBeforeItems = parseLineList(tour.knowBefore);
+    const notSuitableItems = parseLineList(tour.notSuitable);
+    const notAllowedItems = parseLineList(tour.notAllowed);
+    const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
+    const anchorSections = [
+      { id: 'book-now', label: lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now' },
+      { id: 'itinerary', label: 'Itinerary' },
+      { id: 'gallery', label: lang === 'tr' ? 'Galeri' : lang === 'zh' ? '图库' : 'Gallery' },
+      { id: 'included', label: lang === 'tr' ? 'Dahil Olanlar' : lang === 'zh' ? '包含内容' : "What's Included" },
+      { id: 'faqs', label: 'FAQs' },
+    ];
 
     const productSchema = useVariantBooking && tourWithVariants && tour
         ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMainSrc)
@@ -513,6 +598,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             {productSchema && (
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
             )}
+            <StickyAnchorBar sections={anchorSections} />
             {useVariantBooking ? (
                 <>
                     <div className="tour-detail-hero-grid tour-detail-hero-grid--variant">
@@ -527,13 +613,57 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                     {formatShown(fromPrice).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(fromPrice).secondary}</small> : null}
                                 </p>
                             )}
-                            <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]} />
-                            <div style={{ marginTop: 'var(--space-lg)' }}>
+                            <div id="gallery">
+                              <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]} />
+                            </div>
+                            <div style={{ marginTop: 'var(--space-lg)' }} id="itinerary">
                                 <h2>{t.description}</h2>
                                 <ProductDescription text={desc} />
                             </div>
+                            {itineraryItems.length > 0 && (
+                                <section className="tour-structured-section">
+                                    <h3>Itinerary</h3>
+                                    <ul>{itineraryItems.map((item, idx) => <li key={`it-${idx}`}>{item}</li>)}</ul>
+                                </section>
+                            )}
+                            {knowBeforeItems.length > 0 && (
+                                <section className="tour-structured-section">
+                                    <h3>{lang === 'tr' ? 'Bilmeniz Gerekenler' : lang === 'zh' ? '出行须知' : 'Know Before You Go'}</h3>
+                                    <ul>{knowBeforeItems.map((item, idx) => <li key={`kb-${idx}`}>{item}</li>)}</ul>
+                                </section>
+                            )}
+                            {notSuitableItems.length > 0 && (
+                                <section className="tour-structured-section">
+                                    <h3>{lang === 'tr' ? 'Uygun Degil' : lang === 'zh' ? '不适合人群' : 'Not Suitable For'}</h3>
+                                    <ul>{notSuitableItems.map((item, idx) => <li key={`ns-${idx}`}>{item}</li>)}</ul>
+                                </section>
+                            )}
+                            {notAllowedItems.length > 0 && (
+                                <section className="tour-structured-section" id="included">
+                                    <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
+                                    <ul>{notAllowedItems.map((item, idx) => <li key={`na-${idx}`}>{item}</li>)}</ul>
+                                </section>
+                            )}
+                            {faqs.length > 0 && (
+                                <section className="tour-structured-section" id="faqs">
+                                    <h3>FAQs</h3>
+                                    <div className="tour-faq-list">
+                                        {faqs.map((faq, idx) => (
+                                            <button
+                                                key={`faq-v-${idx}`}
+                                                type="button"
+                                                className="tour-faq-item"
+                                                onClick={() => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
+                                            >
+                                                <strong>{faq.question}</strong>
+                                                {openFaqIndex === idx ? <p>{faq.answer}</p> : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
                         </div>
-                        <div className="tour-detail-booking-card-wrapper">
+                        <div className="tour-detail-booking-card-wrapper" id="book-now">
                             <ProductVariantBookingCard
                                 tourId={tour.id}
                                 tourType={tour.type}
@@ -556,17 +686,63 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 </span>
 
                 {dynamicImages.length > 0 ? (
-                    <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages} />
+                    <div id="gallery">
+                      <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages} />
+                    </div>
                 ) : (
                     <TourDetailHeroImage type={tour.type} title={title} />
                 )}
 
-                <h2>{t.description}</h2>
-                <ProductDescription text={desc} />
+                <div id="itinerary">
+                  <h2>{t.description}</h2>
+                  <ProductDescription text={desc} />
+                </div>
+                {itineraryItems.length > 0 && (
+                    <section className="tour-structured-section">
+                        <h3>Itinerary</h3>
+                        <ul>{itineraryItems.map((item, idx) => <li key={`it-nv-${idx}`}>{item}</li>)}</ul>
+                    </section>
+                )}
+                {knowBeforeItems.length > 0 && (
+                    <section className="tour-structured-section">
+                        <h3>{lang === 'tr' ? 'Bilmeniz Gerekenler' : lang === 'zh' ? '出行须知' : 'Know Before You Go'}</h3>
+                        <ul>{knowBeforeItems.map((item, idx) => <li key={`kb-nv-${idx}`}>{item}</li>)}</ul>
+                    </section>
+                )}
+                {notSuitableItems.length > 0 && (
+                    <section className="tour-structured-section">
+                        <h3>{lang === 'tr' ? 'Uygun Degil' : lang === 'zh' ? '不适合人群' : 'Not Suitable For'}</h3>
+                        <ul>{notSuitableItems.map((item, idx) => <li key={`ns-nv-${idx}`}>{item}</li>)}</ul>
+                    </section>
+                )}
+                {notAllowedItems.length > 0 && (
+                    <section className="tour-structured-section" id="included">
+                        <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
+                        <ul>{notAllowedItems.map((item, idx) => <li key={`na-nv-${idx}`}>{item}</li>)}</ul>
+                    </section>
+                )}
+                {faqs.length > 0 && (
+                    <section className="tour-structured-section" id="faqs">
+                        <h3>FAQs</h3>
+                        <div className="tour-faq-list">
+                            {faqs.map((faq, idx) => (
+                                <button
+                                    key={`faq-nv-${idx}`}
+                                    type="button"
+                                    className="tour-faq-item"
+                                    onClick={() => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
+                                >
+                                    <strong>{faq.question}</strong>
+                                    {openFaqIndex === idx ? <p>{faq.answer}</p> : null}
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
             </div>
 
-            <div>
+            <div id="book-now">
                 <div className="card tour-detail-booking-card" style={{ padding: 'var(--space-xl)' }}>
                     <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>{t.bookNow}</h3>
 

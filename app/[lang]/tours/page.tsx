@@ -6,6 +6,7 @@ import { getTours } from '../../actions/tours';
 import { ActivitiesDestinationSection } from '../../components/ActivitiesDestinationSection';
 import { getEurTryRate } from '@/lib/exchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
+import { getCategoryBySlug, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
 
 const MOCK_TOURS = [
     { id: 'mock-balloon', type: 'BALLOON' as const, titleEn: 'Standard Balloon Flight', titleTr: 'Standart Balon Turu', titleZh: '标准热气球飞行', descEn: 'Float above the fairy chimneys at sunrise in our spacious baskets. 1 hour flight with champagne toast.', descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.', descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。', basePrice: 150.0 },
@@ -13,12 +14,17 @@ const MOCK_TOURS = [
     { id: 'mock-transfer', type: 'TRANSFER' as const, titleEn: 'Private Airport Transfer', titleTr: 'Özel Havalimanı Transferi', titleZh: '私人机场接送', descEn: 'VIP transfer to and from Nevşehir or Kayseri airports. 1-4 Pax in Mercedes Vito.', descTr: 'Nevşehir veya Kayseri havalimanlarına Mercedes Vito ile VIP transfer. 1-4 Kişi.', descZh: '内夫谢希尔或开塞利机场的VIP接送服务。 1-4人在奔驰Vito。', basePrice: 50.0 },
 ];
 
-export default async function ToursPage(props: { params: Promise<{ lang: string }> }) {
+export default async function ToursPage(props: {
+    params: Promise<{ lang: string }>;
+    searchParams: Promise<{ category?: string; guests?: string; checkIn?: string; checkOut?: string }>;
+}) {
     const params = await props.params;
-    const lang = params.lang as 'en' | 'tr' | 'zh';
+    const searchParams = await props.searchParams;
+    const lang = params.lang as Lang;
     const dict = await getDictionary(lang);
+    const selectedCategory = searchParams.category ? normalizeCategorySlug(searchParams.category) : '';
 
-    const dbTours = await getTours();
+    const dbTours = await getTours(selectedCategory ? { category: selectedCategory, destination: 'cappadocia' } : undefined);
     const rateData = lang === 'tr' ? await getEurTryRate() : null;
     const tours = dbTours.length > 0
         ? dbTours.map((t) => {
@@ -40,10 +46,12 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                 descZh: t.descZh,
                 basePrice: t.basePrice,
                 fromPrice,
+                destination: t.destination ?? 'cappadocia',
+                category: t.category ? normalizeCategorySlug(t.category) : null,
                 imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
             };
         })
-        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null }));
+        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null, destination: 'cappadocia', category: t.type === 'BALLOON' ? 'balloon-flights' : t.type === 'TRANSFER' ? 'transfers' : 'daily-tours' }));
 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
     const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
@@ -63,6 +71,8 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                 {tours.map((tour) => {
                     const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
                     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+                    const category = tour.category ? getCategoryBySlug(tour.destination ?? 'cappadocia', tour.category) : null;
+                    const categoryBadge = category ? getCategoryLabel(category, lang) : tour.type;
                     return (
                         <article key={tour.id} className="tour-card tour-card-clickable">
                             <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
@@ -74,7 +84,7 @@ export default async function ToursPage(props: { params: Promise<{ lang: string 
                             <div className="tour-card-body">
                                 <div className="tour-card-header">
                                     <h2 className="tour-card-title">{title}</h2>
-                                    <span className="tour-type-badge">{tour.type}</span>
+                                    <span className="tour-type-badge">{categoryBadge}</span>
                                 </div>
                                 <p className="tour-card-desc">{desc}</p>
                                 <div className="tour-card-footer">

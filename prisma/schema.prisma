@@ -31,6 +31,21 @@ model Tour {
   descTr             String
   descEn             String
   descZh             String
+  itineraryEn        String?
+  itineraryTr        String?
+  itineraryZh        String?
+  knowBeforeEn       String?
+  knowBeforeTr       String?
+  knowBeforeZh       String?
+  notSuitableEn      String?
+  notSuitableTr      String?
+  notSuitableZh      String?
+  notAllowedEn       String?
+  notAllowedTr       String?
+  notAllowedZh       String?
+  faqsEn             Json?
+  faqsTr             Json?
+  faqsZh             Json?
   basePrice          Float // Default price if not overridden by date
   type               String // BALLOON, TOUR, TRANSFER, CONCIERGE, PACKAGE
   destination        String          @default("cappadocia") // slug: cappadocia, antalya, istanbul

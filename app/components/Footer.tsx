@@ -83,8 +83,8 @@ export function Footer({ lang, footer: f }: FooterProps) {
             <nav className="site-footer-quicklinks" aria-label="Footer navigation">
               <Link href={`/${lang}`}>{footer.home ?? 'Home'}</Link>
               <Link href={`/${lang}/tours`}>{footer.tours ?? 'Tours'}</Link>
-              <Link href={`/${lang}#welcome`}>{footer.aboutLink ?? 'About'}</Link>
-              <Link href={`/${lang}#contact`}>{footer.contactLink ?? 'Contact'}</Link>
+              <Link href={`/${lang}/about`}>{footer.aboutLink ?? 'About'}</Link>
+              <Link href={`/${lang}/contact`}>{footer.contactLink ?? 'Contact'}</Link>
             </nav>
           </div>
           <div className="site-footer-block">

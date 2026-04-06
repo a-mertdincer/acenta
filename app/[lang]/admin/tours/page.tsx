@@ -284,7 +284,7 @@ export default function AdminToursPage() {
                 }[];
                 images?: { id: string; url: string; isPrimary: boolean }[];
             };
-            setTourEditType(t.type as TourType);
+            setTourEditType('TOUR');
             setTourEditDestination(rec.destination ?? 'cappadocia');
             setTourEditCategory(rec.category ?? '');
             setTourEditTitleEn(t.titleEn);
@@ -1104,12 +1104,7 @@ export default function AdminToursPage() {
                                 onChange={(e) => setTourEditType(e.target.value as TourType)}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                             >
-                                <option value="BALLOON">BALLOON</option>
                                 <option value="TOUR">TOUR</option>
-                                <option value="TRANSFER">TRANSFER</option>
-                                <option value="ACTIVITY">ACTIVITY</option>
-                                <option value="CONCIERGE">CONCIERGE</option>
-                                <option value="PACKAGE">PACKAGE</option>
                             </select>
                         </div>
                         <div>

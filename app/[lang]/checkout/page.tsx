@@ -189,6 +189,34 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                                     <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Pay in cash (EUR/USD/TRY) directly to your guide or driver.</span>
                                 </div>
                             </label>
+                            <label
+                                title={lang === 'tr' ? 'Online odeme ozelligi yakinda aktif olacaktir.' : lang === 'zh' ? '在线支付功能即将上线。' : 'Online payment will be available soon.'}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 'var(--space-sm)',
+                                    padding: 'var(--space-md)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '8px',
+                                    cursor: 'not-allowed',
+                                    opacity: 0.6,
+                                    backgroundColor: 'transparent',
+                                }}
+                            >
+                                <input type="radio" disabled />
+                                <div>
+                                    <span style={{ fontWeight: 'bold', display: 'block' }}>
+                                        Online Payment <small style={{ color: 'var(--color-text-muted)' }}>🔒 {lang === 'tr' ? 'Yakinda' : lang === 'zh' ? '即将推出' : 'Coming Soon'}</small>
+                                    </span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                        {lang === 'tr'
+                                            ? 'Guvenli online odeme secenegi yakinda acilacak.'
+                                            : lang === 'zh'
+                                                ? '安全在线支付即将开放。'
+                                                : 'Secure online payment option is coming soon.'}
+                                    </span>
+                                </div>
+                            </label>
                         </div>
                     </div>
 

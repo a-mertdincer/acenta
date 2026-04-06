@@ -61,6 +61,14 @@ export default function LoginPage(props: { params: Promise<{ lang: string }> }) 
                         {isSubmitting ? 'Logging in...' : 'Login'}
                     </Button>
                 </form>
+                <div style={{ marginTop: 'var(--space-md)', textAlign: 'center', color: 'var(--color-text-muted)' }}>──── or ────</div>
+                <a
+                    href={`/api/auth/signin/google?callbackUrl=/${lang}`}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', marginTop: 'var(--space-md)' }}
+                >
+                    🔵 Sign in with Google
+                </a>
 
                 <div style={{ marginTop: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                     Don't have an account? <Link href={`/${lang}/register`} style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Register here</Link>

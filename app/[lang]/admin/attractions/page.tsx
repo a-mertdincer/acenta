@@ -1,0 +1,161 @@
+'use client';
+
+import { use, useEffect, useState } from 'react';
+import { Button } from '@/app/components/Button';
+import { Input } from '@/app/components/Input';
+import {
+  createAttraction,
+  deleteAttraction,
+  getAttractions,
+  updateAttraction,
+  type AttractionRow,
+} from '@/app/actions/attractions';
+
+const EMPTY_FORM = {
+  slug: '',
+  nameEn: '',
+  nameTr: '',
+  nameZh: '',
+  descriptionEn: '',
+  descriptionTr: '',
+  descriptionZh: '',
+  imageUrl: '',
+  sortOrder: '0',
+};
+
+export default function AdminAttractionsPage(props: { params: Promise<{ lang: string }> }) {
+  use(props.params);
+  const [rows, setRows] = useState<AttractionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const refresh = async () => {
+    setLoading(true);
+    const list = await getAttractions();
+    setRows(list);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.slug.trim() || !form.nameEn.trim()) {
+      alert('Slug ve Name EN zorunludur.');
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      slug: form.slug.trim(),
+      nameEn: form.nameEn.trim(),
+      nameTr: form.nameTr.trim() || form.nameEn.trim(),
+      nameZh: form.nameZh.trim() || null,
+      descriptionEn: form.descriptionEn.trim() || null,
+      descriptionTr: form.descriptionTr.trim() || null,
+      descriptionZh: form.descriptionZh.trim() || null,
+      imageUrl: form.imageUrl.trim() || null,
+      sortOrder: Number.parseInt(form.sortOrder, 10) || 0,
+    };
+    const result = editId ? await updateAttraction(editId, payload) : await createAttraction(payload);
+    setSaving(false);
+    if (!result.ok) {
+      alert(result.error ?? 'Kayit basarisiz');
+      return;
+    }
+    setEditId(null);
+    setForm(EMPTY_FORM);
+    await refresh();
+  };
+
+  const startEdit = (row: AttractionRow) => {
+    setEditId(row.id);
+    setForm({
+      slug: row.slug,
+      nameEn: row.nameEn,
+      nameTr: row.nameTr,
+      nameZh: row.nameZh ?? '',
+      descriptionEn: row.descriptionEn ?? '',
+      descriptionTr: row.descriptionTr ?? '',
+      descriptionZh: row.descriptionZh ?? '',
+      imageUrl: row.imageUrl ?? '',
+      sortOrder: String(row.sortOrder),
+    });
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Bu gezi noktasini silmek istediginize emin misiniz?')) return;
+    const result = await deleteAttraction(id);
+    if (!result.ok) {
+      alert(result.error ?? 'Silinemedi');
+      return;
+    }
+    await refresh();
+  };
+
+  return (
+    <div>
+      <h1>Gezi Noktalari</h1>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+        Destinasyon kartlarini yonetin ve urunlerle iliskilendirin.
+      </p>
+
+      <form className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-xl)', maxWidth: 760 }} onSubmit={onSubmit}>
+        <h2 style={{ marginBottom: 'var(--space-md)' }}>{editId ? 'Gezi Noktasi Duzenle' : 'Yeni Gezi Noktasi'}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+          <Input label="Slug" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))} required />
+          <Input label="Sort Order" type="number" value={form.sortOrder} onChange={(e) => setForm((p) => ({ ...p, sortOrder: e.target.value }))} />
+          <Input label="Name EN" value={form.nameEn} onChange={(e) => setForm((p) => ({ ...p, nameEn: e.target.value }))} required />
+          <Input label="Name TR" value={form.nameTr} onChange={(e) => setForm((p) => ({ ...p, nameTr: e.target.value }))} />
+          <Input label="Name ZH" value={form.nameZh} onChange={(e) => setForm((p) => ({ ...p, nameZh: e.target.value }))} />
+          <Input label="Image URL" value={form.imageUrl} onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))} />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Input label="Description EN" value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} />
+            <Input label="Description TR" value={form.descriptionTr} onChange={(e) => setForm((p) => ({ ...p, descriptionTr: e.target.value }))} />
+            <Input label="Description ZH" value={form.descriptionZh} onChange={(e) => setForm((p) => ({ ...p, descriptionZh: e.target.value }))} />
+          </div>
+        </div>
+        <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-sm)' }}>
+          <Button type="submit" disabled={saving}>{saving ? 'Kaydediliyor...' : editId ? 'Guncelle' : 'Olustur'}</Button>
+          {editId ? (
+            <Button type="button" variant="secondary" onClick={() => { setEditId(null); setForm(EMPTY_FORM); }}>Iptal</Button>
+          ) : null}
+        </div>
+      </form>
+
+      <div className="card" style={{ padding: 'var(--space-lg)' }}>
+        <h2 style={{ marginBottom: 'var(--space-md)' }}>Liste</h2>
+        {loading ? <p>Yukleniyor...</p> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Slug</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Name</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Tours</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: 8 }}>{row.slug}</td>
+                    <td style={{ padding: 8 }}>{row.nameEn}</td>
+                    <td style={{ padding: 8 }}>{row.tourCount}</td>
+                    <td style={{ padding: 8 }}>
+                      <Button type="button" variant="secondary" style={{ marginRight: 8 }} onClick={() => startEdit(row)}>Duzenle</Button>
+                      <Button type="button" variant="secondary" onClick={() => remove(row.id)}>Sil</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

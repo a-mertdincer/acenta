@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getTours, getTourById, setTourDatePrice, createTourOption, updateTourOption, deleteTourOption, setTourTransferAirportTiers, seedDemoTours, createTour, updateTour, deleteTour, addTourImage, deleteTourImage, setPrimaryTourImage, moveTourImage, type TourOptionRow, type TransferTier, type TourType } from '../../../actions/tours';
+import { getAttractions, type AttractionRow } from '../../../actions/attractions';
 import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
 import { getTourVariantsForAdmin, createVariant, updateVariant, deleteVariant, type CreateVariantInput } from '../../../actions/variants';
 import type { TourVariantDisplay } from '@/lib/types/variant';
@@ -79,6 +80,7 @@ export default function AdminToursPage() {
     const [newCapacity, setNewCapacity] = useState('10');
     const [newDestination, setNewDestination] = useState('cappadocia');
     const [newCategory, setNewCategory] = useState('');
+    const [newAttractionIds, setNewAttractionIds] = useState<string[]>([]);
     const [newHasTourType, setNewHasTourType] = useState(false);
     const [newHasAirportSelect, setNewHasAirportSelect] = useState(false);
     const [newHasReservationType, setNewHasReservationType] = useState(true);
@@ -121,6 +123,7 @@ export default function AdminToursPage() {
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
     const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
     const [tourEditCategory, setTourEditCategory] = useState('');
+    const [tourEditAttractionIds, setTourEditAttractionIds] = useState<string[]>([]);
     const [tourEditHasTourType, setTourEditHasTourType] = useState(false);
     const [tourEditHasAirportSelect, setTourEditHasAirportSelect] = useState(false);
     const [tourEditHasReservationType, setTourEditHasReservationType] = useState(true);
@@ -134,6 +137,7 @@ export default function AdminToursPage() {
     const [imageUploading, setImageUploading] = useState(false);
     const [imageUrlInput, setImageUrlInput] = useState('');
     const [variants, setVariants] = useState<TourVariantDisplay[]>([]);
+    const [attractions, setAttractions] = useState<AttractionRow[]>([]);
     const [variantSaving, setVariantSaving] = useState(false);
     const [showAddVariant, setShowAddVariant] = useState(false);
     const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
@@ -233,6 +237,7 @@ export default function AdminToursPage() {
             if (list.length > 0 && !dailyTourId) setDailyTourId(list[0].id);
             setLoading(false);
         });
+        getAttractions().then(setAttractions);
     }, []);
 
     useEffect(() => {
@@ -274,6 +279,7 @@ export default function AdminToursPage() {
                 faqsEn?: { question: string; answer: string }[] | null;
                 faqsTr?: { question: string; answer: string }[] | null;
                 faqsZh?: { question: string; answer: string }[] | null;
+                attractionIds?: string[];
                 ageGroups?: {
                     minAge: number;
                     maxAge: number;
@@ -308,6 +314,7 @@ export default function AdminToursPage() {
             setTourEditFaqsEn(Array.isArray(rec.faqsEn) ? rec.faqsEn : []);
             setTourEditFaqsTr(Array.isArray(rec.faqsTr) ? rec.faqsTr : []);
             setTourEditFaqsZh(Array.isArray(rec.faqsZh) ? rec.faqsZh : []);
+            setTourEditAttractionIds(Array.isArray(rec.attractionIds) ? rec.attractionIds : []);
             setTourEditBasePrice(String(t.basePrice));
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
@@ -528,6 +535,7 @@ export default function AdminToursPage() {
             capacity: parseInt(newCapacity, 10) || 0,
             destination: newDestination,
             category: newCategory || null,
+            attractionIds: newAttractionIds,
             hasTourType: newHasTourType,
             hasAirportSelect: newHasAirportSelect,
             hasReservationType: newReservationTypeMode !== 'none',
@@ -567,6 +575,7 @@ export default function AdminToursPage() {
             setNewFaqsZh([]);
             setNewBasePrice('0');
             setNewCapacity('10');
+            setNewAttractionIds([]);
             setNewHasTourType(false);
             setNewHasAirportSelect(false);
             setNewHasReservationType(true);
@@ -613,6 +622,7 @@ export default function AdminToursPage() {
             faqsZh: tourEditFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
             destination: tourEditDestination,
             category: tourEditCategory || null,
+            attractionIds: tourEditAttractionIds,
             descTr: tourEditDescTr.trim() || '-',
             descZh: tourEditDescZh.trim() || '-',
             basePrice: parseFloat(tourEditBasePrice) || 0,
@@ -952,6 +962,20 @@ export default function AdminToursPage() {
                                 ))}
                             </select>
                         </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Gezi Noktalari</label>
+                            <select
+                                multiple
+                                value={newAttractionIds}
+                                onChange={(e) => setNewAttractionIds(Array.from(e.target.selectedOptions).map((opt) => opt.value))}
+                                style={{ width: '100%', minHeight: 110, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                {attractions.map((a) => (
+                                    <option key={a.id} value={a.id}>{a.nameTr || a.nameEn}</option>
+                                ))}
+                            </select>
+                            <small style={{ color: 'var(--color-text-muted)' }}>Birden fazla secim icin Cmd/Ctrl kullanin.</small>
+                        </div>
                         <Input label="Başlık (EN) *" value={newTitleEn} onChange={(e) => setNewTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
                         <Input label="Başlık (TR)" value={newTitleTr} onChange={(e) => setNewTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
                         <Input label="Başlık (ZH)" value={newTitleZh} onChange={(e) => setNewTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
@@ -1123,6 +1147,20 @@ export default function AdminToursPage() {
                                     <option key={c.id} value={c.slug}>{c.labelTr}</option>
                                 ))}
                             </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Gezi Noktalari</label>
+                            <select
+                                multiple
+                                value={tourEditAttractionIds}
+                                onChange={(e) => setTourEditAttractionIds(Array.from(e.target.selectedOptions).map((opt) => opt.value))}
+                                style={{ width: '100%', minHeight: 110, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                            >
+                                {attractions.map((a) => (
+                                    <option key={a.id} value={a.id}>{a.nameTr || a.nameEn}</option>
+                                ))}
+                            </select>
+                            <small style={{ color: 'var(--color-text-muted)' }}>Birden fazla secim icin Cmd/Ctrl kullanin.</small>
                         </div>
                         <Input label="Başlık (EN) *" value={tourEditTitleEn} onChange={(e) => setTourEditTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
                         <Input label="Başlık (TR)" value={tourEditTitleTr} onChange={(e) => setTourEditTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />

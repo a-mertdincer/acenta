@@ -28,19 +28,35 @@ function writeSessionCache(userId: string, value: { id: string; email: string; n
 export async function getSession(): Promise<{ id: string; email: string; name: string; role: string } | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!userId) return null;
-  const cached = readSessionCache(userId);
-  if (cached) return cached;
+  if (userId) {
+    const cached = readSessionCache(userId);
+    if (cached) return cached;
+    try {
+      const { prisma } = await import('../../lib/prisma');
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, name: true, role: true },
+      });
+      writeSessionCache(userId, user);
+      return user;
+    } catch {
+      writeSessionCache(userId, null);
+      return null;
+    }
+  }
   try {
+    const { getServerSession } = await import('next-auth');
+    const { authOptions } = await import('@/lib/nextAuth');
+    const oauthSession = await getServerSession(authOptions);
+    const oauthEmail = oauthSession?.user?.email?.trim().toLowerCase();
+    if (!oauthEmail) return null;
     const { prisma } = await import('../../lib/prisma');
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { email: oauthEmail },
       select: { id: true, email: true, name: true, role: true },
     });
-    writeSessionCache(userId, user);
     return user;
   } catch {
-    writeSessionCache(userId, null);
     return null;
   }
 }
@@ -206,7 +222,7 @@ export async function logout(): Promise<void> {
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
   if (userId) sessionCache.delete(userId);
   cookieStore.delete(SESSION_COOKIE);
-  redirect('/en/login');
+  redirect('/api/auth/signout?callbackUrl=/en/login');
 }
 
 export type UserListItem = { id: string; name: string; email: string; role: string; phone: string | null; country: string | null; createdAt: Date };

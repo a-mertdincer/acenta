@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 const fallbackNav = {
   home: 'Home',
   tours: 'Tours',
+  attractions: 'Attractions',
   aboutUs: 'About Us',
   contact: 'Contact',
   cart: 'Cart',

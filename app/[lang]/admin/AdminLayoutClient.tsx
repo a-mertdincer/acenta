@@ -17,6 +17,7 @@ const SIDEBAR_SECTIONS = [
     title: 'ÜRÜN YÖNETİMİ',
     items: [
       { path: 'admin/tours', label: 'Ürünler', icon: '📦' },
+      { path: 'admin/attractions', label: 'Gezi Noktalari', icon: '🗺️' },
       { path: 'admin/pricing', label: 'Fiyatlandırma ve Müsaitlik', icon: '💰' },
       { path: 'admin/flights', label: 'Uçuş Listesi', icon: '✈️' },
     ],

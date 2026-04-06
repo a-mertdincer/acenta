@@ -82,6 +82,14 @@ export default function RegisterPage(props: { params: Promise<{ lang: string }> 
                         {isSubmitting ? 'Creating account...' : 'Create Account'}
                     </Button>
                 </form>
+                <div style={{ marginTop: 'var(--space-md)', textAlign: 'center', color: 'var(--color-text-muted)' }}>──── or ────</div>
+                <a
+                    href={`/api/auth/signin/google?callbackUrl=/${lang}`}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', marginTop: 'var(--space-md)' }}
+                >
+                    🔵 Sign in with Google
+                </a>
 
                 <div style={{ marginTop: 'var(--space-xl)', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                     Already have an account? <Link href={`/${lang}/login`} style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Login here</Link>

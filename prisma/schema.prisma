@@ -64,12 +64,41 @@ model Tour {
   slug               String?         @unique // Optional URL slug e.g. green-tour
   ageGroups          ProductAgeGroup[]
   images             TourImage[]
+  attractions        TourAttraction[]
   options            TourOption[]
   prices             TourDatePrice[]
   variants           TourVariant[]
   reservations      Reservation[]
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
+}
+
+model Attraction {
+  id            String           @id @default(uuid())
+  slug          String           @unique
+  nameEn        String
+  nameTr        String
+  nameZh        String?
+  descriptionEn String?
+  descriptionTr String?
+  descriptionZh String?
+  imageUrl      String?
+  sortOrder     Int              @default(0)
+  tours         TourAttraction[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model TourAttraction {
+  id           String     @id @default(uuid())
+  tourId       String
+  attractionId String
+  tour         Tour       @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([tourId, attractionId])
 }
 
 model TourVariant {

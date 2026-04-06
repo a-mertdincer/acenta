@@ -13,6 +13,7 @@ type Lang = SiteLocale;
 interface NavDict {
   home: string;
   tours: string;
+  attractions: string;
   aboutUs: string;
   contact: string;
   cart: string;
@@ -350,6 +351,9 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
                   </Link>
                 </div>
               </div>
+              <Link href={`/${lang}/attractions`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
+                {nav.attractions}
+              </Link>
               <Link href={`/${lang}/about`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
                 {nav.aboutUs}
               </Link>

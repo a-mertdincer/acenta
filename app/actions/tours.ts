@@ -79,6 +79,15 @@ export interface TourWithOptions {
     altTr: string | null;
     altZh: string | null;
   }[];
+  attractions?: {
+    id: string;
+    slug: string;
+    nameEn: string;
+    nameTr: string;
+    nameZh: string | null;
+    imageUrl: string | null;
+  }[];
+  attractionIds?: string[];
   transferTiers: TransferTier[] | null;
   transferAirportTiers: TransferAirportTiers | null;
   options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' }[];
@@ -250,6 +259,22 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       where: { tourId: id },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    const tourAttractions = await prisma.tourAttraction.findMany({
+      where: { tourId: id },
+      include: {
+        attraction: {
+          select: {
+            id: true,
+            slug: true,
+            nameEn: true,
+            nameTr: true,
+            nameZh: true,
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
     const raw = tour as { transferAirportTiers?: unknown };
     const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(raw.transferAirportTiers, parseTransferTiers(tour.transferTiers));
     const t = tour as { destination?: string; category?: string | null };
@@ -320,6 +345,15 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
         altTr: img.altTr ?? null,
         altZh: img.altZh ?? null,
       })),
+      attractions: tourAttractions.map((row) => ({
+        id: row.attraction.id,
+        slug: row.attraction.slug,
+        nameEn: row.attraction.nameEn,
+        nameTr: row.attraction.nameTr,
+        nameZh: row.attraction.nameZh ?? null,
+        imageUrl: row.attraction.imageUrl ?? null,
+      })),
+      attractionIds: tourAttractions.map((row) => row.attraction.id),
       options: options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
         id: o.id,
         titleTr: o.titleTr,
@@ -581,6 +615,7 @@ export type CreateTourInput = {
   capacity: number;
   destination?: string;
   category?: string | null;
+  attractionIds?: string[];
   hasTourType?: boolean;
   hasAirportSelect?: boolean;
   hasReservationType?: boolean;
@@ -605,7 +640,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
     const reservationTypeMode: ReservationTypeMode = data.reservationTypeMode ?? (data.hasReservationType === false ? 'none' : 'private_regular');
-    await prisma.tour.create({
+    const createdTour = await prisma.tour.create({
       data: {
         type: data.type,
         titleEn: data.titleEn.trim(),
@@ -658,6 +693,15 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         },
       },
     });
+    if (Array.isArray(data.attractionIds)) {
+      const attractionIds = Array.from(new Set(data.attractionIds.map((id) => id.trim()).filter(Boolean)));
+      if (attractionIds.length > 0) {
+        await prisma.tourAttraction.createMany({
+          data: attractionIds.map((attractionId) => ({ tourId: createdTour.id, attractionId })),
+          skipDuplicates: true,
+        });
+      }
+    }
     revalidateTours();
     return { ok: true };
   } catch (e) {
@@ -716,6 +760,16 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         ...(data.ageRestrictionZh !== undefined && { ageRestrictionZh: data.ageRestrictionZh?.trim() || null }),
       },
     });
+    if (Array.isArray(data.attractionIds)) {
+      const attractionIds = Array.from(new Set(data.attractionIds.map((id) => id.trim()).filter(Boolean)));
+      await prisma.tourAttraction.deleteMany({ where: { tourId } });
+      if (attractionIds.length > 0) {
+        await prisma.tourAttraction.createMany({
+          data: attractionIds.map((attractionId) => ({ tourId, attractionId })),
+          skipDuplicates: true,
+        });
+      }
+    }
     if (data.ageGroups !== undefined) {
       await prisma.productAgeGroup.deleteMany({ where: { tourId } });
       if (data.ageGroups.length > 0) {

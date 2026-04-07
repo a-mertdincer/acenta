@@ -901,10 +901,59 @@ export async function deleteTour(tourId: string): Promise<{ ok: boolean; error?:
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
-    const reservationCount = await prisma.reservation.count({ where: { tourId } });
-    if (reservationCount > 0) {
-      return { ok: false, error: 'Bu ürüne bağlı rezervasyonlar olduğu için silinemez.' };
+    const blockers = await prisma.reservation.findMany({
+      where: {
+        tourId,
+        NOT: {
+          OR: [
+            { status: { equals: 'CANCELLED', mode: 'insensitive' } },
+            { status: { equals: 'CANCELED', mode: 'insensitive' } },
+          ],
+        },
+      },
+      select: {
+        id: true,
+        date: true,
+        status: true,
+        guestName: true,
+      },
+      orderBy: { date: 'asc' },
+      take: 5,
+    });
+
+    if (blockers.length > 0) {
+      const details = blockers
+        .map((r) => {
+          const dateText = new Date(r.date).toLocaleDateString('tr-TR');
+          const shortId = r.id.slice(0, 8);
+          return `${dateText} (${shortId}, ${r.status}, ${r.guestName})`;
+        })
+        .join('; ');
+      const moreText = blockers.length === 5 ? ' (ilk 5 kayit gosterildi)' : '';
+      return {
+        ok: false,
+        error: `Bu urun silinemez. Iptal edilmemis rezervasyon(lar) var: ${details}${moreText}.`,
+      };
     }
+
+    await prisma.reservation.deleteMany({
+      where: {
+        tourId,
+        OR: [
+          { status: { equals: 'CANCELLED', mode: 'insensitive' } },
+          { status: { equals: 'CANCELED', mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    const danglingReservationCount = await prisma.reservation.count({ where: { tourId } });
+    if (danglingReservationCount > 0) {
+      return {
+        ok: false,
+        error: `Bu urun silinemedi: urune bagli ${danglingReservationCount} rezervasyon kaydi hala mevcut.`,
+      };
+    }
+
     await prisma.tour.delete({ where: { id: tourId } });
     revalidateTours();
     return { ok: true };

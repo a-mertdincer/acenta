@@ -7,13 +7,13 @@ const dictionaries = {
     zh: () => import('./zh.json').then((module) => module.default),
     es: () => import('./es.json').then((module) => module.default),
     it: () => import('./it.json').then((module) => module.default),
-    ru: () => import('./en.json').then((module) => module.default),
+    ru: () => import('./ru.json').then((module) => module.default),
     de: () => import('./de.json').then((module) => module.default),
     fr: () => import('./fr.json').then((module) => module.default),
-    ko: () => import('./en.json').then((module) => module.default),
-    ja: () => import('./en.json').then((module) => module.default),
+    ko: () => import('./ko.json').then((module) => module.default),
+    ja: () => import('./ja.json').then((module) => module.default),
     nl: () => import('./nl.json').then((module) => module.default),
-    pl: () => import('./en.json').then((module) => module.default),
+    pl: () => import('./pl.json').then((module) => module.default),
     ro: () => import('./ro.json').then((module) => module.default),
 };
 

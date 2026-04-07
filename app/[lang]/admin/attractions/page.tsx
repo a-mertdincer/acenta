@@ -113,9 +113,9 @@ export default function AdminAttractionsPage(props: { params: Promise<{ lang: st
           <Input label="Name ZH" value={form.nameZh} onChange={(e) => setForm((p) => ({ ...p, nameZh: e.target.value }))} />
           <Input label="Image URL" value={form.imageUrl} onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))} />
           <div style={{ gridColumn: '1 / -1' }}>
-            <Input label="Description EN" value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} />
-            <Input label="Description TR" value={form.descriptionTr} onChange={(e) => setForm((p) => ({ ...p, descriptionTr: e.target.value }))} />
-            <Input label="Description ZH" value={form.descriptionZh} onChange={(e) => setForm((p) => ({ ...p, descriptionZh: e.target.value }))} />
+            <ResizableDescriptionField label="Description EN" value={form.descriptionEn} onChange={(value) => setForm((p) => ({ ...p, descriptionEn: value }))} />
+            <ResizableDescriptionField label="Description TR" value={form.descriptionTr} onChange={(value) => setForm((p) => ({ ...p, descriptionTr: value }))} />
+            <ResizableDescriptionField label="Description ZH" value={form.descriptionZh} onChange={(value) => setForm((p) => ({ ...p, descriptionZh: value }))} />
           </div>
         </div>
         <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-sm)' }}>
@@ -157,5 +157,32 @@ export default function AdminAttractionsPage(props: { params: Promise<{ lang: st
         )}
       </div>
     </div>
+  );
+}
+
+function ResizableDescriptionField(props: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { label, value, onChange } = props;
+  return (
+    <label style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>
+      <span style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 600 }}>{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        style={{
+          width: '100%',
+          minHeight: 120,
+          padding: '0.75rem',
+          borderRadius: 6,
+          border: '1px solid var(--color-border)',
+          resize: 'vertical',
+          fontFamily: 'inherit',
+        }}
+      />
+    </label>
   );
 }

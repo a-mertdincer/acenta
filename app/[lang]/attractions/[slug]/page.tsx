@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getAttractionBySlug } from '@/app/actions/attractions';
 import { getTourImageFallback, getTourImagePath } from '@/lib/imagePaths';
 import { formatPriceByLang } from '@/lib/currency';
+import { getDictionary } from '@/app/dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
 
 export default async function AttractionDetailPage(props: {
@@ -10,6 +11,7 @@ export default async function AttractionDetailPage(props: {
 }) {
   const { lang, slug } = await props.params;
   const locale = (lang || 'en') as SiteLocale;
+  const dict = await getDictionary(locale);
   const row = await getAttractionBySlug(slug);
   if (!row) notFound();
 
@@ -20,11 +22,11 @@ export default async function AttractionDetailPage(props: {
     <div className="container page-section">
       <div style={{ marginBottom: 'var(--space-lg)' }}>
         <Link href={`/${lang}/attractions`} className="site-footer-link">
-          ← {locale === 'tr' ? 'Gezi Noktalari' : locale === 'zh' ? '返回景点' : 'Attractions'}
+          ← {dict.navigation?.attractions ?? (locale === 'zh' ? '返回景点' : 'Attractions')}
         </Link>
       </div>
       <h1>{title}</h1>
-      {description ? <p className="tours-page-subtitle">{description}</p> : null}
+      {description ? <div className="tours-page-subtitle attraction-description">{description}</div> : null}
       <div className="tours-grid">
         {row.tours.map((tour) => {
           const tourTitle = locale === 'tr' ? tour.titleTr : locale === 'zh' ? tour.titleZh : tour.titleEn;

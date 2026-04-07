@@ -42,7 +42,6 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
                   <p className="tour-card-desc">{description ?? (dict.home?.popularExperiences ?? '')}</p>
                   <div className="tour-card-footer">
                     <span className="tour-card-price">{locale === 'tr' ? 'Kesfet' : locale === 'zh' ? '探索' : 'Explore'}</span>
-                    <span className="btn btn-primary tour-card-cta">{dict.tours?.bookNow ?? 'View'}</span>
                   </div>
                 </div>
               </Link>

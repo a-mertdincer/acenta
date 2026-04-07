@@ -206,7 +206,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                                 <input type="radio" disabled />
                                 <div>
                                     <span style={{ fontWeight: 'bold', display: 'block' }}>
-                                        Online Payment <small style={{ color: 'var(--color-text-muted)' }}>🔒 {lang === 'tr' ? 'Yakinda' : lang === 'zh' ? '即将推出' : 'Coming Soon'}</small>
+                                        Online Payment <small style={{ color: 'var(--color-text-muted)' }}>🔒 {lang === 'tr' ? 'Yakında' : lang === 'zh' ? '即将推出' : 'Coming Soon'}</small>
                                     </span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                                         {lang === 'tr'

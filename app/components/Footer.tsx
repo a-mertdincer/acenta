@@ -5,37 +5,34 @@ type Lang = SiteLocale;
 
 interface FooterDict {
   about: string;
+  aboutDesc?: string;
+  quickLinks?: string;
   contact: string;
   phone: string;
   email: string;
+  legal?: string;
   privacy: string;
   cancellation: string;
   rights: string;
-  quickLinks?: string;
-  home?: string;
-  tours?: string;
-  aboutLink?: string;
-  contactLink?: string;
 }
 
 interface FooterProps {
   lang: Lang;
   footer?: FooterDict;
+  navigation?: { home: string; tours: string; aboutUs: string; contact: string };
 }
 
 const defaultFooter: FooterDict = {
   about: 'About us',
+  aboutDesc: 'Kismet Goreme Travel — premium tours and hot air balloon experiences in Cappadocia.',
+  quickLinks: 'Quick links',
   contact: 'Contact',
   phone: 'Phone',
   email: 'Email',
+  legal: 'Legal',
   privacy: 'Privacy Policy',
   cancellation: 'Cancellation Policy',
   rights: 'All rights reserved.',
-  quickLinks: 'Quick links',
-  home: 'Home',
-  tours: 'Tours',
-  aboutLink: 'About',
-  contactLink: 'Contact',
 };
 
 const FOOTER_SOCIAL = [
@@ -59,7 +56,7 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-export function Footer({ lang, footer: f }: FooterProps) {
+export function Footer({ lang, footer: f, navigation }: FooterProps) {
   const footer = f ?? defaultFooter;
   return (
     <footer id="contact" className="site-footer">
@@ -68,7 +65,7 @@ export function Footer({ lang, footer: f }: FooterProps) {
           <div className="site-footer-block">
             <h3 className="site-footer-title">{footer.about}</h3>
             <p className="site-footer-text">
-              Kısmet Göreme Travel — premium tours and hot air balloon experiences in Cappadocia.
+              {footer.aboutDesc ?? defaultFooter.aboutDesc}
             </p>
             <div className="site-footer-social">
               {FOOTER_SOCIAL.map(({ href, label }, i) => (
@@ -81,10 +78,10 @@ export function Footer({ lang, footer: f }: FooterProps) {
           <div className="site-footer-block">
             <h3 className="site-footer-title">{footer.quickLinks ?? 'Quick links'}</h3>
             <nav className="site-footer-quicklinks" aria-label="Footer navigation">
-              <Link href={`/${lang}`}>{footer.home ?? 'Home'}</Link>
-              <Link href={`/${lang}/tours`}>{footer.tours ?? 'Tours'}</Link>
-              <Link href={`/${lang}/about`}>{footer.aboutLink ?? 'About'}</Link>
-              <Link href={`/${lang}/contact`}>{footer.contactLink ?? 'Contact'}</Link>
+              <Link href={`/${lang}`}>{navigation?.home ?? 'Home'}</Link>
+              <Link href={`/${lang}/tours`}>{navigation?.tours ?? 'Tours'}</Link>
+              <Link href={`/${lang}/about`}>{navigation?.aboutUs ?? 'About'}</Link>
+              <Link href={`/${lang}/contact`}>{navigation?.contact ?? 'Contact'}</Link>
             </nav>
           </div>
           <div className="site-footer-block">
@@ -98,7 +95,7 @@ export function Footer({ lang, footer: f }: FooterProps) {
             </p>
           </div>
           <div className="site-footer-block">
-            <h3 className="site-footer-title">Legal</h3>
+            <h3 className="site-footer-title">{footer.legal ?? 'Legal'}</h3>
             <p className="site-footer-text">
               <Link href={`/${lang}/legal/privacy`} className="site-footer-link">{footer.privacy}</Link>
               <br />

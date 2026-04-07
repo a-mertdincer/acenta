@@ -5,41 +5,36 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
   const params = await props.params;
   const lang = (params.lang || 'en') as SiteLocale;
   const dict = await getDictionary(lang);
+  const c = dict.contactPage ?? {};
 
   return (
     <section className="page-section">
       <div className="container contact-page">
-        <h1>{dict.navigation.contact ?? 'Contact'}</h1>
-        <p className="contact-page-intro">
-          {lang === 'tr'
-            ? 'Sorulariniz ve ozel talepleriniz icin bizimle iletisime gecin.'
-            : lang === 'zh'
-              ? '如有问题或特殊需求，请联系我们。'
-              : 'Reach us for any questions or custom travel requests.'}
-        </p>
+        <h1>{c.pageTitle ?? dict.navigation.contact ?? 'Contact'}</h1>
+        <p className="contact-page-intro">{c.pageDescription ?? 'Reach us for any questions or custom travel requests.'}</p>
         <div className="contact-page-grid">
           <div className="contact-page-card">
-            <h2>{lang === 'tr' ? 'Telefon' : lang === 'zh' ? '电话' : 'Phone'}</h2>
+            <h2>{c.phone ?? (lang === 'zh' ? '电话' : 'Phone')}</h2>
             <a href="tel:+903842123456">+90 384 212 34 56</a>
           </div>
           <div className="contact-page-card">
-            <h2>{lang === 'tr' ? 'E-posta' : lang === 'zh' ? '电子邮件' : 'Email'}</h2>
+            <h2>{c.email ?? (lang === 'zh' ? '电子邮件' : 'Email')}</h2>
             <a href="mailto:info@kismetgoreme.com">info@kismetgoreme.com</a>
           </div>
           <div className="contact-page-card">
-            <h2>{lang === 'tr' ? 'Adres' : lang === 'zh' ? '地址' : 'Address'}</h2>
-            <p>Goreme, Nevsehir, Turkiye</p>
+            <h2>{c.addressLabel ?? (lang === 'zh' ? '地址' : 'Address')}</h2>
+            <p>{c.address ?? 'Göreme, Nevşehir, Türkiye'}</p>
           </div>
         </div>
         <div className="contact-form-card">
-          <h2>{lang === 'tr' ? 'Bize Mesaj Gonderin' : lang === 'zh' ? '给我们留言' : 'Send us a message'}</h2>
+          <h2>{c.messageTitle ?? 'Send us a message'}</h2>
           <form className="contact-form-grid" action="#">
-            <InputLike label={lang === 'tr' ? 'Ad Soyad' : lang === 'zh' ? '姓名' : 'Name'} />
-            <InputLike label={lang === 'tr' ? 'E-posta' : lang === 'zh' ? '电子邮件' : 'Email'} />
-            <SelectLike label={lang === 'tr' ? 'Konu' : lang === 'zh' ? '主题' : 'Subject'} />
-            <TextareaLike label={lang === 'tr' ? 'Mesaj' : lang === 'zh' ? '消息' : 'Message'} />
+            <InputLike label={c.formName ?? 'Name'} />
+            <InputLike label={c.formEmail ?? 'Email'} />
+            <SelectLike label={c.formSubject ?? 'Subject'} general={c.subjectGeneral ?? 'General'} booking={c.subjectBooking ?? 'Booking'} support={c.subjectSupport ?? 'Support'} />
+            <TextareaLike label={c.formMessage ?? 'Message'} />
             <button type="button" className="btn btn-primary">
-              {lang === 'tr' ? 'Gonder' : lang === 'zh' ? '发送' : 'Send'}
+              {c.formSend ?? 'Send'}
             </button>
           </form>
         </div>
@@ -65,14 +60,14 @@ function InputLike({ label }: { label: string }) {
   );
 }
 
-function SelectLike({ label }: { label: string }) {
+function SelectLike({ label, general, booking, support }: { label: string; general: string; booking: string; support: string }) {
   return (
     <label className="contact-form-field">
       <span>{label}</span>
       <select>
-        <option value="">General</option>
-        <option value="booking">Booking</option>
-        <option value="support">Support</option>
+        <option value="">{general}</option>
+        <option value="booking">{booking}</option>
+        <option value="support">{support}</option>
       </select>
     </label>
   );

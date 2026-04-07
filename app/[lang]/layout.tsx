@@ -29,12 +29,29 @@ const fallbackNav = {
 };
 const fallbackFooter = {
   about: 'About us',
+  aboutDesc: 'Kismet Goreme Travel — premium tours and hot air balloon experiences in Cappadocia.',
+  quickLinks: 'Quick links',
   contact: 'Contact',
   phone: 'Phone',
   email: 'Email',
+  legal: 'Legal',
   privacy: 'Privacy Policy',
   cancellation: 'Cancellation Policy',
   rights: 'All rights reserved.',
+};
+const fallbackCategories = {
+  'balloon-flights': 'Balloon Flights',
+  'daily-tours': 'Daily Tours',
+  'adventure-activities': 'Adventure Activities',
+  'cultural-experiences': 'Cultural Experiences',
+  transfers: 'Transfers',
+  workshops: 'Workshops',
+  packages: 'Packages',
+  concierge: 'Concierge',
+  'rent-a-car-bike': 'Rent a Car/Bike',
+  all: 'All Tours',
+  soon: 'Soon',
+  inDestination: 'Cappadocia',
 };
 const fallbackHeaderUserMenu = {
   signedInAs: 'Signed in as',
@@ -51,10 +68,11 @@ export default async function RootLayout(props: {
 }) {
   const { children } = props;
   let lang: SiteLocale = 'en';
-  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter; headerUserMenu?: typeof fallbackHeaderUserMenu } = {
+  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter; headerUserMenu?: typeof fallbackHeaderUserMenu; categories?: typeof fallbackCategories } = {
     navigation: fallbackNav,
     footer: fallbackFooter,
     headerUserMenu: fallbackHeaderUserMenu,
+    categories: fallbackCategories,
   };
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let activeCouponCount = 0;
@@ -72,6 +90,7 @@ export default async function RootLayout(props: {
       navigation: d.navigation ?? fallbackNav,
       footer: d.footer ?? fallbackFooter,
       headerUserMenu: d.headerUserMenu ?? fallbackHeaderUserMenu,
+      categories: d.categories ?? fallbackCategories,
     } : dict;
     session = s;
   } catch {
@@ -84,6 +103,7 @@ export default async function RootLayout(props: {
   const nav = dict?.navigation ?? fallbackNav;
   const footer = dict?.footer ?? fallbackFooter;
   const headerUserMenu = dict?.headerUserMenu ?? fallbackHeaderUserMenu;
+  const categories = dict?.categories ?? fallbackCategories;
 
   return (
     <html lang={lang}>
@@ -98,6 +118,7 @@ export default async function RootLayout(props: {
           lang={lang}
           nav={nav}
           menu={headerUserMenu}
+          categories={categories}
           isLoggedIn={!!session}
           isAdmin={session?.role === 'ADMIN'}
           userName={session?.name}
@@ -107,7 +128,7 @@ export default async function RootLayout(props: {
           {children}
         </main>
         <ScrollReveal />
-        <Footer lang={lang} footer={footer} />
+        <Footer lang={lang} footer={footer} navigation={nav} />
       </body>
     </html>
   );

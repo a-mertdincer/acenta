@@ -255,11 +255,77 @@
   },
   "footer": {
     "about": "Hakkımızda",
+    "aboutDesc": "Kısmet Göreme Travel — Kapadokya'da premium turlar ve sıcak hava balonu deneyimleri.",
+    "quickLinks": "Hızlı Bağlantılar",
     "contact": "İletişim",
     "phone": "Telefon",
     "email": "E-posta",
+    "legal": "Yasal",
     "privacy": "Gizlilik Politikası",
     "cancellation": "İptal Koşulları",
     "rights": "Tüm hakları saklıdır."
+  },
+  "login": {
+    "title": "Giriş Yap",
+    "email": "E-posta Adresi",
+    "password": "Şifre",
+    "submit": "Giriş Yap",
+    "or": "veya",
+    "googleSignIn": "Google ile Giriş Yap",
+    "noAccount": "Hesabınız yok mu?",
+    "registerLink": "Buradan kayıt olun"
+  },
+  "register": {
+    "title": "Kayıt Ol",
+    "name": "Ad Soyad",
+    "email": "E-posta Adresi",
+    "password": "Şifre",
+    "confirmPassword": "Şifreyi Onaylayın",
+    "submit": "Hesap Oluştur",
+    "or": "veya",
+    "googleSignIn": "Google ile Giriş Yap",
+    "hasAccount": "Zaten hesabınız var mı?",
+    "loginLink": "Buradan giriş yapın"
+  },
+  "about": {
+    "title": "Hakkımızda",
+    "tagline": "Kapadokya'daki güvenilir seyahat acenteniz",
+    "body3": "Yerel rehberlerle çalışıyor, güvenli ulaşım ve net fiyat politikası ile misafirlerimize sorunsuz bir deneyim sunuyoruz.",
+    "statYears": "Yıl Tecrübe",
+    "statGuests": "Mutlu Misafir",
+    "statSupport": "Destek",
+    "whatsappCta": "WhatsApp ile İletişime Geçin"
+  },
+  "contactPage": {
+    "pageTitle": "İletişim",
+    "pageDescription": "Sorularınız ve özel talepleriniz için bizimle iletişime geçin.",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "addressLabel": "Adres",
+    "address": "Göreme, Nevşehir, Türkiye",
+    "messageTitle": "Bize Mesaj Gönderin",
+    "formName": "Ad Soyad",
+    "formEmail": "E-posta",
+    "formSubject": "Konu",
+    "formMessage": "Mesajınız",
+    "formSend": "Gönder",
+    "formSending": "Gönderiliyor...",
+    "subjectGeneral": "Genel",
+    "subjectBooking": "Rezervasyon",
+    "subjectSupport": "Destek"
+  },
+  "categories": {
+    "balloon-flights": "Balon Uçuşları",
+    "daily-tours": "Günlük Turlar",
+    "adventure-activities": "Macera Aktiviteleri",
+    "cultural-experiences": "Kültürel Deneyimler",
+    "transfers": "Transferler",
+    "workshops": "Atölyeler",
+    "packages": "Paketler",
+    "concierge": "Concierge Hizmetleri",
+    "rent-a-car-bike": "Araç/Motosiklet Kiralama",
+    "all": "Tüm Turlar",
+    "soon": "Yakında",
+    "inDestination": "Kapadokya"
   }
 }

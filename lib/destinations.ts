@@ -32,15 +32,15 @@ const DESTINATIONS: DestinationConfig[] = [
     nameZh: '卡帕多奇亚',
     active: true,
     categories: [
-      { id: 'hot-air-balloon', slug: 'balloon-flights', labelEn: 'Balloon Flights', labelTr: 'Balon Ucuslari', labelZh: '热气球飞行' },
+      { id: 'hot-air-balloon', slug: 'balloon-flights', labelEn: 'Balloon Flights', labelTr: 'Balon Uçuşları', labelZh: '热气球飞行' },
       { id: 'daily-tours', slug: 'daily-tours', labelEn: 'Daily Tours', labelTr: 'Gün Turları', labelZh: '一日游' },
       { id: 'adventure-activities', slug: 'adventure-activities', labelEn: 'Adventure Activities', labelTr: 'Macera Aktiviteleri', labelZh: '探险活动' },
       { id: 'cultural-experiences', slug: 'cultural-experiences', labelEn: 'Cultural Experiences', labelTr: 'Kültürel Deneyimler', labelZh: '文化体验' },
       { id: 'transfers', slug: 'transfers', labelEn: 'Transfers', labelTr: 'Transferler', labelZh: '接送' },
       { id: 'workshops', slug: 'workshops', labelEn: 'Workshops', labelTr: 'Atölyeler', labelZh: '工作坊' },
       { id: 'packages', slug: 'packages', labelEn: 'Packages', labelTr: 'Paketler', labelZh: '套餐' },
-      { id: 'concierge', slug: 'concierge', labelEn: 'Concierge', labelTr: 'Concierge', labelZh: '礼宾服务' },
-      { id: 'rent-a-car-bike', slug: 'rent-a-car-bike', labelEn: 'Rent a Car/Bike', labelTr: 'Arac/Motosiklet Kiralama', labelZh: '租车/租摩托' },
+      { id: 'concierge', slug: 'concierge', labelEn: 'Concierge', labelTr: 'Concierge Hizmetleri', labelZh: '礼宾服务' },
+      { id: 'rent-a-car-bike', slug: 'rent-a-car-bike', labelEn: 'Rent a Car/Bike', labelTr: 'Araç/Motosiklet Kiralama', labelZh: '租车/租摩托' },
     ],
   },
   {

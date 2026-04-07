@@ -36,6 +36,7 @@ interface HeaderProps {
     contact: string;
     managementPanel: string;
   };
+  categories?: Record<string, string>;
   isLoggedIn?: boolean;
   isAdmin?: boolean;
   userName?: string;
@@ -91,7 +92,7 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, userName, activeCouponCount = 0 }: HeaderProps) {
+export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, isAdmin = false, userName, activeCouponCount = 0 }: HeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -170,10 +171,10 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
   };
   const toursMenuItems = toursCategories.map((category) => ({
     slug: category.slug,
-    label: `${categoryEmoji[category.slug] ?? '•'} ${getCategoryLabel(category, categoryLabelLang)}`,
+    label: `${categoryEmoji[category.slug] ?? '•'} ${categories[category.slug] ?? getCategoryLabel(category, categoryLabelLang)}`,
     href: `/${lang}/tours/cappadocia/${category.slug}`,
   }));
-  const soonLabel = lang === 'tr' ? 'Yakinda' : lang === 'zh' ? '即将推出' : 'Soon';
+  const soonLabel = categories.soon ?? (lang === 'tr' ? 'Yakında' : lang === 'zh' ? '即将推出' : 'Soon');
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -321,7 +322,7 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
                       setToursMenuOpen(false);
                     }}
                   >
-                    {lang === 'tr' ? '📋 Tum Turlar' : lang === 'zh' ? '📋 所有旅游' : '📋 All Tours'}
+                    {`📋 ${categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}`}
                   </Link>
                 </div>
                 <div className={`site-nav-tours-mobile ${mobileToursOpen ? 'open' : ''}`}>
@@ -347,7 +348,7 @@ export function Header({ lang, nav, menu, isLoggedIn = false, isAdmin = false, u
                       setMobileToursOpen(false);
                     }}
                   >
-                    {lang === 'tr' ? '📋 Tum Turlar' : lang === 'zh' ? '📋 所有旅游' : '📋 All Tours'}
+                    {`📋 ${categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}`}
                   </Link>
                 </div>
               </div>

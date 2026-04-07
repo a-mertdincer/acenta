@@ -255,11 +255,77 @@
   },
   "footer": {
     "about": "About us",
+    "aboutDesc": "Kısmet Göreme Travel — premium tours and hot air balloon experiences in Cappadocia.",
+    "quickLinks": "Quick links",
     "contact": "Contact",
     "phone": "Phone",
     "email": "Email",
+    "legal": "Legal",
     "privacy": "Privacy Policy",
     "cancellation": "Cancellation Policy",
     "rights": "All rights reserved."
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email Address",
+    "password": "Password",
+    "submit": "Login",
+    "or": "or",
+    "googleSignIn": "Sign in with Google",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Register here"
+  },
+  "register": {
+    "title": "Register",
+    "name": "Full Name",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "submit": "Create Account",
+    "or": "or",
+    "googleSignIn": "Sign in with Google",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Login here"
+  },
+  "about": {
+    "title": "About Us",
+    "tagline": "Your trusted travel agency in Cappadocia",
+    "body3": "We work with local guides, providing safe transportation and transparent pricing for a seamless experience.",
+    "statYears": "Years Experience",
+    "statGuests": "Happy Guests",
+    "statSupport": "Support",
+    "whatsappCta": "Contact us on WhatsApp"
+  },
+  "contactPage": {
+    "pageTitle": "Contact",
+    "pageDescription": "Get in touch with us for your questions and special requests.",
+    "phone": "Phone",
+    "email": "Email",
+    "addressLabel": "Address",
+    "address": "Göreme, Nevşehir, Türkiye",
+    "messageTitle": "Send Us a Message",
+    "formName": "Full Name",
+    "formEmail": "Email",
+    "formSubject": "Subject",
+    "formMessage": "Your message",
+    "formSend": "Send",
+    "formSending": "Sending...",
+    "subjectGeneral": "General",
+    "subjectBooking": "Booking",
+    "subjectSupport": "Support"
+  },
+  "categories": {
+    "balloon-flights": "Balloon Flights",
+    "daily-tours": "Daily Tours",
+    "adventure-activities": "Adventure Activities",
+    "cultural-experiences": "Cultural Experiences",
+    "transfers": "Transfers",
+    "workshops": "Workshops",
+    "packages": "Packages",
+    "concierge": "Concierge",
+    "rent-a-car-bike": "Rent a Car/Bike",
+    "all": "All Tours",
+    "soon": "Soon",
+    "inDestination": "Cappadocia"
   }
 }

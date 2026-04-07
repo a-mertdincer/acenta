@@ -255,11 +255,77 @@
   },
   "footer": {
     "about": "关于我们",
+    "aboutDesc": "Kısmet Göreme Travel — 卡帕多奇亚精品旅游与热气球体验。",
+    "quickLinks": "快捷链接",
     "contact": "联系方式",
     "phone": "电话",
     "email": "电子邮件",
+    "legal": "法律",
     "privacy": "隐私政策",
     "cancellation": "取消政策",
     "rights": "版权所有。"
+  },
+  "login": {
+    "title": "登录",
+    "email": "电子邮箱",
+    "password": "密码",
+    "submit": "登录",
+    "or": "或",
+    "googleSignIn": "使用Google登录",
+    "noAccount": "还没有账户？",
+    "registerLink": "点此注册"
+  },
+  "register": {
+    "title": "注册",
+    "name": "姓名",
+    "email": "电子邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "submit": "创建账户",
+    "or": "或",
+    "googleSignIn": "使用Google登录",
+    "hasAccount": "已有账户？",
+    "loginLink": "点此登录"
+  },
+  "about": {
+    "title": "关于我们",
+    "tagline": "卡帕多奇亚值得信赖的旅行社",
+    "body3": "我们与当地向导合作，提供安全交通和透明定价，为您带来无忧体验。",
+    "statYears": "年经验",
+    "statGuests": "满意游客",
+    "statSupport": "全天候服务",
+    "whatsappCta": "通过WhatsApp联系我们"
+  },
+  "contactPage": {
+    "pageTitle": "联系我们",
+    "pageDescription": "如有任何问题或特殊需求，请与我们联系。",
+    "phone": "电话",
+    "email": "电子邮件",
+    "addressLabel": "地址",
+    "address": "格雷梅，内夫谢希尔，土耳其",
+    "messageTitle": "给我们留言",
+    "formName": "姓名",
+    "formEmail": "电子邮箱",
+    "formSubject": "主题",
+    "formMessage": "您的留言",
+    "formSend": "发送",
+    "formSending": "发送中...",
+    "subjectGeneral": "一般咨询",
+    "subjectBooking": "预订咨询",
+    "subjectSupport": "客服支持"
+  },
+  "categories": {
+    "balloon-flights": "热气球飞行",
+    "daily-tours": "一日游",
+    "adventure-activities": "冒险活动",
+    "cultural-experiences": "文化体验",
+    "transfers": "接送服务",
+    "workshops": "工坊体验",
+    "packages": "套餐",
+    "concierge": "礼宾服务",
+    "rent-a-car-bike": "租车/摩托",
+    "all": "全部项目",
+    "soon": "即将推出",
+    "inDestination": "卡帕多奇亚"
   }
 }

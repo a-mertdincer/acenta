@@ -276,6 +276,28 @@ export function ProductVariantBookingCard({
     }, 0);
     return baseTotal + extrasTotal;
   }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, transferAirportTiers, selection.airport, selectedOptions, options]);
+  const baseTotal = useMemo(() => {
+    if (!activeVariant) return 0;
+    return total - selectedOptions.reduce((sum, optId) => {
+      const opt = options.find((o) => o.id === optId);
+      if (!opt) return sum;
+      return sum + (opt.pricingMode === 'flat' ? opt.price : opt.price * Math.max(1, adults + children + infants));
+    }, 0);
+  }, [activeVariant, total, selectedOptions, options, adults, children, infants]);
+  const selectedOptionRows = useMemo(() => {
+    const pax = Math.max(1, adults + children + infants);
+    return selectedOptions
+      .map((optId) => options.find((o) => o.id === optId))
+      .filter((opt): opt is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' } => Boolean(opt))
+      .map((opt) => {
+        const isFlat = opt.pricingMode === 'flat';
+        return {
+          id: opt.id,
+          label: `+ ${opt.title} ${isFlat ? '(1x)' : `(×${pax})`}`,
+          total: isFlat ? opt.price : opt.price * pax,
+        };
+      });
+  }, [selectedOptions, options, adults, children, infants]);
 
   const variantTitle = activeVariant
     ? lang === 'tr'
@@ -666,7 +688,7 @@ export function ProductVariantBookingCard({
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span>{adults + children + infants} pax (vehicle)</span>
-                  <span>{formatShown(total).primary}</span>
+                  <span>{formatShown(baseTotal).primary}</span>
                 </div>
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
@@ -676,6 +698,12 @@ export function ProductVariantBookingCard({
                 )}
               </>
             )}
+            {selectedOptionRows.map((row) => (
+              <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--color-text-muted)', paddingLeft: '8px' }}>
+                <span>{row.label}</span>
+                <span>{formatShown(row.total).primary}</span>
+              </div>
+            ))}
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, marginBottom: 'var(--space-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-sm)' }}>

@@ -318,6 +318,15 @@ function StickyAnchorBar({
   sections: { id: string; label: string }[];
 }) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? '');
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const anchorBar = document.querySelector('.tour-anchor-bar') as HTMLElement | null;
+    const navbarHeight = (anchorBar?.offsetHeight ?? 0) + 70;
+    const y = element.getBoundingClientRect().top + window.scrollY - navbarHeight;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    setActiveId(id);
+  };
 
   useEffect(() => {
     const nodes = sections
@@ -346,6 +355,10 @@ function StickyAnchorBar({
           key={section.id}
           href={`#${section.id}`}
           className={`tour-anchor-link ${activeId === section.id ? 'active' : ''}`}
+          onClick={(event) => {
+            event.preventDefault();
+            scrollToSection(section.id);
+          }}
         >
           {section.label}
         </a>
@@ -480,14 +493,55 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             if (found) setTour(found);
             return;
         }
-        getTourById(id).then((dbTour) => {
-            if (dbTour) setTour(mapDbTourToState(dbTour, lang as Lang));
-            else {
-                const found = mockTours.find(t => t.id === id);
-                if (found) setTour(found);
+        Promise.all([getTourById(id), getTourWithVariants(id)])
+          .then(([dbTour, variantData]) => {
+            setTourWithVariants(variantData);
+            if (dbTour) {
+              setTour(mapDbTourToState(dbTour, lang as Lang));
+              return;
             }
-        });
-        getTourWithVariants(id).then(setTourWithVariants);
+            if (variantData) {
+              setTour({
+                id: variantData.id,
+                type: variantData.type,
+                titleEn: variantData.titleEn,
+                titleTr: variantData.titleTr,
+                titleZh: variantData.titleZh,
+                descEn: '',
+                descTr: '',
+                descZh: '',
+                basePrice: 0,
+                transferTiers: null,
+                transferAirportTiers: variantData.transferAirportTiers ?? null,
+                options: [],
+                faqs: [],
+                images: [],
+                itinerary: null,
+                knowBefore: null,
+                notSuitable: null,
+                notAllowed: null,
+                minAgeLimit: variantData.minAgeLimit ?? null,
+                ageRestriction: null,
+                ageGroups: (variantData.ageGroups ?? []).map((group) => ({
+                  minAge: group.minAge,
+                  maxAge: group.maxAge,
+                  pricingType: group.pricingType,
+                  description: lang === 'tr'
+                    ? group.descriptionTr
+                    : lang === 'zh'
+                      ? (group.descriptionZh ?? '')
+                      : group.descriptionEn,
+                })),
+              });
+              return;
+            }
+            const found = mockTours.find(t => t.id === id);
+            if (found) setTour(found);
+          })
+          .catch(() => {
+            const found = mockTours.find(t => t.id === id);
+            if (found) setTour(found);
+          });
     }, [id, lang]);
 
     useEffect(() => {
@@ -568,9 +622,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
         );
     };
 
-    const useVariantBooking = tourWithVariants && tourWithVariants.variants.length > 0;
-    const fromPrice = useVariantBooking && tourWithVariants
-        ? Math.min(...tourWithVariants.variants.map((v) => v.adultPrice))
+    const availableVariants = tourWithVariants?.variants ?? [];
+    const useVariantBooking = availableVariants.length > 0;
+    const fromPrice = useVariantBooking
+        ? Math.min(...availableVariants.map((v) => v.adultPrice))
         : null;
     const galleryMain = getTourImagePath(tour.type);
     const galleryFallback = getTourImageFallback(tour.type);
@@ -585,7 +640,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
       { id: 'book-now', label: lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now' },
       { id: 'itinerary', label: 'Itinerary' },
       { id: 'gallery', label: lang === 'tr' ? 'Galeri' : lang === 'zh' ? '图库' : 'Gallery' },
-      { id: 'included', label: lang === 'tr' ? 'Dahil Olanlar' : lang === 'zh' ? '包含内容' : "What's Included" },
+      { id: 'whats-included', label: lang === 'tr' ? 'Dahil Olanlar' : lang === 'zh' ? '包含内容' : "What's Included" },
       { id: 'faqs', label: 'FAQs' },
     ];
 
@@ -639,7 +694,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 </section>
                             )}
                             {notAllowedItems.length > 0 && (
-                                <section className="tour-structured-section" id="included">
+                                <section className="tour-structured-section" id="whats-included">
                                     <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
                                     <ul>{notAllowedItems.map((item, idx) => <li key={`na-${idx}`}>{item}</li>)}</ul>
                                 </section>
@@ -668,7 +723,24 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 tourId={tour.id}
                                 tourType={tour.type}
                                 lang={lang as Lang}
-                                data={tourWithVariants!}
+                                data={tourWithVariants ?? {
+                                  id: tour.id,
+                                  type: tour.type,
+                                  titleEn: tour.titleEn,
+                                  titleTr: tour.titleTr,
+                                  titleZh: tour.titleZh,
+                                  hasTourType: false,
+                                  hasAirportSelect: false,
+                                  hasReservationType: false,
+                                  reservationTypeMode: 'none',
+                                  minAgeLimit: tour.minAgeLimit ?? null,
+                                  ageRestrictionEn: null,
+                                  ageRestrictionTr: null,
+                                  ageRestrictionZh: null,
+                                  ageGroups: [],
+                                  transferAirportTiers: null,
+                                  variants: [],
+                                }}
                                 title={title}
                                 options={tour.options ?? []}
                                 ageGroups={tour.ageGroups ?? []}
@@ -716,7 +788,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     </section>
                 )}
                 {notAllowedItems.length > 0 && (
-                    <section className="tour-structured-section" id="included">
+                    <section className="tour-structured-section" id="whats-included">
                         <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
                         <ul>{notAllowedItems.map((item, idx) => <li key={`na-nv-${idx}`}>{item}</li>)}</ul>
                     </section>

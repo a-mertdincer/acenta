@@ -1,6 +1,7 @@
 'use client';
 
 import type { TourVariantDisplay } from '@/lib/types/variant';
+import { getTierFromPrice } from '@/lib/pricingTiers';
 
 export function ReservationTypeCards({
   variants,
@@ -20,8 +21,13 @@ export function ReservationTypeCards({
   const cards = variants.filter((v) => Boolean(v.reservationType));
 
   const title = (v: TourVariantDisplay) => (lang === 'tr' ? v.titleTr : lang === 'zh' ? v.titleZh : v.titleEn);
-  const priceLabel = (v: TourVariantDisplay) =>
-    v.pricingType === 'per_person' ? `${labels.perPerson} €${v.adultPrice}` : `${labels.perVehicle} €${v.adultPrice}`;
+  const priceLabel = (v: TourVariantDisplay) => {
+    if (v.reservationType === 'private' && (v.privatePriceTiers?.length ?? 0) > 0) {
+      const fromTier = getTierFromPrice(v.privatePriceTiers ?? null);
+      if (fromTier != null) return `From €${fromTier}`;
+    }
+    return v.pricingType === 'per_person' ? `${labels.perPerson} €${v.adultPrice}` : `${labels.perVehicle} €${v.adultPrice}`;
+  };
   const iconFor = (reservationType: string | null) => {
     if (!showTypeMeta) return null;
     if (reservationType === 'regular') return '🚐';

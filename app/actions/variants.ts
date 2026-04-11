@@ -3,7 +3,7 @@
 import { getSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import type { TourVariantDisplay } from '@/lib/types/variant';
-import { parsePriceTiers, validateContinuousPriceTiers } from '@/lib/pricingTiers';
+import { parsePriceTiers, validateContinuousPriceTiers, type PriceTier } from '@/lib/pricingTiers';
 import type { ReservationTypeMode, TransferAirportTiers } from '@/app/actions/tours';
 
 type PrismaWithTourVariant = typeof prisma & {
@@ -206,7 +206,7 @@ export type CreateVariantInput = {
   adultPrice: number;
   childPrice: number | null;
   pricingType: 'per_person' | 'per_vehicle';
-  privatePriceTiers?: { minPax: number; maxPax: number; price: number }[] | null;
+  privatePriceTiers?: PriceTier[] | null;
   sortOrder?: number;
   isActive?: boolean;
   isRecommended?: boolean;

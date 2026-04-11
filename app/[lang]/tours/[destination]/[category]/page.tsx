@@ -15,6 +15,8 @@ import { ActivitiesDestinationSection } from '../../../../components/ActivitiesD
 import type { Metadata } from 'next';
 import { getEurTryRate } from '@/lib/exchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
+import { getTourWithVariants } from '@/app/actions/variants';
+import { getTierFromPrice } from '@/lib/pricingTiers';
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string; destination: string; category: string }>;
@@ -45,6 +47,21 @@ export default async function ToursCategoryPage(props: {
 
   const dict = await getDictionary(lang);
   const dbTours = await getTours({ destination, category });
+  const variantFromPriceMap = new Map<string, number>();
+  const variantData = await Promise.all(dbTours.map(async (tour) => ({ id: tour.id, data: await getTourWithVariants(tour.id) })));
+  variantData.forEach(({ id, data }) => {
+    const activeVariants = data?.variants ?? [];
+    if (activeVariants.length === 0) return;
+    const minPrice = Math.min(
+      ...activeVariants.map((variant) => {
+        if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+          return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
+        }
+        return variant.adultPrice;
+      })
+    );
+    variantFromPriceMap.set(id, minPrice);
+  });
   const byAirport = (t: { transferAirportTiers?: { ASR?: { price: number }[]; NAV?: { price: number }[] } | null; transferTiers?: { price: number }[] | null }) => {
     if (t.transferAirportTiers) {
       const asr = (t.transferAirportTiers as { ASR?: { price: number }[] }).ASR ?? [];
@@ -55,7 +72,7 @@ export default async function ToursCategoryPage(props: {
   };
   const tours = dbTours.map((t) => {
     const allTierPrices = byAirport(t);
-    const fromPrice = t.type === 'TRANSFER' && allTierPrices.length ? Math.min(...allTierPrices) : t.basePrice;
+    const fromPrice = t.type === 'TRANSFER' && allTierPrices.length ? Math.min(...allTierPrices) : (variantFromPriceMap.get(t.id) ?? t.basePrice);
     return {
       id: t.id,
       type: t.type,

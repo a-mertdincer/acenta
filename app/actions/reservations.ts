@@ -6,6 +6,7 @@ import { Resend } from 'resend';
 import { sanitizeGuestInput } from '@/lib/guestNotes';
 import { getTourDatePrice } from './tours';
 import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
+import { parsePriceTiers, resolveTierPrice } from '@/lib/pricingTiers';
 
 type TourSummary = { id: string; titleEn: string; titleTr: string; type: string };
 type VariantSummary = { id: string; titleEn: string; titleTr: string };
@@ -580,7 +581,15 @@ async function recalculateReservationPrice(
       const children = res.childCount ?? 0;
       const adults = Math.max(0, newPax - children);
       if (variant.pricingType === 'per_person') {
-        subtotal = variant.adultPrice * adults + (variant.childPrice ?? variant.adultPrice) * children;
+        const privateTierPrice =
+          variant.reservationType === 'private'
+            ? resolveTierPrice(parsePriceTiers(variant.privatePriceTiers) ?? null, newPax)
+            : null;
+        if (privateTierPrice != null) {
+          subtotal = privateTierPrice;
+        } else {
+          subtotal = variant.adultPrice * adults + (variant.childPrice ?? variant.adultPrice) * children;
+        }
       } else {
         subtotal = variant.adultPrice;
       }

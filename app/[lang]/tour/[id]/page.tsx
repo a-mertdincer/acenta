@@ -11,6 +11,7 @@ import { ProductVariantBookingCard } from '../../../components/ProductVariantBoo
 import { TourDetailGallery } from '../../../components/TourDetailGallery';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
+import { getTierFromPrice } from '@/lib/pricingTiers';
 
 function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: number; price: number }[] | null, pax: number, basePrice: number): number {
   if (transferTiers?.length) {
@@ -625,7 +626,14 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const availableVariants = tourWithVariants?.variants ?? [];
     const useVariantBooking = availableVariants.length > 0;
     const fromPrice = useVariantBooking
-        ? Math.min(...availableVariants.map((v) => v.adultPrice))
+        ? Math.min(
+            ...availableVariants.map((variant) => {
+              if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+                return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
+              }
+              return variant.adultPrice;
+            })
+          )
         : null;
     const galleryMain = getTourImagePath(tour.type);
     const galleryFallback = getTourImageFallback(tour.type);

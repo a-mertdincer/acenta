@@ -4,8 +4,10 @@ import { HomeHero } from '../components/HomeHero';
 import { HomeExperienceCard } from '../components/HomeExperienceCard';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
+import { getTourWithVariants } from '../actions/variants';
 import Link from 'next/link';
 import { getActiveDestinations, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
+import { getTierFromPrice } from '@/lib/pricingTiers';
 
 const MOCK_CARDS = [
   { titleKey: 'standardBalloon', descKey: 'standardBalloonDesc', price: 150, tourId: 'mock-balloon', type: 'BALLOON' },
@@ -67,13 +69,30 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
 
     const dbTours = await getTours();
     if (dbTours.length > 0) {
+      const variantFromPriceMap = new Map<string, number>();
+      const variantData = await Promise.all(dbTours.map(async (tour) => ({ id: tour.id, data: await getTourWithVariants(tour.id) })));
+      variantData.forEach(({ id, data }) => {
+        const activeVariants = data?.variants ?? [];
+        if (activeVariants.length === 0) return;
+        const minPrice = Math.min(
+          ...activeVariants.map((variant) => {
+            if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+              return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
+            }
+            return variant.adultPrice;
+          })
+        );
+        variantFromPriceMap.set(id, minPrice);
+      });
       tours = dbTours.map((t) => {
         try {
           const byAirport = t.transferAirportTiers;
           const allTierPrices = byAirport
             ? [...(byAirport.ASR ?? []), ...(byAirport.NAV ?? [])].map((tier) => tier?.price ?? 0).filter(Boolean)
             : (t.transferTiers ?? []).map((tier) => tier?.price ?? 0).filter(Boolean);
-          const fromPrice = t.type === 'TRANSFER' && allTierPrices.length > 0 ? Math.min(...allTierPrices) : Number(t.basePrice) || 0;
+          const fromPrice = t.type === 'TRANSFER' && allTierPrices.length > 0
+            ? Math.min(...allTierPrices)
+            : ((variantFromPriceMap.get(t.id) ?? Number(t.basePrice)) || 0);
           return {
             id: String(t.id),
             type: String(t.type ?? 'TOUR'),

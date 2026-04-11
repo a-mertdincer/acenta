@@ -7,6 +7,8 @@ import { ActivitiesDestinationSection } from '../../components/ActivitiesDestina
 import { getEurTryRate } from '@/lib/exchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getCategoryBySlug, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
+import { getTourWithVariants } from '@/app/actions/variants';
+import { getTierFromPrice } from '@/lib/pricingTiers';
 
 const MOCK_TOURS = [
     { id: 'mock-balloon', type: 'BALLOON' as const, titleEn: 'Standard Balloon Flight', titleTr: 'Standart Balon Turu', titleZh: '标准热气球飞行', descEn: 'Float above the fairy chimneys at sunrise in our spacious baskets. 1 hour flight with champagne toast.', descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.', descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。', basePrice: 150.0 },
@@ -25,6 +27,21 @@ export default async function ToursPage(props: {
     const selectedCategory = searchParams.category ? normalizeCategorySlug(searchParams.category) : '';
 
     const dbTours = await getTours(selectedCategory ? { category: selectedCategory, destination: 'cappadocia' } : undefined);
+    const variantFromPriceMap = new Map<string, number>();
+    const variantData = await Promise.all(dbTours.map(async (tour) => ({ id: tour.id, data: await getTourWithVariants(tour.id) })));
+    variantData.forEach(({ id, data }) => {
+        const activeVariants = data?.variants ?? [];
+        if (activeVariants.length === 0) return;
+        const minPrice = Math.min(
+            ...activeVariants.map((variant) => {
+                if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+                    return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
+                }
+                return variant.adultPrice;
+            })
+        );
+        variantFromPriceMap.set(id, minPrice);
+    });
     const rateData = lang === 'tr' ? await getEurTryRate() : null;
     const tours = dbTours.length > 0
         ? dbTours.map((t) => {
@@ -34,7 +51,7 @@ export default async function ToursPage(props: {
                 : (t.transferTiers ?? []).map((tier) => tier.price);
             const fromPrice = t.type === 'TRANSFER' && allTierPrices.length
                 ? Math.min(...allTierPrices)
-                : t.basePrice;
+                : (variantFromPriceMap.get(t.id) ?? t.basePrice);
             return {
                 id: t.id,
                 type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'PACKAGE' | 'CONCIERGE',

@@ -1,3 +1,4 @@
+import { resolveTierPrice, type PriceTier } from '@/lib/pricingTiers';
 /**
  * Types for the product page variant system (Eco/Plus, Regular/Private, Airport).
  */
@@ -36,7 +37,7 @@ export interface TourVariantDisplay {
   adultPrice: number;
   childPrice: number | null;
   pricingType: 'per_person' | 'per_vehicle';
-  privatePriceTiers?: { minPax: number; maxPax: number; price: number }[] | null;
+  privatePriceTiers?: PriceTier[] | null;
   sortOrder: number;
   isActive: boolean;
   isRecommended: boolean;
@@ -113,7 +114,7 @@ export function calculateVariantTotal(
   const totalPax = Math.max(1, adults + children + infants);
   const tieredVehiclePrice =
     variant.reservationType === 'private' && variant.privatePriceTiers && variant.privatePriceTiers.length > 0
-      ? variant.privatePriceTiers.find((tier) => totalPax >= tier.minPax && totalPax <= tier.maxPax)?.price ?? null
+      ? resolveTierPrice(variant.privatePriceTiers, totalPax)
       : null;
   if (variant.pricingType === 'per_person') {
     total += variant.adultPrice * adults;

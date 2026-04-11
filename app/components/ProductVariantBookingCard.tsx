@@ -20,7 +20,7 @@ import type { TourWithVariantsResult } from '@/app/actions/variants';
 import enDict from '@/app/dictionaries/en.json';
 import trDict from '@/app/dictionaries/tr.json';
 import zhDict from '@/app/dictionaries/zh.json';
-import { resolveTierPrice } from '@/lib/pricingTiers';
+import { getLastTierPax, resolveTierPrice } from '@/lib/pricingTiers';
 import { useExchangeRate } from '@/app/hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 
@@ -213,7 +213,13 @@ export function ProductVariantBookingCard({
     if (!transferAirportTiers || transferAirportTiers.length === 0) return null;
     return transferAirportTiers.reduce((max, tier) => Math.max(max, tier.maxPax), 0);
   }, [transferAirportTiers]);
-  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? tierDerivedMax ?? 99);
+  const privateTierMax = useMemo(() => {
+    if (!activeVariant || activeVariant.reservationType !== 'private') return null;
+    const lastPax = getLastTierPax(activeVariant.privatePriceTiers ?? null);
+    if (!lastPax) return null;
+    return Math.min(20, Math.max(lastPax, lastPax * 2));
+  }, [activeVariant]);
+  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? privateTierMax ?? tierDerivedMax ?? 99);
   const totalGuests = adults + children + infants;
   const isAtGuestLimit = totalGuests >= maxGuests;
 
@@ -658,23 +664,34 @@ export function ProductVariantBookingCard({
             <div style={{ fontWeight: '600', marginBottom: '6px' }}>{variantTitle}</div>
             {activeVariant.pricingType === 'per_person' && (
               <>
-                {adults > 0 && (
+                {activeVariant.reservationType === 'private' && (activeVariant.privatePriceTiers?.length ?? 0) > 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>{adults} Adult{adults > 1 ? 's' : ''} × {formatShown(activeVariant.adultPrice).primary}</span>
-                  <span>{formatShown(activeVariant.adultPrice * adults).primary}</span>
+                    <span>
+                      {`${adults + children + infants} ${lang === 'tr' ? 'kişi' : lang === 'zh' ? '人' : 'guests'}`}
+                    </span>
+                    <span>{formatShown(baseTotal).primary}</span>
                   </div>
-                )}
-                {children > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>{children} Child × {formatShown(activeVariant.childPrice ?? activeVariant.adultPrice).primary}</span>
-                  <span>{formatShown((activeVariant.childPrice ?? activeVariant.adultPrice) * children).primary}</span>
-                  </div>
-                )}
-                {infants > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--color-text-muted)' }}>
-                    <span>{infants} Infant{infants > 1 ? 's' : ''}</span>
-                    <span>{t.free}</span>
-                  </div>
+                ) : (
+                  <>
+                    {adults > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span>{adults} Adult{adults > 1 ? 's' : ''} × {formatShown(activeVariant.adultPrice).primary}</span>
+                      <span>{formatShown(activeVariant.adultPrice * adults).primary}</span>
+                      </div>
+                    )}
+                    {children > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span>{children} Child × {formatShown(activeVariant.childPrice ?? activeVariant.adultPrice).primary}</span>
+                      <span>{formatShown((activeVariant.childPrice ?? activeVariant.adultPrice) * children).primary}</span>
+                      </div>
+                    )}
+                    {infants > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--color-text-muted)' }}>
+                        <span>{infants} Infant{infants > 1 ? 's' : ''}</span>
+                        <span>{t.free}</span>
+                      </div>
+                    )}
+                  </>
                 )}
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>

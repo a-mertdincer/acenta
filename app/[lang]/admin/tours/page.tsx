@@ -8,6 +8,7 @@ import { getAttractions, type AttractionRow } from '../../../actions/attractions
 import { getDestinations, getCategoriesForDestination } from '@/lib/destinations';
 import { getTourVariantsForAdmin, createVariant, updateVariant, deleteVariant, type CreateVariantInput } from '../../../actions/variants';
 import type { TourVariantDisplay } from '@/lib/types/variant';
+import { toPaxPriceRows, type PaxPriceTier } from '@/lib/pricingTiers';
 
 type AgeGroupDraft = {
     minAge: number;
@@ -475,18 +476,25 @@ export default function AdminToursPage() {
 
     const updateVariantTierRows = (
         target: 'new' | 'edit',
-        updater: (prev: { minPax: number; maxPax: number; price: number }[]) => { minPax: number; maxPax: number; price: number }[]
+        updater: (prev: PaxPriceTier[]) => PaxPriceTier[]
     ) => {
+        const normalizeRows = (rows: PaxPriceTier[]) =>
+            [...rows]
+                .map((row) => ({
+                    pax: Math.max(1, Math.trunc(Number(row.pax) || 1)),
+                    totalPrice: Number(row.totalPrice) || 0,
+                }))
+                .sort((a, b) => a.pax - b.pax);
         if (target === 'new') {
             setNewVariant((prev) => {
-                const rows = Array.isArray(prev.privatePriceTiers) ? prev.privatePriceTiers : [];
-                return { ...prev, privatePriceTiers: updater(rows) };
+                const rows = toPaxPriceRows(prev.privatePriceTiers ?? null);
+                return { ...prev, privatePriceTiers: normalizeRows(updater(rows)) };
             });
             return;
         }
         setEditVariant((prev) => {
-            const rows = Array.isArray(prev.privatePriceTiers) ? prev.privatePriceTiers : [];
-            return { ...prev, privatePriceTiers: updater(rows) };
+            const rows = toPaxPriceRows(prev.privatePriceTiers ?? null);
+            return { ...prev, privatePriceTiers: normalizeRows(updater(rows)) };
         });
     };
 
@@ -661,6 +669,13 @@ export default function AdminToursPage() {
             setVariantSaving(false);
             return;
         }
+        const privateTierRows = toPaxPriceRows(newVariant.privatePriceTiers ?? null);
+        const duplicatePax = privateTierRows.find((row, idx) => privateTierRows.findIndex((r) => r.pax === row.pax) !== idx);
+        if (reservationType === 'private' && duplicatePax) {
+            alert(`Ayni kisi sayisi birden fazla kez girilemez: ${duplicatePax.pax}`);
+            setVariantSaving(false);
+            return;
+        }
         const result = await createVariant({
             tourId: editTourId,
             tourType: newVariant.tourType ?? null,
@@ -682,7 +697,7 @@ export default function AdminToursPage() {
             adultPrice: Number(newVariant.adultPrice) || 0,
             childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? (newVariant.privatePriceTiers ?? null) : null,
+            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? privateTierRows : null,
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,
             isRecommended: Boolean(newVariant.isRecommended),
@@ -725,7 +740,7 @@ export default function AdminToursPage() {
             adultPrice: v.adultPrice,
             childPrice: v.childPrice,
             pricingType: v.pricingType,
-            privatePriceTiers: v.privatePriceTiers ?? null,
+            privatePriceTiers: toPaxPriceRows(v.privatePriceTiers ?? null),
             sortOrder: v.sortOrder,
             isActive: v.isActive,
             isRecommended: v.isRecommended,
@@ -745,6 +760,13 @@ export default function AdminToursPage() {
         const reservationType = normalizeReservationType(tourEditReservationTypeMode, editVariant.reservationType ?? null);
         if (tourEditReservationTypeMode !== 'none' && !reservationType) {
             alert('Rezervasyon tipi zorunludur.');
+            setVariantSaving(false);
+            return;
+        }
+        const privateTierRows = toPaxPriceRows(editVariant.privatePriceTiers ?? null);
+        const duplicatePax = privateTierRows.find((row, idx) => privateTierRows.findIndex((r) => r.pax === row.pax) !== idx);
+        if (reservationType === 'private' && duplicatePax) {
+            alert(`Ayni kisi sayisi birden fazla kez girilemez: ${duplicatePax.pax}`);
             setVariantSaving(false);
             return;
         }
@@ -768,7 +790,7 @@ export default function AdminToursPage() {
             adultPrice: Number(editVariant.adultPrice) || 0,
             childPrice: editVariant.childPrice != null ? Number(editVariant.childPrice) : null,
             pricingType: (editVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? (editVariant.privatePriceTiers ?? null) : null,
+            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? privateTierRows : null,
             sortOrder: editVariant.sortOrder ?? 0,
             isActive: editVariant.isActive !== false,
             isRecommended: Boolean(editVariant.isRecommended),
@@ -1403,7 +1425,7 @@ export default function AdminToursPage() {
                                                 onClick={() =>
                                                     updateVariantTierRows('new', (rows) => [
                                                         ...rows,
-                                                        { minPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 1 : 1, maxPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 4 : 4, price: Number(newVariant.adultPrice) || 0 },
+                                                        { pax: rows.length > 0 ? rows[rows.length - 1].pax + 1 : 1, totalPrice: Number(newVariant.adultPrice) || 0 },
                                                     ])
                                                 }
                                             >
@@ -1411,29 +1433,22 @@ export default function AdminToursPage() {
                                             </Button>
                                         </div>
                                         <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
-                                            {(Array.isArray(newVariant.privatePriceTiers) ? newVariant.privatePriceTiers : []).map((tier, idx) => (
-                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                            {toPaxPriceRows(newVariant.privatePriceTiers ?? null).map((tier, idx) => (
+                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
                                                     <Input
-                                                        label="Min kişi"
+                                                        label="Kişi sayısı"
                                                         type="number"
                                                         min={1}
-                                                        value={String(tier.minPax)}
-                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, minPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                        value={String(tier.pax)}
+                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, pax: parseInt(e.target.value, 10) || 1 } : r)))}
                                                     />
                                                     <Input
-                                                        label="Max kişi"
-                                                        type="number"
-                                                        min={1}
-                                                        value={String(tier.maxPax)}
-                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, maxPax: parseInt(e.target.value, 10) || 1 } : r)))}
-                                                    />
-                                                    <Input
-                                                        label="Fiyat (€)"
+                                                        label="Toplam fiyat (€)"
                                                         type="number"
                                                         step="0.01"
                                                         min={0}
-                                                        value={String(tier.price)}
-                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, price: parseFloat(e.target.value) || 0 } : r)))}
+                                                        value={String(tier.totalPrice)}
+                                                        onChange={(e) => updateVariantTierRows('new', (rows) => rows.map((r, i) => (i === idx ? { ...r, totalPrice: parseFloat(e.target.value) || 0 } : r)))}
                                                     />
                                                     <Button type="button" variant="secondary" onClick={() => updateVariantTierRows('new', (rows) => rows.filter((_, i) => i !== idx))}>
                                                         Sil
@@ -1442,7 +1457,7 @@ export default function AdminToursPage() {
                                             ))}
                                         </div>
                                         <p style={{ marginTop: 'var(--space-sm)', marginBottom: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                            Min &lt; Max olmalı, kademeler çakışmamalı ve arada boşluk olmamalı.
+                                            Her kişi sayısı bir kez girilmelidir. Kademeler kişi sayısına göre otomatik sıralanır.
                                         </p>
                                     </div>
                                 )}
@@ -1553,7 +1568,7 @@ export default function AdminToursPage() {
                                                 onClick={() =>
                                                     updateVariantTierRows('edit', (rows) => [
                                                         ...rows,
-                                                        { minPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 1 : 1, maxPax: rows.length > 0 ? rows[rows.length - 1].maxPax + 4 : 4, price: Number(editVariant.adultPrice) || 0 },
+                                                        { pax: rows.length > 0 ? rows[rows.length - 1].pax + 1 : 1, totalPrice: Number(editVariant.adultPrice) || 0 },
                                                     ])
                                                 }
                                             >
@@ -1561,29 +1576,22 @@ export default function AdminToursPage() {
                                             </Button>
                                         </div>
                                         <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
-                                            {(Array.isArray(editVariant.privatePriceTiers) ? editVariant.privatePriceTiers : []).map((tier, idx) => (
-                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
+                                            {toPaxPriceRows(editVariant.privatePriceTiers ?? null).map((tier, idx) => (
+                                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 'var(--space-sm)', alignItems: 'end' }}>
                                                     <Input
-                                                        label="Min kişi"
+                                                        label="Kişi sayısı"
                                                         type="number"
                                                         min={1}
-                                                        value={String(tier.minPax)}
-                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, minPax: parseInt(e.target.value, 10) || 1 } : r)))}
+                                                        value={String(tier.pax)}
+                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, pax: parseInt(e.target.value, 10) || 1 } : r)))}
                                                     />
                                                     <Input
-                                                        label="Max kişi"
-                                                        type="number"
-                                                        min={1}
-                                                        value={String(tier.maxPax)}
-                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, maxPax: parseInt(e.target.value, 10) || 1 } : r)))}
-                                                    />
-                                                    <Input
-                                                        label="Fiyat (€)"
+                                                        label="Toplam fiyat (€)"
                                                         type="number"
                                                         step="0.01"
                                                         min={0}
-                                                        value={String(tier.price)}
-                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, price: parseFloat(e.target.value) || 0 } : r)))}
+                                                        value={String(tier.totalPrice)}
+                                                        onChange={(e) => updateVariantTierRows('edit', (rows) => rows.map((r, i) => (i === idx ? { ...r, totalPrice: parseFloat(e.target.value) || 0 } : r)))}
                                                     />
                                                     <Button type="button" variant="secondary" onClick={() => updateVariantTierRows('edit', (rows) => rows.filter((_, i) => i !== idx))}>
                                                         Sil
@@ -1592,7 +1600,7 @@ export default function AdminToursPage() {
                                             ))}
                                         </div>
                                         <p style={{ marginTop: 'var(--space-sm)', marginBottom: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                            Min &lt; Max olmalı, kademeler çakışmamalı ve arada boşluk olmamalı.
+                                            Her kişi sayısı bir kez girilmelidir. Kademeler kişi sayısına göre otomatik sıralanır.
                                         </p>
                                     </div>
                                 )}

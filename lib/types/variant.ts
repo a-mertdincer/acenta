@@ -4,9 +4,9 @@ import { resolveTierPrice, type PriceTier } from '@/lib/pricingTiers';
  */
 
 export type TourTypeVariant = 'eco' | 'plus';
-export type ReservationTypeVariant = 'regular' | 'private' | 'option1' | 'option2' | 'option3';
+export type ReservationTypeVariant = 'regular' | 'private' | 'option1' | 'option2' | 'option3' | 'option4';
 export type AirportVariant = 'NAV' | 'ASR';
-export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
+export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'option4' | 'none';
 
 export interface VariantSelection {
   tourType: TourTypeVariant | null;       // eco | plus; null when product has no Tour Type
@@ -89,7 +89,7 @@ export function getDefaultVariantSelection(
 ): VariantSelection {
   const defaultReservationType: ReservationTypeVariant | null =
     hasReservationType
-      ? reservationTypeMode === 'option2' || reservationTypeMode === 'option3'
+      ? reservationTypeMode === 'option2' || reservationTypeMode === 'option3' || reservationTypeMode === 'option4'
         ? 'option1'
         : 'regular'
       : null;

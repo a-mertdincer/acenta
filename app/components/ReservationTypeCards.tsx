@@ -13,7 +13,7 @@ export function ReservationTypeCards({
 }: {
   variants: TourVariantDisplay[];
   value: string;
-  onChange: (v: string) => void;
+  onChange: (variantId: string) => void;
   lang: 'en' | 'tr' | 'zh';
   labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
   showTypeMeta?: boolean;
@@ -53,8 +53,8 @@ export function ReservationTypeCards({
         <button
           key={variant.id}
           type="button"
-          className={`reservation-card ${variant.isRecommended ? 'recommended' : ''} ${value === variant.reservationType ? 'selected' : ''}`}
-          onClick={() => onChange(variant.reservationType ?? '')}
+          className={`reservation-card ${variant.isRecommended ? 'recommended' : ''} ${value === variant.id ? 'selected' : ''}`}
+          onClick={() => onChange(variant.id)}
         >
           {variant.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
           {iconFor(variant.reservationType) && <span className="reservation-card-icon" aria-hidden>{iconFor(variant.reservationType)}</span>}

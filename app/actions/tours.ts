@@ -17,7 +17,7 @@ function revalidateTours() {
 }
 
 export type TourType = 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'CONCIERGE' | 'PACKAGE';
-export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
+export type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'option4' | 'none';
 
 export type TransferTier = { minPax: number; maxPax: number; price: number };
 

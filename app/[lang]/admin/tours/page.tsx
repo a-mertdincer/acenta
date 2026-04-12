@@ -24,7 +24,7 @@ type FaqItemDraft = {
     answer: string;
 };
 
-type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'none';
+type ReservationTypeMode = 'private_regular' | 'option2' | 'option3' | 'option4' | 'none';
 
 export default function AdminToursPage() {
     const [tours, setTours] = useState<{ id: string; titleEn: string; type: string; basePrice: number; hasReservationType?: boolean; reservationTypeMode?: ReservationTypeMode }[]>([]);
@@ -179,6 +179,14 @@ export default function AdminToursPage() {
                 { value: 'option1', label: 'Option 1' },
                 { value: 'option2', label: 'Option 2' },
                 { value: 'option3', label: 'Option 3' },
+            ];
+        }
+        if (mode === 'option4') {
+            return [
+                { value: 'option1', label: 'Option 1' },
+                { value: 'option2', label: 'Option 2' },
+                { value: 'option3', label: 'Option 3' },
+                { value: 'option4', label: 'Option 4' },
             ];
         }
         return [
@@ -1123,6 +1131,7 @@ export default function AdminToursPage() {
                                 <option value="private_regular">Private/Regular</option>
                                 <option value="option2">2 Seçenek (Option 1 / Option 2)</option>
                                 <option value="option3">3 Seçenek (Option 1 / Option 2 / Option 3)</option>
+                                <option value="option4">4 Seçenek (Option 1 / Option 2 / Option 3 / Option 4)</option>
                                 <option value="none">Yok</option>
                             </select>
                         </div>
@@ -1315,6 +1324,7 @@ export default function AdminToursPage() {
                                 <option value="private_regular">Private/Regular</option>
                                 <option value="option2">2 Seçenek (Option 1 / Option 2)</option>
                                 <option value="option3">3 Seçenek (Option 1 / Option 2 / Option 3)</option>
+                                <option value="option4">4 Seçenek (Option 1 / Option 2 / Option 3 / Option 4)</option>
                                 <option value="none">Yok</option>
                             </select>
                         </div>

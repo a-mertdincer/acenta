@@ -59,7 +59,7 @@ model Tour {
   hasTourType        Boolean         @default(false) // Eco/Plus toggle for daily tours
   hasAirportSelect   Boolean         @default(false) // Airport (NAV/ASR) for transfer
   hasReservationType Boolean         @default(true) // Private/Regular toggle
-  reservationTypeMode String         @default("private_regular") // private_regular | option2 | option3 | none
+  reservationTypeMode String         @default("private_regular") // private_regular | option2 | option3 | option4 | none
   minAgeLimit        Int?
   ageRestrictionEn   String?
   ageRestrictionTr   String?

@@ -9,7 +9,6 @@ import { ReservationTypeCards } from './ReservationTypeCards';
 import { AirportSelector } from './AirportSelector';
 import { getFlights } from '@/app/actions/flights';
 import {
-  getActiveVariant,
   getDefaultVariantSelection,
   calculateVariantTotal,
   type VariantSelection,
@@ -143,6 +142,7 @@ export function ProductVariantBookingCard({
   const [cartToastTitle, setCartToastTitle] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const isOptionMode = data.reservationTypeMode === 'option2' || data.reservationTypeMode === 'option3' || data.reservationTypeMode === 'option4';
   const showChildren = useMemo(() => {
     if (minAgeLimit != null && minAgeLimit >= 8) return false;
     if (ageGroups.length === 0) return true;
@@ -178,7 +178,7 @@ export function ProductVariantBookingCard({
 
   const matchingVariants = useMemo(() => {
     const selectedTourType = normalizeNullable(selection.tourType);
-    const selectedAirport = normalizeNullable(selection.airport);
+    const selectedAirport = isOptionMode ? null : normalizeNullable(selection.airport);
     return data.variants
       .filter((v) => v.isActive)
       .filter((v) => {
@@ -189,7 +189,7 @@ export function ProductVariantBookingCard({
         return tourTypeMatch && airportMatch;
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [data.variants, selection.tourType, selection.airport]);
+  }, [data.variants, selection.tourType, selection.airport, isOptionMode]);
   const variantsWithReservationType = useMemo(
     () => matchingVariants.filter((v) => Boolean(v.reservationType)),
     [matchingVariants]
@@ -197,17 +197,17 @@ export function ProductVariantBookingCard({
   const useReservationTypeCards = data.hasReservationType && variantsWithReservationType.length > 0;
 
   const activeVariant = useMemo(() => {
-    if (useReservationTypeCards) return getActiveVariant(data.variants, selection);
-    if (matchingVariants.length === 0) return null;
     if (selectedVariantId) {
       const picked = matchingVariants.find((v) => v.id === selectedVariantId);
       if (picked) return picked;
     }
+    if (matchingVariants.length === 0) return null;
     return matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
-  }, [useReservationTypeCards, data.variants, selection, matchingVariants, selectedVariantId]);
+  }, [matchingVariants, selectedVariantId]);
+  const activeAirport = normalizeNullable(activeVariant?.airport) ?? normalizeNullable(selection.airport) ?? 'nav';
   const transferAirportTiers = useMemo(
-    () => data.transferAirportTiers?.[selection.airport ?? 'NAV'] ?? null,
-    [data.transferAirportTiers, selection.airport]
+    () => data.transferAirportTiers?.[activeAirport.toUpperCase() as 'NAV' | 'ASR'] ?? null,
+    [data.transferAirportTiers, activeAirport]
   );
   const tierDerivedMax = useMemo(() => {
     if (!transferAirportTiers || transferAirportTiers.length === 0) return null;
@@ -249,8 +249,17 @@ export function ProductVariantBookingCard({
     if (matchingVariants.length === 0) return;
     const fallback = matchingVariants.find((v) => v.isRecommended) ?? matchingVariants[0];
     setSelectedVariantId(fallback.id);
-    setSelection((s) => ({ ...s, reservationType: useReservationTypeCards ? (fallback.reservationType as ReservationTypeVariant | null) : null }));
+    setSelection((s) => ({
+      ...s,
+      reservationType: useReservationTypeCards ? (fallback.reservationType as ReservationTypeVariant | null) : null,
+      airport: (fallback.airport as VariantSelection['airport'] | null) ?? s.airport,
+    }));
   }, [activeVariant, matchingVariants, useReservationTypeCards]);
+  useEffect(() => {
+    if (!activeVariant) return;
+    if (selectedVariantId === activeVariant.id) return;
+    setSelectedVariantId(activeVariant.id);
+  }, [activeVariant, selectedVariantId]);
 
   const total = useMemo(() => {
     if (!activeVariant) return 0;
@@ -336,7 +345,7 @@ export function ProductVariantBookingCard({
       totalPrice: total,
       variantId: activeVariant.id,
       ...(data.hasAirportSelect && {
-        transferAirport: selection.airport ?? undefined,
+        transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
         transferDirection: selectedDirection,
         transferFlightArrival: selectedDirection === 'arrival' || selectedDirection === 'roundtrip' ? flightArrival || null : null,
         transferFlightDeparture: selectedDirection === 'departure' || selectedDirection === 'roundtrip' ? flightDeparture || null : null,
@@ -378,7 +387,7 @@ export function ProductVariantBookingCard({
         </>
       )}
 
-      {data.hasAirportSelect && (
+      {data.hasAirportSelect && !isOptionMode && (
         <>
           <label className="form-label">{t.airport}</label>
           <AirportSelector
@@ -394,8 +403,16 @@ export function ProductVariantBookingCard({
           <label className="form-label">{t.reservationType} *</label>
           <ReservationTypeCards
             variants={variantsWithReservationType}
-            value={selection.reservationType ?? ''}
-            onChange={(v) => setSelection((s) => ({ ...s, reservationType: v as ReservationTypeVariant }))}
+            value={selectedVariantId ?? ''}
+            onChange={(variantId) => {
+              setSelectedVariantId(variantId);
+              const picked = variantsWithReservationType.find((item) => item.id === variantId) ?? null;
+              setSelection((s) => ({
+                ...s,
+                reservationType: (picked?.reservationType as ReservationTypeVariant | null) ?? s.reservationType,
+                airport: (picked?.airport as VariantSelection['airport'] | null) ?? s.airport,
+              }));
+            }}
             lang={lang}
             showTypeMeta={data.reservationTypeMode === 'private_regular'}
             labels={{

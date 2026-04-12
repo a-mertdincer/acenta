@@ -251,7 +251,8 @@
     "bookNow": "Reservar ahora",
     "addToCart": "Añadir al carrito",
     "dateClosed": "Esta fecha no está disponible para reservas.",
-    "transferPrice": "Precio para {pax} persona(s)"
+    "transferPrice": "Precio para {pax} persona(s)",
+    "highlights": "Destacados"
   },
   "footer": {
     "about": "Sobre nosotros",

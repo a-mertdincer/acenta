@@ -251,7 +251,8 @@
     "bookNow": "立即预订",
     "addToCart": "加入购物车",
     "dateClosed": "该日期不接受预订。",
-    "transferPrice": "{pax} 人价格"
+    "transferPrice": "{pax} 人价格",
+    "highlights": "亮点"
   },
   "footer": {
     "about": "关于我们",

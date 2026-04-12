@@ -141,6 +141,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   agePolicyInfant: string;
   agePolicyChild: string;
   agePolicyAdult: string;
+  highlights: string;
 }> = {
   en: {
     description: 'Description',
@@ -170,6 +171,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyInfant: '0-3 years: Free',
     agePolicyChild: '4-7 years: Child price',
     agePolicyAdult: '7+ years: Adult price',
+    highlights: 'Highlights',
   },
   tr: {
     description: 'Açıklama',
@@ -199,6 +201,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyInfant: '0-3 yaş: Ücretsiz',
     agePolicyChild: '4-7 yaş: Çocuk fiyatı',
     agePolicyAdult: '7+ yaş: Yetişkin fiyatı',
+    highlights: 'Öne Çıkanlar',
   },
   zh: {
     description: '描述',
@@ -228,6 +231,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyInfant: '0-3岁：免费',
     agePolicyChild: '4-7岁：儿童价格',
     agePolicyAdult: '7岁以上：成人价格',
+    highlights: '亮点',
   },
 };
 
@@ -370,6 +374,9 @@ function StickyAnchorBar({
 
 function mapDbTourToState(db: {
   id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
+  highlightsEn?: string | null;
+  highlightsTr?: string | null;
+  highlightsZh?: string | null;
   itineraryEn?: string | null;
   itineraryTr?: string | null;
   itineraryZh?: string | null;
@@ -405,6 +412,7 @@ function mapDbTourToState(db: {
     descEn: db.descEn,
     descTr: db.descTr,
     descZh: db.descZh,
+    highlights: _lang === 'tr' ? db.highlightsTr : _lang === 'zh' ? db.highlightsZh : db.highlightsEn,
     itinerary: _lang === 'tr' ? db.itineraryTr : _lang === 'zh' ? db.itineraryZh : db.itineraryEn,
     knowBefore: _lang === 'tr' ? db.knowBeforeTr : _lang === 'zh' ? db.knowBeforeZh : db.knowBeforeEn,
     notSuitable: _lang === 'tr' ? db.notSuitableTr : _lang === 'zh' ? db.notSuitableZh : db.notSuitableEn,
@@ -511,6 +519,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 descEn: '',
                 descTr: '',
                 descZh: '',
+                highlights: null,
                 basePrice: 0,
                 transferTiers: null,
                 transferAirportTiers: variantData.transferAirportTiers ?? null,
@@ -640,12 +649,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const dynamicImages = Array.isArray(tour.images) ? tour.images.filter((url: unknown): url is string => typeof url === 'string' && url.trim() !== '') : [];
     const galleryMainSrc = dynamicImages[0] ?? galleryMain;
     const itineraryItems = parseLineList(tour.itinerary);
+    const highlightsItems = parseLineList(tour.highlights);
+    const hasHighlights = highlightsItems.length > 0;
     const knowBeforeItems = parseLineList(tour.knowBefore);
     const notSuitableItems = parseLineList(tour.notSuitable);
     const notAllowedItems = parseLineList(tour.notAllowed);
     const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
     const anchorSections = [
       { id: 'book-now', label: lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now' },
+      ...(hasHighlights ? [{ id: 'highlights', label: t.highlights }] : []),
       { id: 'itinerary', label: 'Itinerary' },
       { id: 'gallery', label: lang === 'tr' ? 'Galeri' : lang === 'zh' ? '图库' : 'Gallery' },
       { id: 'whats-included', label: lang === 'tr' ? 'Dahil Olanlar' : lang === 'zh' ? '包含内容' : "What's Included" },
@@ -679,12 +691,20 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <div id="gallery">
                               <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]} />
                             </div>
-                            <div style={{ marginTop: 'var(--space-lg)' }} id="itinerary">
+                            <div style={{ marginTop: 'var(--space-lg)' }} id={itineraryItems.length === 0 ? 'itinerary' : undefined}>
                                 <h2>{t.description}</h2>
                                 <ProductDescription text={desc} />
                             </div>
+                            {hasHighlights && (
+                                <section className="tour-structured-section" id="highlights">
+                                    <h3>{t.highlights}</h3>
+                                    <ul>
+                                        {highlightsItems.map((item, idx) => <li key={`hl-${idx}`}><span style={{ color: '#16a34a', marginRight: 6 }}>✓</span>{item}</li>)}
+                                    </ul>
+                                </section>
+                            )}
                             {itineraryItems.length > 0 && (
-                                <section className="tour-structured-section">
+                                <section className="tour-structured-section" id="itinerary">
                                     <h3>Itinerary</h3>
                                     <ul>{itineraryItems.map((item, idx) => <li key={`it-${idx}`}>{item}</li>)}</ul>
                                 </section>
@@ -773,12 +793,20 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     <TourDetailHeroImage type={tour.type} title={title} />
                 )}
 
-                <div id="itinerary">
+                <div id={itineraryItems.length === 0 ? 'itinerary' : undefined}>
                   <h2>{t.description}</h2>
                   <ProductDescription text={desc} />
                 </div>
+                {hasHighlights && (
+                    <section className="tour-structured-section" id="highlights">
+                        <h3>{t.highlights}</h3>
+                        <ul>
+                            {highlightsItems.map((item, idx) => <li key={`hl-nv-${idx}`}><span style={{ color: '#16a34a', marginRight: 6 }}>✓</span>{item}</li>)}
+                        </ul>
+                    </section>
+                )}
                 {itineraryItems.length > 0 && (
-                    <section className="tour-structured-section">
+                    <section className="tour-structured-section" id="itinerary">
                         <h3>Itinerary</h3>
                         <ul>{itineraryItems.map((item, idx) => <li key={`it-nv-${idx}`}>{item}</li>)}</ul>
                     </section>

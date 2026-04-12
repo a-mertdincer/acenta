@@ -62,6 +62,9 @@ export default function AdminToursPage() {
     const [newDescEn, setNewDescEn] = useState('');
     const [newDescTr, setNewDescTr] = useState('');
     const [newDescZh, setNewDescZh] = useState('');
+    const [newHighlightsEn, setNewHighlightsEn] = useState('');
+    const [newHighlightsTr, setNewHighlightsTr] = useState('');
+    const [newHighlightsZh, setNewHighlightsZh] = useState('');
     const [newItineraryEn, setNewItineraryEn] = useState('');
     const [newItineraryTr, setNewItineraryTr] = useState('');
     const [newItineraryZh, setNewItineraryZh] = useState('');
@@ -105,6 +108,9 @@ export default function AdminToursPage() {
     const [tourEditDescEn, setTourEditDescEn] = useState('');
     const [tourEditDescTr, setTourEditDescTr] = useState('');
     const [tourEditDescZh, setTourEditDescZh] = useState('');
+    const [tourEditHighlightsEn, setTourEditHighlightsEn] = useState('');
+    const [tourEditHighlightsTr, setTourEditHighlightsTr] = useState('');
+    const [tourEditHighlightsZh, setTourEditHighlightsZh] = useState('');
     const [tourEditItineraryEn, setTourEditItineraryEn] = useState('');
     const [tourEditItineraryTr, setTourEditItineraryTr] = useState('');
     const [tourEditItineraryZh, setTourEditItineraryZh] = useState('');
@@ -265,6 +271,9 @@ export default function AdminToursPage() {
                 ageRestrictionEn?: string | null;
                 ageRestrictionTr?: string | null;
                 ageRestrictionZh?: string | null;
+                highlightsEn?: string | null;
+                highlightsTr?: string | null;
+                highlightsZh?: string | null;
                 itineraryEn?: string | null;
                 itineraryTr?: string | null;
                 itineraryZh?: string | null;
@@ -300,6 +309,9 @@ export default function AdminToursPage() {
             setTourEditDescEn(t.descEn);
             setTourEditDescTr(t.descTr);
             setTourEditDescZh(t.descZh);
+            setTourEditHighlightsEn(rec.highlightsEn ?? '');
+            setTourEditHighlightsTr(rec.highlightsTr ?? '');
+            setTourEditHighlightsZh(rec.highlightsZh ?? '');
             setTourEditItineraryEn(rec.itineraryEn ?? '');
             setTourEditItineraryTr(rec.itineraryTr ?? '');
             setTourEditItineraryZh(rec.itineraryZh ?? '');
@@ -524,6 +536,9 @@ export default function AdminToursPage() {
             descEn: newDescEn.trim() || '-',
             descTr: newDescTr.trim() || '-',
             descZh: newDescZh.trim() || '-',
+            highlightsEn: newHighlightsEn.trim() || null,
+            highlightsTr: newHighlightsTr.trim() || null,
+            highlightsZh: newHighlightsZh.trim() || null,
             itineraryEn: newItineraryEn.trim() || null,
             itineraryTr: newItineraryTr.trim() || null,
             itineraryZh: newItineraryZh.trim() || null,
@@ -566,6 +581,9 @@ export default function AdminToursPage() {
             setNewDescEn('');
             setNewDescTr('');
             setNewDescZh('');
+            setNewHighlightsEn('');
+            setNewHighlightsTr('');
+            setNewHighlightsZh('');
             setNewItineraryEn('');
             setNewItineraryTr('');
             setNewItineraryZh('');
@@ -613,6 +631,9 @@ export default function AdminToursPage() {
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
             descEn: tourEditDescEn.trim() || '-',
+            highlightsEn: tourEditHighlightsEn.trim() || null,
+            highlightsTr: tourEditHighlightsTr.trim() || null,
+            highlightsZh: tourEditHighlightsZh.trim() || null,
             itineraryEn: tourEditItineraryEn.trim() || null,
             itineraryTr: tourEditItineraryTr.trim() || null,
             itineraryZh: tourEditItineraryZh.trim() || null,
@@ -1015,6 +1036,12 @@ export default function AdminToursPage() {
                         </div>
                         <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
                             <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Urun Detay Bolumleri</strong>
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (EN)</label>
+                            <textarea value={newHighlightsEn} onChange={(e) => setNewHighlightsEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satira bir madde yazin" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (TR)</label>
+                            <textarea value={newHighlightsTr} onChange={(e) => setNewHighlightsTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satira bir madde yazin" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (ZH)</label>
+                            <textarea value={newHighlightsZh} onChange={(e) => setNewHighlightsZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satira bir madde yazin" />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (EN)</label>
                             <textarea value={newItineraryEn} onChange={(e) => setNewItineraryEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (TR)</label>
@@ -1201,6 +1228,12 @@ export default function AdminToursPage() {
                         </div>
                         <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)' }}>
                             <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Urun Detay Bolumleri</strong>
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (EN)</label>
+                            <textarea value={tourEditHighlightsEn} onChange={(e) => setTourEditHighlightsEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satira bir madde yazin" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (TR)</label>
+                            <textarea value={tourEditHighlightsTr} onChange={(e) => setTourEditHighlightsTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satira bir madde yazin" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Highlights (ZH)</label>
+                            <textarea value={tourEditHighlightsZh} onChange={(e) => setTourEditHighlightsZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satira bir madde yazin" />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (EN)</label>
                             <textarea value={tourEditItineraryEn} onChange={(e) => setTourEditItineraryEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Itinerary (TR)</label>

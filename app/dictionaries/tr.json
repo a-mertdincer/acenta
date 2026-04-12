@@ -251,7 +251,8 @@
     "bookNow": "Hemen Rezervasyon Yap",
     "addToCart": "Sepete Ekle",
     "dateClosed": "Bu tarih için rezervasyon kabul edilmemektedir.",
-    "transferPrice": "{pax} kişi için fiyat"
+    "transferPrice": "{pax} kişi için fiyat",
+    "highlights": "Öne Çıkanlar"
   },
   "footer": {
     "about": "Hakkımızda",

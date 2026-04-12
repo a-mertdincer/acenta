@@ -31,6 +31,9 @@ model Tour {
   descTr             String
   descEn             String
   descZh             String
+  highlightsEn       String?
+  highlightsTr       String?
+  highlightsZh       String?
   itineraryEn        String?
   itineraryTr        String?
   itineraryZh        String?

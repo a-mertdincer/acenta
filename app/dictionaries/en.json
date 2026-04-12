@@ -251,7 +251,8 @@
     "bookNow": "Book now",
     "addToCart": "Add to cart",
     "dateClosed": "This date is closed for booking.",
-    "transferPrice": "Price for {pax} passenger(s)"
+    "transferPrice": "Price for {pax} passenger(s)",
+    "highlights": "Highlights"
   },
   "footer": {
     "about": "About us",

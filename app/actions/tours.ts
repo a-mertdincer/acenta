@@ -33,6 +33,9 @@ export interface TourWithOptions {
   descTr: string;
   descEn: string;
   descZh: string;
+  highlightsEn?: string | null;
+  highlightsTr?: string | null;
+  highlightsZh?: string | null;
   itineraryEn?: string | null;
   itineraryTr?: string | null;
   itineraryZh?: string | null;
@@ -136,7 +139,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
       });
       imageMap.set(img.tourId, list);
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
@@ -147,6 +150,9 @@ export async function getTours(filters?: { destination?: string; category?: stri
         descTr: t.descTr,
         descEn: t.descEn,
         descZh: t.descZh,
+        highlightsEn: t.highlightsEn ?? null,
+        highlightsTr: t.highlightsTr ?? null,
+        highlightsZh: t.highlightsZh ?? null,
         itineraryEn: t.itineraryEn ?? null,
         itineraryTr: t.itineraryTr ?? null,
         itineraryZh: t.itineraryZh ?? null,
@@ -297,6 +303,9 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       descTr: tour.descTr,
       descEn: tour.descEn,
       descZh: tour.descZh,
+      highlightsEn: (tour as { highlightsEn?: string | null }).highlightsEn ?? null,
+      highlightsTr: (tour as { highlightsTr?: string | null }).highlightsTr ?? null,
+      highlightsZh: (tour as { highlightsZh?: string | null }).highlightsZh ?? null,
       itineraryEn: (tour as { itineraryEn?: string | null }).itineraryEn ?? null,
       itineraryTr: (tour as { itineraryTr?: string | null }).itineraryTr ?? null,
       itineraryZh: (tour as { itineraryZh?: string | null }).itineraryZh ?? null,
@@ -596,6 +605,9 @@ export type CreateTourInput = {
   descEn: string;
   descTr: string;
   descZh: string;
+  highlightsEn?: string | null;
+  highlightsTr?: string | null;
+  highlightsZh?: string | null;
   itineraryEn?: string | null;
   itineraryTr?: string | null;
   itineraryZh?: string | null;
@@ -649,6 +661,9 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         descEn: data.descEn.trim(),
         descTr: data.descTr.trim(),
         descZh: data.descZh.trim(),
+        highlightsEn: data.highlightsEn?.trim() || null,
+        highlightsTr: data.highlightsTr?.trim() || null,
+        highlightsZh: data.highlightsZh?.trim() || null,
         itineraryEn: data.itineraryEn?.trim() || null,
         itineraryTr: data.itineraryTr?.trim() || null,
         itineraryZh: data.itineraryZh?.trim() || null,
@@ -731,6 +746,9 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         descEn: data.descEn.trim(),
         descTr: data.descTr.trim(),
         descZh: data.descZh.trim(),
+        highlightsEn: data.highlightsEn?.trim() || null,
+        highlightsTr: data.highlightsTr?.trim() || null,
+        highlightsZh: data.highlightsZh?.trim() || null,
         itineraryEn: data.itineraryEn?.trim() || null,
         itineraryTr: data.itineraryTr?.trim() || null,
         itineraryZh: data.itineraryZh?.trim() || null,

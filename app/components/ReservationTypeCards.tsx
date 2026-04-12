@@ -22,7 +22,7 @@ export function ReservationTypeCards({
 
   const title = (v: TourVariantDisplay) => (lang === 'tr' ? v.titleTr : lang === 'zh' ? v.titleZh : v.titleEn);
   const priceLabel = (v: TourVariantDisplay) => {
-    if (v.reservationType === 'private' && (v.privatePriceTiers?.length ?? 0) > 0) {
+    if ((v.privatePriceTiers?.length ?? 0) > 0) {
       const fromTier = getTierFromPrice(v.privatePriceTiers ?? null);
       if (fromTier != null) return `From €${fromTier}`;
     }

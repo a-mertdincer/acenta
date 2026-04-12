@@ -317,6 +317,30 @@ function parseLineList(value: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
+function getLocalizedContent(
+  lang: Lang,
+  en?: string | null,
+  tr?: string | null,
+  zh?: string | null
+): string | null {
+  const preferred = lang === 'tr' ? tr : lang === 'zh' ? zh : en;
+  const preferredText = typeof preferred === 'string' ? preferred.trim() : '';
+  if (preferredText) return preferredText;
+  const enText = typeof en === 'string' ? en.trim() : '';
+  return enText || null;
+}
+
+function getLocalizedFaqs(
+  lang: Lang,
+  en?: FaqItem[] | null,
+  tr?: FaqItem[] | null,
+  zh?: FaqItem[] | null
+): FaqItem[] {
+  const preferred = lang === 'tr' ? tr : lang === 'zh' ? zh : en;
+  if (Array.isArray(preferred) && preferred.length > 0) return preferred;
+  return Array.isArray(en) ? en : [];
+}
+
 function StickyAnchorBar({
   sections,
 }: {
@@ -412,22 +436,22 @@ function mapDbTourToState(db: {
     descEn: db.descEn,
     descTr: db.descTr,
     descZh: db.descZh,
-    highlights: _lang === 'tr' ? db.highlightsTr : _lang === 'zh' ? db.highlightsZh : db.highlightsEn,
-    itinerary: _lang === 'tr' ? db.itineraryTr : _lang === 'zh' ? db.itineraryZh : db.itineraryEn,
-    knowBefore: _lang === 'tr' ? db.knowBeforeTr : _lang === 'zh' ? db.knowBeforeZh : db.knowBeforeEn,
-    notSuitable: _lang === 'tr' ? db.notSuitableTr : _lang === 'zh' ? db.notSuitableZh : db.notSuitableEn,
-    notAllowed: _lang === 'tr' ? db.notAllowedTr : _lang === 'zh' ? db.notAllowedZh : db.notAllowedEn,
-    faqs: (_lang === 'tr' ? db.faqsTr : _lang === 'zh' ? db.faqsZh : db.faqsEn) ?? [],
+    highlights: getLocalizedContent(_lang, db.highlightsEn, db.highlightsTr, db.highlightsZh),
+    itinerary: getLocalizedContent(_lang, db.itineraryEn, db.itineraryTr, db.itineraryZh),
+    knowBefore: getLocalizedContent(_lang, db.knowBeforeEn, db.knowBeforeTr, db.knowBeforeZh),
+    notSuitable: getLocalizedContent(_lang, db.notSuitableEn, db.notSuitableTr, db.notSuitableZh),
+    notAllowed: getLocalizedContent(_lang, db.notAllowedEn, db.notAllowedTr, db.notAllowedZh),
+    faqs: getLocalizedFaqs(_lang, db.faqsEn, db.faqsTr, db.faqsZh),
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
     transferAirportTiers: db.transferAirportTiers ?? null,
     minAgeLimit: db.minAgeLimit ?? null,
-    ageRestriction: _lang === 'tr' ? db.ageRestrictionTr : _lang === 'zh' ? db.ageRestrictionZh : db.ageRestrictionEn,
+    ageRestriction: getLocalizedContent(_lang, db.ageRestrictionEn, db.ageRestrictionTr, db.ageRestrictionZh),
     ageGroups: (db.ageGroups ?? []).map((group) => ({
       minAge: group.minAge,
       maxAge: group.maxAge,
       pricingType: group.pricingType,
-      description: _lang === 'tr' ? group.descriptionTr : _lang === 'zh' ? (group.descriptionZh ?? '') : group.descriptionEn,
+      description: getLocalizedContent(_lang, group.descriptionEn, group.descriptionTr, group.descriptionZh) ?? '',
     })),
     images: (db.images ?? []).map((img) => img.url),
     options: db.options.map((o) => ({
@@ -637,7 +661,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const fromPrice = useVariantBooking
         ? Math.min(
             ...availableVariants.map((variant) => {
-              if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+              if ((variant.privatePriceTiers?.length ?? 0) > 0) {
                 return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
               }
               return variant.adultPrice;

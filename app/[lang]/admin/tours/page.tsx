@@ -193,6 +193,14 @@ export default function AdminToursPage() {
         if (options.some((opt) => opt.value === picked)) return picked;
         return options[0]?.value ?? null;
     };
+    const canUseTierPricing = (
+        pricingType: 'per_person' | 'per_vehicle' | undefined,
+        mode: ReservationTypeMode,
+        reservationType: string | null
+    ) => {
+        if (pricingType === 'per_vehicle') return true;
+        return mode === 'private_regular' && reservationType === 'private';
+    };
     const isReservationTypeCompatible = (mode: ReservationTypeMode, value: string | null | undefined): boolean => {
         if (mode === 'none') return value == null || value === '';
         const options = getReservationTypeOptions(mode);
@@ -692,7 +700,8 @@ export default function AdminToursPage() {
         }
         const privateTierRows = toPaxPriceRows(newVariant.privatePriceTiers ?? null);
         const duplicatePax = privateTierRows.find((row, idx) => privateTierRows.findIndex((r) => r.pax === row.pax) !== idx);
-        if (reservationType === 'private' && duplicatePax) {
+        const enableTierPricing = canUseTierPricing((newVariant.pricingType as 'per_person' | 'per_vehicle' | undefined), tourEditReservationTypeMode, reservationType);
+        if (enableTierPricing && duplicatePax) {
             alert(`Ayni kisi sayisi birden fazla kez girilemez: ${duplicatePax.pax}`);
             setVariantSaving(false);
             return;
@@ -718,7 +727,7 @@ export default function AdminToursPage() {
             adultPrice: Number(newVariant.adultPrice) || 0,
             childPrice: newVariant.childPrice != null ? Number(newVariant.childPrice) : null,
             pricingType: (newVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? privateTierRows : null,
+            privatePriceTiers: enableTierPricing ? privateTierRows : null,
             sortOrder: variants.length,
             isActive: newVariant.isActive !== false,
             isRecommended: Boolean(newVariant.isRecommended),
@@ -786,7 +795,8 @@ export default function AdminToursPage() {
         }
         const privateTierRows = toPaxPriceRows(editVariant.privatePriceTiers ?? null);
         const duplicatePax = privateTierRows.find((row, idx) => privateTierRows.findIndex((r) => r.pax === row.pax) !== idx);
-        if (reservationType === 'private' && duplicatePax) {
+        const enableTierPricing = canUseTierPricing((editVariant.pricingType as 'per_person' | 'per_vehicle' | undefined), tourEditReservationTypeMode, reservationType);
+        if (enableTierPricing && duplicatePax) {
             alert(`Ayni kisi sayisi birden fazla kez girilemez: ${duplicatePax.pax}`);
             setVariantSaving(false);
             return;
@@ -811,7 +821,7 @@ export default function AdminToursPage() {
             adultPrice: Number(editVariant.adultPrice) || 0,
             childPrice: editVariant.childPrice != null ? Number(editVariant.childPrice) : null,
             pricingType: (editVariant.pricingType as 'per_person' | 'per_vehicle') || 'per_person',
-            privatePriceTiers: tourEditReservationTypeMode === 'private_regular' && reservationType === 'private' ? privateTierRows : null,
+            privatePriceTiers: enableTierPricing ? privateTierRows : null,
             sortOrder: editVariant.sortOrder ?? 0,
             isActive: editVariant.isActive !== false,
             isRecommended: Boolean(editVariant.isRecommended),
@@ -1448,10 +1458,10 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {tourEditReservationTypeMode === 'private_regular' && newVariant.reservationType === 'private' && (
+                                {canUseTierPricing((newVariant.pricingType as 'per_person' | 'per_vehicle' | undefined), tourEditReservationTypeMode, normalizeReservationType(tourEditReservationTypeMode, newVariant.reservationType ?? null)) && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                                            <strong>Private kişi-fiyat kademeleri</strong>
+                                            <strong>Kişi-fiyat kademeleri</strong>
                                             <Button
                                                 type="button"
                                                 variant="secondary"
@@ -1591,10 +1601,10 @@ export default function AdminToursPage() {
                                 <div style={{ padding: 'var(--space-sm)', borderRadius: 8, background: 'var(--color-bg-alt)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                     <strong>ℹ️ Yaş politikası:</strong> 0-3 yaş: Ücretsiz · 4-7 yaş: Çocuk fiyatı · 7+ yaş: Yetişkin fiyatı
                                 </div>
-                                {tourEditReservationTypeMode === 'private_regular' && editVariant.reservationType === 'private' && (
+                                {canUseTierPricing((editVariant.pricingType as 'per_person' | 'per_vehicle' | undefined), tourEditReservationTypeMode, normalizeReservationType(tourEditReservationTypeMode, editVariant.reservationType ?? null)) && (
                                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 'var(--space-md)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                                            <strong>Private kişi-fiyat kademeleri</strong>
+                                            <strong>Kişi-fiyat kademeleri</strong>
                                             <Button
                                                 type="button"
                                                 variant="secondary"

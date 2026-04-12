@@ -213,13 +213,13 @@ export function ProductVariantBookingCard({
     if (!transferAirportTiers || transferAirportTiers.length === 0) return null;
     return transferAirportTiers.reduce((max, tier) => Math.max(max, tier.maxPax), 0);
   }, [transferAirportTiers]);
-  const privateTierMax = useMemo(() => {
-    if (!activeVariant || activeVariant.reservationType !== 'private') return null;
+  const tierBasedMax = useMemo(() => {
+    if (!activeVariant || (activeVariant.privatePriceTiers?.length ?? 0) === 0) return null;
     const lastPax = getLastTierPax(activeVariant.privatePriceTiers ?? null);
     if (!lastPax) return null;
     return Math.min(20, Math.max(lastPax, lastPax * 2));
   }, [activeVariant]);
-  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? privateTierMax ?? tierDerivedMax ?? 99);
+  const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? tierBasedMax ?? tierDerivedMax ?? 99);
   const totalGuests = adults + children + infants;
   const isAtGuestLimit = totalGuests >= maxGuests;
 
@@ -256,18 +256,16 @@ export function ProductVariantBookingCard({
     if (!activeVariant) return 0;
     const totalPax = Math.max(1, adults + children + infants);
     const effectivePrivateTiers =
-      activeVariant.reservationType === 'private'
-        ? (activeVariant.privatePriceTiers && activeVariant.privatePriceTiers.length > 0
-          ? activeVariant.privatePriceTiers
-          : transferAirportTiers)
-        : null;
+      activeVariant.privatePriceTiers && activeVariant.privatePriceTiers.length > 0
+        ? activeVariant.privatePriceTiers
+        : (activeVariant.reservationType === 'private' ? transferAirportTiers : null);
     const tieredVariant =
       effectivePrivateTiers && effectivePrivateTiers.length > 0
         ? { ...activeVariant, privatePriceTiers: effectivePrivateTiers }
         : activeVariant;
     const direction = data.hasAirportSelect ? selectedDirection : undefined;
     const baseTotal = calculateVariantTotal(tieredVariant, adults, children, infants, direction);
-    // Per-person private tiers can still override base adult price by pax bracket.
+    // Per-person variants can still use tier table as total override.
     if (activeVariant.pricingType === 'per_person' && effectivePrivateTiers && effectivePrivateTiers.length > 0) {
       const tierPrice = resolveTierPrice(effectivePrivateTiers, totalPax);
       if (tierPrice != null) {
@@ -664,7 +662,7 @@ export function ProductVariantBookingCard({
             <div style={{ fontWeight: '600', marginBottom: '6px' }}>{variantTitle}</div>
             {activeVariant.pricingType === 'per_person' && (
               <>
-                {activeVariant.reservationType === 'private' && (activeVariant.privatePriceTiers?.length ?? 0) > 0 ? (
+                {(activeVariant.privatePriceTiers?.length ?? 0) > 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>
                       {`${adults + children + infants} ${lang === 'tr' ? 'kişi' : lang === 'zh' ? '人' : 'guests'}`}

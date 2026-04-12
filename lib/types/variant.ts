@@ -112,16 +112,19 @@ export function calculateVariantTotal(
 ): number {
   let total = 0;
   const totalPax = Math.max(1, adults + children + infants);
-  const tieredVehiclePrice =
-    variant.reservationType === 'private' && variant.privatePriceTiers && variant.privatePriceTiers.length > 0
-      ? resolveTierPrice(variant.privatePriceTiers, totalPax)
-      : null;
+  const tieredPrice = variant.privatePriceTiers && variant.privatePriceTiers.length > 0
+    ? resolveTierPrice(variant.privatePriceTiers, totalPax)
+    : null;
   if (variant.pricingType === 'per_person') {
+    if (variant.reservationType === 'private' && tieredPrice != null) {
+      total = tieredPrice;
+    } else {
     total += variant.adultPrice * adults;
     total += (variant.childPrice ?? variant.adultPrice) * children;
+    }
     // infants (0-3) free
   } else {
-    total = tieredVehiclePrice ?? variant.adultPrice; // per_vehicle
+    total = tieredPrice ?? variant.adultPrice; // per_vehicle
   }
   if (direction === 'roundtrip') {
     total = total * 2 * 0.9; // 10% off

@@ -580,18 +580,15 @@ async function recalculateReservationPrice(
     if (variant) {
       const children = res.childCount ?? 0;
       const adults = Math.max(0, newPax - children);
+      const tierPrice = resolveTierPrice(parsePriceTiers(variant.privatePriceTiers) ?? null, newPax);
       if (variant.pricingType === 'per_person') {
-        const privateTierPrice =
-          variant.reservationType === 'private'
-            ? resolveTierPrice(parsePriceTiers(variant.privatePriceTiers) ?? null, newPax)
-            : null;
-        if (privateTierPrice != null) {
-          subtotal = privateTierPrice;
+        if (variant.reservationType === 'private' && tierPrice != null) {
+          subtotal = tierPrice;
         } else {
           subtotal = variant.adultPrice * adults + (variant.childPrice ?? variant.adultPrice) * children;
         }
       } else {
-        subtotal = variant.adultPrice;
+        subtotal = tierPrice ?? variant.adultPrice;
       }
       if (res.transferDirection === 'roundtrip') subtotal = subtotal * 2 * 0.9;
     } else {

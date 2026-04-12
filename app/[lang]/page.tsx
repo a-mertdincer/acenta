@@ -76,7 +76,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         if (activeVariants.length === 0) return;
         const minPrice = Math.min(
           ...activeVariants.map((variant) => {
-            if (variant.reservationType === 'private' && (variant.privatePriceTiers?.length ?? 0) > 0) {
+            if ((variant.privatePriceTiers?.length ?? 0) > 0) {
               return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
             }
             return variant.adultPrice;

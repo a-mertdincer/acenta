@@ -9,16 +9,16 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
   const dict = await getDictionary(locale);
   const rows = await getAttractions();
 
+  const ap = dict.attractionsPage ?? {};
+  const listTitle = ap.title ?? 'Discover Cappadocia';
+  const listSubtitle = ap.subtitle ?? '';
+  const exploreLabel = ap.explore ?? 'Explore';
+  const tourCountLabel = ap.tourCount ?? 'tours';
+
   return (
     <div className="container page-section">
-      <h1>{locale === 'tr' ? 'Kapadokya Kesfet' : locale === 'zh' ? '探索卡帕多奇亚' : 'Discover Cappadocia'}</h1>
-      <p className="tours-page-subtitle">
-        {locale === 'tr'
-          ? 'Gezi noktalarina tiklayarak o bolgedeki turlari gorebilirsiniz.'
-          : locale === 'zh'
-            ? '点击景点查看包含该景点的所有行程。'
-            : 'Click an attraction to see all tours that include it.'}
-      </p>
+      <h1>{listTitle}</h1>
+      <p className="tours-page-subtitle">{listSubtitle}</p>
 
       <div className="tours-grid">
         {rows.map((row) => {
@@ -37,11 +37,13 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
                 <div className="tour-card-body">
                   <div className="tour-card-header">
                     <h2 className="tour-card-title">{name}</h2>
-                    <span className="tour-type-badge">{row.tourCount} {locale === 'tr' ? 'tur' : locale === 'zh' ? '个行程' : 'tours'}</span>
+                    <span className="tour-type-badge">
+                      {row.tourCount} {tourCountLabel}
+                    </span>
                   </div>
                   <p className="tour-card-desc">{description ?? (dict.home?.popularExperiences ?? '')}</p>
                   <div className="tour-card-footer">
-                    <span className="tour-card-price">{locale === 'tr' ? 'Kesfet' : locale === 'zh' ? '探索' : 'Explore'}</span>
+                    <span className="tour-card-price">{exploreLabel}</span>
                   </div>
                 </div>
               </Link>

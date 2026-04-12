@@ -21,6 +21,12 @@
     "contact": "联系",
     "managementPanel": "管理面板"
   },
+  "attractionsPage": {
+    "title": "探索卡帕多奇亚",
+    "subtitle": "点击景点查看包含该景点的所有行程。",
+    "explore": "探索",
+    "tourCount": "个行程"
+  },
   "home": {
     "title": "体验卡帕多奇亚的魔力",
     "subtitle": "快速找到并预订适合您的冒险体验。",

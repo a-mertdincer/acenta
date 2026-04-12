@@ -13,6 +13,12 @@
     "admin": "Admin",
     "search": "Cerca"
   },
+  "attractionsPage": {
+    "title": "Scopri la Cappadocia",
+    "subtitle": "Clicca su un'attrazione per vedere tutti i tour che la includono.",
+    "explore": "Esplora",
+    "tourCount": "tour"
+  },
   "headerUserMenu": {
     "signedInAs": "Accesso come",
     "profile": "Il Mio Profilo",

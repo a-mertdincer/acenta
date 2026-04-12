@@ -66,6 +66,7 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
     descZh: string;
     basePrice: number;
     category: string | null;
+    primaryImage: string | null;
   }[];
 }) | null> {
   try {
@@ -74,7 +75,16 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
       include: {
         tours: {
           include: {
-            tour: true,
+            tour: {
+              include: {
+                images: {
+                  where: { isPrimary: true },
+                  take: 1,
+                  orderBy: { sortOrder: 'asc' },
+                  select: { url: true },
+                },
+              },
+            },
           },
         },
       },
@@ -103,6 +113,7 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
         descZh: rel.tour.descZh,
         basePrice: rel.tour.basePrice,
         category: rel.tour.category ?? null,
+        primaryImage: rel.tour.images?.[0]?.url ?? null,
       })),
     };
   } catch {

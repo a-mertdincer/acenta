@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAttractionBySlug } from '@/app/actions/attractions';
-import { getTourImageFallback, getTourImagePath } from '@/lib/imagePaths';
 import { formatPriceByLang } from '@/lib/currency';
 import { getDictionary } from '@/app/dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
+import { getEurTryRate } from '@/lib/exchangeRate';
+import { TourCardImageWithFallback } from '@/app/components/TourCardImageWithFallback';
 
 export default async function AttractionDetailPage(props: {
   params: Promise<{ lang: string; slug: string }>;
@@ -14,6 +15,10 @@ export default async function AttractionDetailPage(props: {
   const dict = await getDictionary(locale);
   const row = await getAttractionBySlug(slug);
   if (!row) notFound();
+
+  const rateData = locale === 'tr' ? await getEurTryRate() : null;
+  const fromLabel = dict.home?.from ?? 'From';
+  const bookLabel = dict.tours?.bookNow ?? 'Book Now';
 
   const title = locale === 'tr' ? row.nameTr : locale === 'zh' ? (row.nameZh ?? row.nameEn) : row.nameEn;
   const description = locale === 'tr' ? row.descriptionTr : locale === 'zh' ? row.descriptionZh : row.descriptionEn;
@@ -31,12 +36,17 @@ export default async function AttractionDetailPage(props: {
         {row.tours.map((tour) => {
           const tourTitle = locale === 'tr' ? tour.titleTr : locale === 'zh' ? tour.titleZh : tour.titleEn;
           const tourDesc = locale === 'tr' ? tour.descTr : locale === 'zh' ? tour.descZh : tour.descEn;
-          const shownPrice = formatPriceByLang(tour.basePrice, locale === 'tr' || locale === 'zh' ? locale : 'en', null);
+          const shownPrice = formatPriceByLang(tour.basePrice, locale, rateData?.rate ?? null);
           return (
             <article key={tour.id} className="tour-card tour-card-clickable">
               <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={tourTitle}>
                 <div className="tour-card-image">
-                  <img src={getTourImagePath(tour.type)} onError={(e) => { e.currentTarget.src = getTourImageFallback(tour.type); }} alt={tourTitle} className="tour-card-image-img" />
+                  <TourCardImageWithFallback
+                    primaryUrl={tour.primaryImage}
+                    tourType={tour.type}
+                    alt={tourTitle}
+                    className="tour-card-image-img"
+                  />
                 </div>
                 <div className="tour-card-body">
                   <div className="tour-card-header">
@@ -45,8 +55,10 @@ export default async function AttractionDetailPage(props: {
                   </div>
                   <p className="tour-card-desc">{tourDesc}</p>
                   <div className="tour-card-footer">
-                    <span className="tour-card-price">{locale === 'tr' ? 'Baslayan fiyatla' : locale === 'zh' ? '起价' : 'From'} {shownPrice.primary}</span>
-                    <span className="btn btn-primary tour-card-cta">{locale === 'tr' ? 'Rezervasyon' : locale === 'zh' ? '预订' : 'Book Now'}</span>
+                    <span className="tour-card-price">
+                      {fromLabel} {shownPrice.primary}
+                    </span>
+                    <span className="btn btn-primary tour-card-cta">{bookLabel}</span>
                   </div>
                 </div>
               </Link>

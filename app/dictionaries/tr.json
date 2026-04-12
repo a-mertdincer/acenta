@@ -21,6 +21,12 @@
     "contact": "İletişim",
     "managementPanel": "Yönetim Paneli"
   },
+  "attractionsPage": {
+    "title": "Kapadokya'yı Keşfedin",
+    "subtitle": "Gezi noktalarına tıklayarak o bölgedeki turları görebilirsiniz.",
+    "explore": "Keşfet",
+    "tourCount": "tur"
+  },
   "home": {
     "title": "Kapadokya'nın Büyüsünü Keşfedin",
     "subtitle": "Hayalinizdeki maceraya dakikalar içinde ulaşın.",

@@ -13,6 +13,12 @@
     "admin": "Admin",
     "search": "Buscar"
   },
+  "attractionsPage": {
+    "title": "Descubre Capadocia",
+    "subtitle": "Haz clic en una atracción para ver los tours que la incluyen.",
+    "explore": "Explore",
+    "tourCount": "tours"
+  },
   "headerUserMenu": {
     "signedInAs": "Sesión iniciada como",
     "profile": "Mi Perfil",

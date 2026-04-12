@@ -21,6 +21,12 @@
     "contact": "Contact",
     "managementPanel": "Management Panel"
   },
+  "attractionsPage": {
+    "title": "Discover Cappadocia",
+    "subtitle": "Click an attraction to see all tours that include it.",
+    "explore": "Explore",
+    "tourCount": "tours"
+  },
   "home": {
     "title": "Experience the Magic of Cappadocia",
     "subtitle": "Find and book your perfect adventure in minutes.",

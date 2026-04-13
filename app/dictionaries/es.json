@@ -321,6 +321,21 @@
     "subjectBooking": "Reserva",
     "subjectSupport": "Soporte"
   },
+  "askForPrice": {
+    "button": "Solicitar precio",
+    "title": "Solicitar precio",
+    "name": "Nombre y apellidos",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "country": "País",
+    "date": "Elegir fecha",
+    "people": "Número de personas",
+    "hotel": "Hotel o crucero",
+    "message": "Mensaje",
+    "close": "Cerrar",
+    "send": "Enviar",
+    "success": "Hemos recibido tu consulta. Nos pondremos en contacto contigo en breve."
+  },
   "categories": {
     "balloon-flights": "Vuelos en Globo",
     "daily-tours": "Tours del Día",

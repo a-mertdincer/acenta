@@ -321,6 +321,21 @@
     "subjectBooking": "预订咨询",
     "subjectSupport": "客服支持"
   },
+  "askForPrice": {
+    "button": "询价",
+    "title": "询价",
+    "name": "姓名",
+    "email": "电子邮箱",
+    "phone": "电话号码",
+    "country": "国家",
+    "date": "选择日期",
+    "people": "人数",
+    "hotel": "酒店或邮轮名称",
+    "message": "留言",
+    "close": "关闭",
+    "send": "发送",
+    "success": "我们已收到您的询价，将尽快回复。"
+  },
   "categories": {
     "balloon-flights": "热气球飞行",
     "daily-tours": "一日游",

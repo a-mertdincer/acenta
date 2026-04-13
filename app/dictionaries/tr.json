@@ -321,6 +321,21 @@
     "subjectBooking": "Rezervasyon",
     "subjectSupport": "Destek"
   },
+  "askForPrice": {
+    "button": "Fiyat Sorun",
+    "title": "Fiyat Sorun",
+    "name": "Ad Soyad",
+    "email": "E-posta",
+    "phone": "Telefon",
+    "country": "Ülke",
+    "date": "Tarih seçin",
+    "people": "Kişi sayısı",
+    "hotel": "Otel veya gemi adı",
+    "message": "Mesajınız",
+    "close": "Kapat",
+    "send": "Gönder",
+    "success": "Talebiniz alındı. En kısa sürede size dönüş yapacağız."
+  },
   "categories": {
     "balloon-flights": "Balon Uçuşları",
     "daily-tours": "Günlük Turlar",

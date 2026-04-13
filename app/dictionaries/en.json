@@ -321,6 +321,21 @@
     "subjectBooking": "Booking",
     "subjectSupport": "Support"
   },
+  "askForPrice": {
+    "button": "Ask for Price",
+    "title": "Ask for Price",
+    "name": "Name Surname",
+    "email": "E-mail",
+    "phone": "Phone Number",
+    "country": "Country",
+    "date": "Choose date",
+    "people": "Number of people",
+    "hotel": "Hotel Name or Cruise",
+    "message": "Forward your message",
+    "close": "Close",
+    "send": "Send",
+    "success": "Your inquiry has been received. We will get back to you shortly."
+  },
   "categories": {
     "balloon-flights": "Balloon Flights",
     "daily-tours": "Daily Tours",

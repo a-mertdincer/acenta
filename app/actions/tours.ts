@@ -51,6 +51,7 @@ export interface TourWithOptions {
   faqsEn?: { question: string; answer: string }[] | null;
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
+  isAskForPrice: boolean;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -168,6 +169,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
         faqsEn: Array.isArray(t.faqsEn) ? (t.faqsEn as { question: string; answer: string }[]) : null,
         faqsTr: Array.isArray(t.faqsTr) ? (t.faqsTr as { question: string; answer: string }[]) : null,
         faqsZh: Array.isArray(t.faqsZh) ? (t.faqsZh as { question: string; answer: string }[]) : null,
+        isAskForPrice: Boolean((t as { isAskForPrice?: boolean }).isAskForPrice),
         basePrice: t.basePrice,
         capacity: t.capacity,
         destination: t.destination ?? 'cappadocia',
@@ -321,6 +323,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       faqsEn: parseFaqArray((tour as { faqsEn?: unknown }).faqsEn),
       faqsTr: parseFaqArray((tour as { faqsTr?: unknown }).faqsTr),
       faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
+      isAskForPrice: Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice),
       basePrice: tour.basePrice,
       capacity: tour.capacity,
       destination: t.destination ?? 'cappadocia',
@@ -623,6 +626,7 @@ export type CreateTourInput = {
   faqsEn?: { question: string; answer: string }[] | null;
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
+  isAskForPrice?: boolean;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -679,6 +683,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         faqsEn: jsonInputOrNull(data.faqsEn),
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),
+        isAskForPrice: data.isAskForPrice ?? false,
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
@@ -764,6 +769,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         faqsEn: jsonInputOrNull(data.faqsEn),
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),
+        ...(data.isAskForPrice !== undefined && { isAskForPrice: data.isAskForPrice }),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',

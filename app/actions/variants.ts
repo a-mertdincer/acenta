@@ -25,6 +25,7 @@ export type TourWithVariantsResult = {
   titleEn: string;
   titleTr: string;
   titleZh: string;
+  isAskForPrice: boolean;
   hasTourType: boolean;
   hasAirportSelect: boolean;
   hasReservationType: boolean;
@@ -146,6 +147,7 @@ export async function getTourWithVariants(tourId: string): Promise<TourWithVaria
       titleEn: tour.titleEn,
       titleTr: tour.titleTr,
       titleZh: tour.titleZh,
+      isAskForPrice: Boolean((tourRecord as { isAskForPrice?: boolean }).isAskForPrice),
       hasTourType: Boolean(tourRecord.hasTourType),
       hasAirportSelect: Boolean(tourRecord.hasAirportSelect),
       hasReservationType: Boolean((tourRecord as { hasReservationType?: boolean }).hasReservationType ?? true),

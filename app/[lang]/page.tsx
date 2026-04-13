@@ -49,7 +49,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   let lang = 'en' as Lang;
   let homeDict: Record<string, string> = FALLBACK_HOME;
   let toursDict: Record<string, string> = FALLBACK_TOURS_DICT;
-  let tours: { id: string; type: string; title: string; desc: string; price: number; category: string | null; destination: string }[] = MOCK_CARDS.map((c) => ({
+  let askForPriceButton = 'Ask for Price';
+  let tours: { id: string; type: string; title: string; desc: string; price: number; category: string | null; destination: string; isAskForPrice: boolean }[] = MOCK_CARDS.map((c) => ({
     id: c.tourId,
     type: c.type,
     title: FALLBACK_TOURS_DICT[c.titleKey] ?? c.titleKey,
@@ -57,6 +58,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     price: c.price,
     category: c.type === 'BALLOON' ? 'balloon-flights' : c.type === 'TRANSFER' ? 'transfers' : 'daily-tours',
     destination: 'cappadocia',
+    isAskForPrice: false,
   }));
 
   try {
@@ -66,6 +68,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     const dict = await getDictionary(lang);
     if (dict?.home && typeof dict.home === 'object') homeDict = { ...FALLBACK_HOME, ...(dict.home as Record<string, string>) };
     if (dict?.tours && typeof dict.tours === 'object') toursDict = { ...FALLBACK_TOURS_DICT, ...(dict.tours as Record<string, string>) };
+    const askBlock = dict && typeof dict === 'object' ? (dict as { askForPrice?: { button?: string } }).askForPrice : undefined;
+    if (askBlock?.button?.trim()) askForPriceButton = askBlock.button.trim();
 
     const dbTours = await getTours();
     if (dbTours.length > 0) {
@@ -101,6 +105,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             price: fromPrice,
             category: t.category ? normalizeCategorySlug(String(t.category)) : null,
             destination: String(t.destination ?? 'cappadocia'),
+            isAskForPrice: t.isAskForPrice ?? false,
           };
         } catch {
           return {
@@ -111,6 +116,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             price: Number(t.basePrice) || 0,
             category: null,
             destination: 'cappadocia',
+            isAskForPrice: t.isAskForPrice ?? false,
           };
         }
       });
@@ -123,6 +129,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         price: c.price,
         category: c.type === 'BALLOON' ? 'balloon-flights' : c.type === 'TRANSFER' ? 'transfers' : 'daily-tours',
         destination: 'cappadocia',
+        isAskForPrice: false,
       }));
     }
   } catch (_e) {
@@ -195,6 +202,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
                     imageFallback={getTourImageFallback(tour.type)}
                     bookLabel={bookNowLabel}
                     categoryBadge={groupTitle}
+                    isAskForPrice={tour.isAskForPrice}
+                    askForPriceLabel={askForPriceButton}
                   />
                 ))}
               </div>

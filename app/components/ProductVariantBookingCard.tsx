@@ -22,6 +22,7 @@ import zhDict from '@/app/dictionaries/zh.json';
 import { getLastTierPax, resolveTierPrice } from '@/lib/pricingTiers';
 import { useExchangeRate } from '@/app/hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
+import { AskForPriceBookingBlock } from './AskForPriceModal';
 
 type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
@@ -99,12 +100,14 @@ export function ProductVariantBookingCard({
   options,
   ageGroups = [],
   minAgeLimit = null,
+  isAskForPrice = false,
 }: {
   tourId: string;
   tourType: string;
   lang: Lang;
   data: TourWithVariantsResult;
   title: string;
+  isAskForPrice?: boolean;
   options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' }[];
   ageGroups?: {
     minAge: number;
@@ -357,6 +360,14 @@ export function ProductVariantBookingCard({
     setCartToastTitle(variantTitle);
     setCartToastOpen(true);
   };
+
+  if (isAskForPrice) {
+    return (
+      <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
+        <AskForPriceBookingBlock tourId={tourId} lang={lang} />
+      </div>
+    );
+  }
 
   if (data.variants.length === 0) return null;
 

@@ -8,7 +8,8 @@ import { getTourImagePath, getTourImageFallback } from '../../../../lib/imagePat
 import { getTourById, getTourDatePrice } from '../../../actions/tours';
 import { getTourWithVariants } from '../../../actions/variants';
 import { ProductVariantBookingCard } from '../../../components/ProductVariantBookingCard';
-import { TourDetailGallery } from '../../../components/TourDetailGallery';
+import { TourDetailMainColumn, type FaqItem } from '../../../components/TourDetailMainColumn';
+import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getTierFromPrice } from '@/lib/pricingTiers';
@@ -96,21 +97,6 @@ function getAgePolicyDetail(
   return normalized;
 }
 
-function TourDetailHeroImage({ type, title }: { type: string; title: string }) {
-  const [src, setSrc] = useState(() => getTourImagePath(type));
-  const fallback = getTourImageFallback(type);
-  return (
-    <div className="tour-detail-hero" style={{ borderRadius: '12px', marginBottom: 'var(--space-xl)', overflow: 'hidden' }}>
-      <img
-        src={src}
-        alt={title}
-        onError={() => setSrc(fallback)}
-        style={{ width: '100%', height: '400px', objectFit: 'cover', display: 'block' }}
-      />
-    </div>
-  );
-}
-
 type Lang = 'en' | 'tr' | 'zh';
 
 const TOUR_DETAIL_STRINGS: Record<Lang, {
@@ -142,6 +128,12 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   agePolicyChild: string;
   agePolicyAdult: string;
   highlights: string;
+  itinerary: string;
+  knowBefore: string;
+  notSuitable: string;
+  notAllowed: string;
+  whatsIncluded: string;
+  gallery: string;
 }> = {
   en: {
     description: 'Description',
@@ -172,6 +164,12 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyChild: '4-7 years: Child price',
     agePolicyAdult: '7+ years: Adult price',
     highlights: 'Highlights',
+    itinerary: 'Itinerary',
+    knowBefore: 'Know Before You Go',
+    notSuitable: 'Not Suitable For',
+    notAllowed: 'Not Allowed',
+    whatsIncluded: "What's included",
+    gallery: 'Gallery',
   },
   tr: {
     description: 'Açıklama',
@@ -202,6 +200,12 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyChild: '4-7 yaş: Çocuk fiyatı',
     agePolicyAdult: '7+ yaş: Yetişkin fiyatı',
     highlights: 'Öne Çıkanlar',
+    itinerary: 'Güzergah',
+    knowBefore: 'Bilmeniz Gerekenler',
+    notSuitable: 'Uygun Olmayanlar',
+    notAllowed: 'İzin Verilmeyenler',
+    whatsIncluded: 'Dahil Olanlar',
+    gallery: 'Galeri',
   },
   zh: {
     description: '描述',
@@ -232,82 +236,14 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     agePolicyChild: '4-7岁：儿童价格',
     agePolicyAdult: '7岁以上：成人价格',
     highlights: '亮点',
+    itinerary: '行程安排',
+    knowBefore: '出行须知',
+    notSuitable: '不适合人群',
+    notAllowed: '禁止事项',
+    whatsIncluded: '包含项目',
+    gallery: '图库',
   },
 };
-
-type DescriptionBlock =
-  | { kind: 'p'; content: string }
-  | { kind: 'h2'; content: string }
-  | { kind: 'h3'; content: string }
-  | { kind: 'ul'; items: string[] };
-
-function parseDescriptionBlocks(source: string): DescriptionBlock[] {
-  const normalized = source
-    .replace(/\r\n?/g, '\n')
-    .replace(/\s+•\s+/g, '\n• ')
-    .trim();
-  if (!normalized) return [];
-  const lines = normalized.split('\n');
-  const blocks: DescriptionBlock[] = [];
-  let listBuffer: string[] = [];
-  const flushList = () => {
-    if (listBuffer.length > 0) {
-      blocks.push({ kind: 'ul', items: listBuffer });
-      listBuffer = [];
-    }
-  };
-  for (const lineRaw of lines) {
-    const line = lineRaw.trim();
-    if (!line) {
-      flushList();
-      continue;
-    }
-    const bullet = line.match(/^(?:[-*•])\s+(.+)$/);
-    if (bullet) {
-      listBuffer.push(bullet[1].trim());
-      continue;
-    }
-    flushList();
-    const h2 = line.match(/^##\s+(.+)$/);
-    if (h2) {
-      blocks.push({ kind: 'h2', content: h2[1].trim() });
-      continue;
-    }
-    const h3 = line.match(/^###\s+(.+)$/);
-    if (h3) {
-      blocks.push({ kind: 'h3', content: h3[1].trim() });
-      continue;
-    }
-    blocks.push({ kind: 'p', content: line });
-  }
-  flushList();
-  return blocks;
-}
-
-function ProductDescription({ text }: { text: string }) {
-  const blocks = parseDescriptionBlocks(text);
-  if (blocks.length === 0) return null;
-  return (
-    <div className="product-description">
-      {blocks.map((block, idx) => {
-        if (block.kind === 'ul') {
-          return (
-            <ul key={`ul-${idx}`}>
-              {block.items.map((item, itemIdx) => (
-                <li key={`li-${idx}-${itemIdx}`}>{item}</li>
-              ))}
-            </ul>
-          );
-        }
-        if (block.kind === 'h2') return <h2 key={`h2-${idx}`}>{block.content}</h2>;
-        if (block.kind === 'h3') return <h3 key={`h3-${idx}`}>{block.content}</h3>;
-        return <p key={`p-${idx}`}>{block.content}</p>;
-      })}
-    </div>
-  );
-}
-
-type FaqItem = { question: string; answer: string };
 
 function parseLineList(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -425,6 +361,7 @@ function mapDbTourToState(db: {
   ageRestrictionZh?: string | null;
   ageGroups?: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; descriptionEn: string; descriptionTr: string; descriptionZh?: string | null }[];
   images?: { url: string; isPrimary: boolean }[];
+  isAskForPrice?: boolean;
 }, _lang: Lang) {
   const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
   return {
@@ -460,6 +397,7 @@ function mapDbTourToState(db: {
       price: o.priceAdd,
       pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person',
     })),
+    isAskForPrice: Boolean(db.isAskForPrice),
   };
 }
 
@@ -474,6 +412,7 @@ const mockTours = [
         descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.',
         descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。',
         basePrice: 150.0,
+        isAskForPrice: false,
         options: []
     },
     {
@@ -486,6 +425,7 @@ const mockTours = [
         descTr: 'Yeraltı şehrini keşfedin, Ihlara Vadisinde yürüyüş yapın ve Selime Manastırını ziyaret edin. Öğle yemeği dahildir.',
         descZh: '探索地下城，在伊赫拉拉山谷徒步旅行，并参观塞利梅修道院。包括午餐。',
         basePrice: 40.0,
+        isAskForPrice: false,
         options: [
             { id: '1', title: 'Vegetarian Lunch', price: 0, pricingMode: 'per_person' },
             { id: '2', title: 'Private Guide', price: 50.0, pricingMode: 'per_person' }
@@ -545,6 +485,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 descZh: '',
                 highlights: null,
                 basePrice: 0,
+                isAskForPrice: variantData.isAskForPrice,
                 transferTiers: null,
                 transferAirportTiers: variantData.transferAirportTiers ?? null,
                 options: [],
@@ -678,17 +619,29 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const knowBeforeItems = parseLineList(tour.knowBefore);
     const notSuitableItems = parseLineList(tour.notSuitable);
     const notAllowedItems = parseLineList(tour.notAllowed);
+    const isAskForPrice = Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice);
+    const whatsIncludedItems: string[] = (() => {
+      if (!tourWithVariants?.variants?.length) return [];
+      const v = tourWithVariants.variants.find((x) => x.isRecommended) ?? tourWithVariants.variants[0];
+      const inc = v?.includes;
+      return Array.isArray(inc) ? inc.filter((x: unknown): x is string => typeof x === 'string') : [];
+    })();
     const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
-    const anchorSections = [
-      { id: 'book-now', label: lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now' },
-      ...(hasHighlights ? [{ id: 'highlights', label: t.highlights }] : []),
-      { id: 'itinerary', label: 'Itinerary' },
-      { id: 'gallery', label: lang === 'tr' ? 'Galeri' : lang === 'zh' ? '图库' : 'Gallery' },
-      { id: 'whats-included', label: lang === 'tr' ? 'Dahil Olanlar' : lang === 'zh' ? '包含内容' : "What's Included" },
-      { id: 'faqs', label: 'FAQs' },
+    const bookNavLabel = lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now';
+    const faqNavLabel = 'FAQs';
+    const anchorSections: { id: string; label: string }[] = [
+      { id: 'book-now', label: bookNavLabel },
+      { id: 'itinerary', label: t.itinerary },
     ];
+    if (hasHighlights) anchorSections.push({ id: 'highlights', label: t.highlights });
+    if (whatsIncludedItems.length > 0) anchorSections.push({ id: 'whats-included', label: t.whatsIncluded });
+    anchorSections.push({ id: 'gallery', label: t.gallery });
+    if (faqs.length > 0) anchorSections.push({ id: 'faqs', label: faqNavLabel });
 
-    const productSchema = useVariantBooking && tourWithVariants && tour
+    const askPriceLabel = locale === 'tr' ? 'Fiyat Sorun' : locale === 'zh' ? '询价' : 'Ask for Price';
+
+    const productSchema =
+      !isAskForPrice && useVariantBooking && tourWithVariants && tour
         ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMainSrc)
         : null;
 
@@ -702,85 +655,56 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 <>
                     <div className="tour-detail-hero-grid tour-detail-hero-grid--variant">
                         <div>
-                            <h1 style={{ marginBottom: 'var(--space-md)' }}>{title}</h1>
-                            <span style={{ backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-block', marginBottom: 'var(--space-md)' }}>
+                            <h1 className="tour-detail-title">{title}</h1>
+                            <span className="tour-detail-type-badge">
                                 {tour.type}
                             </span>
-                            {fromPrice != null && (
-                                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)', marginBottom: 'var(--space-lg)' }}>
+                            {isAskForPrice ? (
+                                <p className="tour-detail-price-ask">{askPriceLabel}</p>
+                            ) : (
+                              fromPrice != null && (
+                                <p className="tour-detail-price-from">
                                     From {formatShown(fromPrice).primary}
-                                    {formatShown(fromPrice).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(fromPrice).secondary}</small> : null}
+                                    {formatShown(fromPrice).secondary ? <small className="tour-detail-price-secondary">{formatShown(fromPrice).secondary}</small> : null}
                                 </p>
+                              )
                             )}
-                            <div id="gallery">
-                              <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]} />
-                            </div>
-                            <div style={{ marginTop: 'var(--space-lg)' }} id={itineraryItems.length === 0 ? 'itinerary' : undefined}>
-                                <h2>{t.description}</h2>
-                                <ProductDescription text={desc} />
-                            </div>
-                            {hasHighlights && (
-                                <section className="tour-structured-section" id="highlights">
-                                    <h3>{t.highlights}</h3>
-                                    <ul>
-                                        {highlightsItems.map((item, idx) => <li key={`hl-${idx}`}><span style={{ color: '#16a34a', marginRight: 6 }}>✓</span>{item}</li>)}
-                                    </ul>
-                                </section>
-                            )}
-                            {itineraryItems.length > 0 && (
-                                <section className="tour-structured-section" id="itinerary">
-                                    <h3>Itinerary</h3>
-                                    <ul>{itineraryItems.map((item, idx) => <li key={`it-${idx}`}>{item}</li>)}</ul>
-                                </section>
-                            )}
-                            {knowBeforeItems.length > 0 && (
-                                <section className="tour-structured-section">
-                                    <h3>{lang === 'tr' ? 'Bilmeniz Gerekenler' : lang === 'zh' ? '出行须知' : 'Know Before You Go'}</h3>
-                                    <ul>{knowBeforeItems.map((item, idx) => <li key={`kb-${idx}`}>{item}</li>)}</ul>
-                                </section>
-                            )}
-                            {notSuitableItems.length > 0 && (
-                                <section className="tour-structured-section">
-                                    <h3>{lang === 'tr' ? 'Uygun Degil' : lang === 'zh' ? '不适合人群' : 'Not Suitable For'}</h3>
-                                    <ul>{notSuitableItems.map((item, idx) => <li key={`ns-${idx}`}>{item}</li>)}</ul>
-                                </section>
-                            )}
-                            {notAllowedItems.length > 0 && (
-                                <section className="tour-structured-section" id="whats-included">
-                                    <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
-                                    <ul>{notAllowedItems.map((item, idx) => <li key={`na-${idx}`}>{item}</li>)}</ul>
-                                </section>
-                            )}
-                            {faqs.length > 0 && (
-                                <section className="tour-structured-section" id="faqs">
-                                    <h3>FAQs</h3>
-                                    <div className="tour-faq-list">
-                                        {faqs.map((faq, idx) => (
-                                            <button
-                                                key={`faq-v-${idx}`}
-                                                type="button"
-                                                className="tour-faq-item"
-                                                onClick={() => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
-                                            >
-                                                <strong>{faq.question}</strong>
-                                                {openFaqIndex === idx ? <p>{faq.answer}</p> : null}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
+                            <TourDetailMainColumn
+                              desc={desc}
+                              descriptionSectionTitle={t.description}
+                              itineraryLabel={t.itinerary}
+                              highlightsTitle={t.highlights}
+                              knowBeforeTitle={t.knowBefore}
+                              notSuitableTitle={t.notSuitable}
+                              notAllowedTitle={t.notAllowed}
+                              whatsIncludedTitle={t.whatsIncluded}
+                              itineraryItems={itineraryItems}
+                              highlightsItems={highlightsItems}
+                              knowBeforeItems={knowBeforeItems}
+                              notSuitableItems={notSuitableItems}
+                              notAllowedItems={notAllowedItems}
+                              whatsIncludedItems={whatsIncludedItems}
+                              faqs={faqs}
+                              galleryMainSrc={galleryMainSrc}
+                              galleryFallback={galleryFallback}
+                              thumbUrls={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]}
+                              openFaqIndex={openFaqIndex}
+                              onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
+                            />
                         </div>
                         <div className="tour-detail-booking-card-wrapper" id="book-now">
                             <ProductVariantBookingCard
                                 tourId={tour.id}
                                 tourType={tour.type}
                                 lang={lang as Lang}
+                                isAskForPrice={isAskForPrice}
                                 data={tourWithVariants ?? {
                                   id: tour.id,
                                   type: tour.type,
                                   titleEn: tour.titleEn,
                                   titleTr: tour.titleTr,
                                   titleZh: tour.titleZh,
+                                  isAskForPrice: false,
                                   hasTourType: false,
                                   hasAirportSelect: false,
                                   hasReservationType: false,
@@ -804,77 +728,43 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             ) : (
                 <>
             <div>
-                <h1 style={{ marginBottom: 'var(--space-md)' }}>{title}</h1>
-                <span style={{ backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+                <h1 className="tour-detail-title">{title}</h1>
+                <span className="tour-detail-type-badge">
                     {tour.type}
                 </span>
-
-                {dynamicImages.length > 0 ? (
-                    <div id="gallery">
-                      <TourDetailGallery mainSrc={galleryMainSrc} fallbackSrc={galleryFallback} thumbs={dynamicImages} />
-                    </div>
-                ) : (
-                    <TourDetailHeroImage type={tour.type} title={title} />
-                )}
-
-                <div id={itineraryItems.length === 0 ? 'itinerary' : undefined}>
-                  <h2>{t.description}</h2>
-                  <ProductDescription text={desc} />
-                </div>
-                {hasHighlights && (
-                    <section className="tour-structured-section" id="highlights">
-                        <h3>{t.highlights}</h3>
-                        <ul>
-                            {highlightsItems.map((item, idx) => <li key={`hl-nv-${idx}`}><span style={{ color: '#16a34a', marginRight: 6 }}>✓</span>{item}</li>)}
-                        </ul>
-                    </section>
-                )}
-                {itineraryItems.length > 0 && (
-                    <section className="tour-structured-section" id="itinerary">
-                        <h3>Itinerary</h3>
-                        <ul>{itineraryItems.map((item, idx) => <li key={`it-nv-${idx}`}>{item}</li>)}</ul>
-                    </section>
-                )}
-                {knowBeforeItems.length > 0 && (
-                    <section className="tour-structured-section">
-                        <h3>{lang === 'tr' ? 'Bilmeniz Gerekenler' : lang === 'zh' ? '出行须知' : 'Know Before You Go'}</h3>
-                        <ul>{knowBeforeItems.map((item, idx) => <li key={`kb-nv-${idx}`}>{item}</li>)}</ul>
-                    </section>
-                )}
-                {notSuitableItems.length > 0 && (
-                    <section className="tour-structured-section">
-                        <h3>{lang === 'tr' ? 'Uygun Degil' : lang === 'zh' ? '不适合人群' : 'Not Suitable For'}</h3>
-                        <ul>{notSuitableItems.map((item, idx) => <li key={`ns-nv-${idx}`}>{item}</li>)}</ul>
-                    </section>
-                )}
-                {notAllowedItems.length > 0 && (
-                    <section className="tour-structured-section" id="whats-included">
-                        <h3>{lang === 'tr' ? 'Izin Verilmeyenler' : lang === 'zh' ? '禁止事项' : 'Not Allowed'}</h3>
-                        <ul>{notAllowedItems.map((item, idx) => <li key={`na-nv-${idx}`}>{item}</li>)}</ul>
-                    </section>
-                )}
-                {faqs.length > 0 && (
-                    <section className="tour-structured-section" id="faqs">
-                        <h3>FAQs</h3>
-                        <div className="tour-faq-list">
-                            {faqs.map((faq, idx) => (
-                                <button
-                                    key={`faq-nv-${idx}`}
-                                    type="button"
-                                    className="tour-faq-item"
-                                    onClick={() => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
-                                >
-                                    <strong>{faq.question}</strong>
-                                    {openFaqIndex === idx ? <p>{faq.answer}</p> : null}
-                                </button>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
+                {isAskForPrice ? (
+                  <p className="tour-detail-price-ask">{askPriceLabel}</p>
+                ) : null}
+                <TourDetailMainColumn
+                  desc={desc}
+                  descriptionSectionTitle={t.description}
+                  itineraryLabel={t.itinerary}
+                  highlightsTitle={t.highlights}
+                  knowBeforeTitle={t.knowBefore}
+                  notSuitableTitle={t.notSuitable}
+                  notAllowedTitle={t.notAllowed}
+                  whatsIncludedTitle={t.whatsIncluded}
+                  itineraryItems={itineraryItems}
+                  highlightsItems={highlightsItems}
+                  knowBeforeItems={knowBeforeItems}
+                  notSuitableItems={notSuitableItems}
+                  notAllowedItems={notAllowedItems}
+                  whatsIncludedItems={whatsIncludedItems}
+                  faqs={faqs}
+                  galleryMainSrc={galleryMainSrc}
+                  galleryFallback={galleryFallback}
+                  thumbUrls={dynamicImages.length > 0 ? dynamicImages : [galleryMainSrc]}
+                  openFaqIndex={openFaqIndex}
+                  onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
+                />
             </div>
 
-            <div id="book-now">
+            <div id="book-now" className="tour-detail-booking-card-wrapper">
+                {isAskForPrice ? (
+                  <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
+                    <AskForPriceBookingBlock tourId={tour.id} lang={locale} />
+                  </div>
+                ) : (
                 <div className="card tour-detail-booking-card" style={{ padding: 'var(--space-xl)' }}>
                     <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>{t.bookNow}</h3>
 
@@ -1074,9 +964,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         setCartToastOpen(true);
                     }}>{t.addToCart}</Button>
                 </div>
+                )}
             </div>
                 </>
-                )}
+            )}
             {cartToastOpen && (
               <div
                 style={{

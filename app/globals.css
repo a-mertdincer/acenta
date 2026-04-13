@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 
 :root {
@@ -25,12 +25,12 @@
   --color-border: #e8e4de;
   --color-border-hover: #d4cfc6;
 
-  /* Typography */
-  --font-heading: 'DM Serif Display', serif;
+  /* Typography — single sans stack sitewide */
+  --font-heading: 'Outfit', system-ui, sans-serif;
   --font-body: 'Outfit', system-ui, sans-serif;
   --font-sans: var(--font-body);
-  --font-serif: var(--font-heading);
-  --text-base: 1.0625rem;
+  --font-serif: var(--font-body);
+  --text-base: 0.9375rem;
   --text-sm: 0.9375rem;
   --text-lg: 1.125rem;
   --leading-tight: 1.25;
@@ -44,11 +44,11 @@
   --space-sm: 1rem;
   --space-md: 1.5rem;
   --space-lg: 2.5rem;
-  --space-xl: 4rem;
-  --space-2xl: 6rem;
-  --space-3xl: 8rem;
+  --space-xl: 3rem;
+  --space-2xl: 3.75rem;
+  --space-3xl: 5rem;
   --section-padding-y: var(--space-3xl);
-  --section-padding-y-md: var(--space-3xl);
+  --section-padding-y-md: 3rem;
 
   /* Border Radius */
   --radius-sm: 8px;
@@ -86,7 +86,7 @@ html {
 
 body {
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: 15px;
   line-height: var(--leading-normal);
   letter-spacing: 0.01em;
   background-color: var(--color-bg-warm);
@@ -99,16 +99,28 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  font-weight: 400;
+  font-family: inherit;
+  font-weight: 600;
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   color: var(--color-secondary);
 }
-h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
-h2 { font-size: clamp(1.8rem, 4vw, 3rem); }
-h3 { font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
+h1 { font-size: 1.35rem; font-weight: 700; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+
+.page-title,
+.home-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+.tour-card-title,
+.tour-detail-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: inherit;
+}
 
 p {
   margin-bottom: var(--space-md);
@@ -333,9 +345,10 @@ main {
 }
 .home-section-title {
   text-align: center;
-  margin-bottom: var(--space-2xl);
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  font-family: var(--font-heading);
+  margin-bottom: var(--space-lg);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-family: inherit;
+  font-weight: 700;
   letter-spacing: var(--tracking-tight);
   line-height: 1.2;
 }
@@ -805,11 +818,11 @@ main {
   width: 100%;
 }
 .home-hero-title {
-  font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-family: inherit;
+  font-size: clamp(2rem, 5vw, 3.5rem);
   margin-bottom: var(--space-lg);
   color: var(--color-text-light);
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
@@ -1203,8 +1216,201 @@ main {
 .tour-detail-gallery-main-img {
   width: 100%;
   height: 100%;
+  min-height: 280px;
   object-fit: cover;
   display: block;
+}
+.tour-detail-gallery-main-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  cursor: zoom-in;
+  background: transparent;
+}
+.tour-detail-gallery-section {
+  margin-top: var(--space-md);
+}
+.tour-gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+.tour-gallery-lightbox-img {
+  max-width: min(96vw, 1100px);
+  max-height: 90vh;
+  object-fit: contain;
+}
+.tour-gallery-lightbox-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tour-highlight-check {
+  color: #16a34a;
+  margin-right: 6px;
+}
+.tour-detail-type-badge {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: var(--space-md);
+}
+.tour-detail-price-from {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-lg);
+}
+.tour-detail-price-secondary {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+.tour-detail-price-ask {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-lg);
+}
+.tour-detail-title {
+  margin-bottom: var(--space-md);
+}
+.tour-detail-booking-card--ask {
+  padding: var(--space-xl);
+}
+.ask-for-price-open-btn {
+  width: 100%;
+}
+.ask-for-price-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgba(30, 42, 56, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+.ask-for-price-dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-lg);
+}
+.ask-for-price-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.ask-for-price-dialog-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  font-family: inherit;
+}
+.ask-for-price-dialog-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+.ask-for-price-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.ask-for-price-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+@media (max-width: 520px) {
+  .ask-for-price-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.ask-for-price-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ask-for-price-field--full {
+  grid-column: 1 / -1;
+}
+.ask-for-price-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.ask-for-price-input,
+.ask-for-price-textarea {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: var(--color-bg-warm);
+}
+.ask-for-price-phone-row {
+  display: flex;
+  gap: 8px;
+}
+.ask-for-price-dial {
+  max-width: 5.5rem;
+  flex-shrink: 0;
+}
+.ask-for-price-phone-local {
+  flex: 1;
+}
+.ask-for-price-textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+.ask-for-price-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+.ask-for-price-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.ask-for-price-success {
+  margin: 0 0 var(--space-md);
+  color: var(--color-text);
+  line-height: 1.5;
 }
 
 .safe-image-fill-wrap {

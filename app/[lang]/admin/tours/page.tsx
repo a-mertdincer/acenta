@@ -81,6 +81,7 @@ export default function AdminToursPage() {
     const [newFaqsTr, setNewFaqsTr] = useState<FaqItemDraft[]>([]);
     const [newFaqsZh, setNewFaqsZh] = useState<FaqItemDraft[]>([]);
     const [newBasePrice, setNewBasePrice] = useState('0');
+    const [newAskForPrice, setNewAskForPrice] = useState(false);
     const [newCapacity, setNewCapacity] = useState('10');
     const [newDestination, setNewDestination] = useState('cappadocia');
     const [newCategory, setNewCategory] = useState('');
@@ -127,6 +128,7 @@ export default function AdminToursPage() {
     const [tourEditFaqsTr, setTourEditFaqsTr] = useState<FaqItemDraft[]>([]);
     const [tourEditFaqsZh, setTourEditFaqsZh] = useState<FaqItemDraft[]>([]);
     const [tourEditBasePrice, setTourEditBasePrice] = useState('0');
+    const [tourEditAskForPrice, setTourEditAskForPrice] = useState(false);
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
     const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
     const [tourEditCategory, setTourEditCategory] = useState('');
@@ -345,6 +347,7 @@ export default function AdminToursPage() {
             setTourEditFaqsZh(Array.isArray(rec.faqsZh) ? rec.faqsZh : []);
             setTourEditAttractionIds(Array.isArray(rec.attractionIds) ? rec.attractionIds : []);
             setTourEditBasePrice(String(t.basePrice));
+            setTourEditAskForPrice(Boolean((t as { isAskForPrice?: boolean }).isAskForPrice));
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
             setTourEditHasAirportSelect(Boolean(rec.hasAirportSelect));
@@ -571,6 +574,7 @@ export default function AdminToursPage() {
             faqsTr: newFaqsTr.filter((f) => f.question.trim() && f.answer.trim()),
             faqsZh: newFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
             basePrice: parseFloat(newBasePrice) || 0,
+            isAskForPrice: newAskForPrice,
             capacity: parseInt(newCapacity, 10) || 0,
             destination: newDestination,
             category: newCategory || null,
@@ -616,6 +620,7 @@ export default function AdminToursPage() {
             setNewFaqsTr([]);
             setNewFaqsZh([]);
             setNewBasePrice('0');
+            setNewAskForPrice(false);
             setNewCapacity('10');
             setNewAttractionIds([]);
             setNewHasTourType(false);
@@ -671,6 +676,7 @@ export default function AdminToursPage() {
             descTr: tourEditDescTr.trim() || '-',
             descZh: tourEditDescZh.trim() || '-',
             basePrice: parseFloat(tourEditBasePrice) || 0,
+            isAskForPrice: tourEditAskForPrice,
             capacity: parseInt(tourEditCapacity, 10) || 0,
             hasTourType: tourEditHasTourType,
             hasAirportSelect: tourEditHasAirportSelect,
@@ -1096,8 +1102,12 @@ export default function AdminToursPage() {
                                 ))}
                             </div>
                         </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={newAskForPrice} onChange={(e) => setNewAskForPrice(e.target.checked)} />
+                            <span>Ask for Price — fiyat gizlenir, müşteri formu ile talep eder</span>
+                        </label>
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} />
+                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} disabled={newAskForPrice} />
                             <Input label="Kapasite" type="number" min={1} value={newCapacity} onChange={(e) => setNewCapacity(e.target.value)} />
                         </div>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
@@ -1289,8 +1299,12 @@ export default function AdminToursPage() {
                                 ))}
                             </div>
                         </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                            <input type="checkbox" checked={tourEditAskForPrice} onChange={(e) => setTourEditAskForPrice(e.target.checked)} />
+                            <span>Ask for Price — fiyat gizlenir, müşteri formu ile talep eder</span>
+                        </label>
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} />
+                            <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} disabled={tourEditAskForPrice} />
                             <Input label="Kapasite" type="number" min={1} value={tourEditCapacity} onChange={(e) => setTourEditCapacity(e.target.value)} />
                         </div>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>

@@ -84,6 +84,7 @@ export default async function ToursCategoryPage(props: {
       descZh: t.descZh,
       basePrice: t.basePrice,
       fromPrice,
+      isAskForPrice: t.isAskForPrice ?? false,
       imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
       destination: t.destination ?? destination,
       category: t.category ?? category,
@@ -94,6 +95,10 @@ export default async function ToursCategoryPage(props: {
   const catLabel = getCategoryLabel(cat, lang);
   const bookNowLabel = (dict.tours as { bookNow?: string })?.bookNow ?? 'Book Now';
   const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
+  const askForPriceLabel =
+    typeof dict === 'object' && dict !== null && 'askForPrice' in dict
+      ? String((dict as { askForPrice?: { button?: string } }).askForPrice?.button ?? '').trim() || 'Ask for Price'
+      : 'Ask for Price';
   const rateData = lang === 'tr' ? await getEurTryRate() : null;
 
   return (
@@ -134,11 +139,17 @@ export default async function ToursCategoryPage(props: {
                     <p className="tour-card-desc">{desc}</p>
                     <div className="tour-card-footer">
                       {(() => {
-                        const shown = formatPriceByLang(Number(tour.fromPrice ?? tour.basePrice), lang, rateData?.rate ?? null);
+                        const isAsk = tour.isAskForPrice ?? false;
+                        const fromP = Number(tour.fromPrice ?? tour.basePrice);
+                        const shown = formatPriceByLang(fromP, lang, rateData?.rate ?? null);
                         return (
                           <span className="tour-card-price">
-                            {Number(tour.fromPrice ?? tour.basePrice) > 0 ? `${dict.home?.from ?? 'From'} ${shown.primary}` : contactForPriceLabel}
-                            {shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
+                            {isAsk
+                              ? askForPriceLabel
+                              : fromP > 0
+                                ? `${dict.home?.from ?? 'From'} ${shown.primary}`
+                                : contactForPriceLabel}
+                            {!isAsk && shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
                           </span>
                         );
                       })()}

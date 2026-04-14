@@ -7,6 +7,8 @@ import { sanitizeGuestInput } from '@/lib/guestNotes';
 import { getTourDatePrice } from './tours';
 import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 import { parsePriceTiers, resolveTierPrice } from '@/lib/pricingTiers';
+import { pickBestPromotionForLine, pricesNearlyEqual } from '@/lib/promotionPricing';
+import { fetchEligiblePromotions } from '@/app/actions/promotions';
 
 type TourSummary = { id: string; titleEn: string; titleTr: string; type: string };
 type VariantSummary = { id: string; titleEn: string; titleTr: string };
@@ -57,6 +59,8 @@ export interface CreateReservationItem {
   childCount?: number | null;
   adultCount?: number | null;
   infantCount?: number | null;
+  /** Liste fiyatı (promosyon öncesi); yeni sepet — backend doğrulaması için */
+  listTotalPrice?: number;
 }
 
 export interface CreateReservationInput {
@@ -77,7 +81,44 @@ export async function createReservations(input: CreateReservationInput): Promise
   try {
     const session = await getSession();
     const userId = input.userId ?? session?.id ?? null;
-    const subtotal = input.items.reduce((s, i) => s + i.totalPrice, 0);
+
+    const promoCache = new Map<string, Awaited<ReturnType<typeof fetchEligiblePromotions>>>();
+    async function promosForItemDate(dateIso: string) {
+      const key = dateIso.slice(0, 10);
+      if (!promoCache.has(key)) {
+        promoCache.set(key, await fetchEligiblePromotions(new Date(dateIso)));
+      }
+      return promoCache.get(key)!;
+    }
+
+    type LineMeta = {
+      item: CreateReservationItem;
+      rack: number;
+      linePromoD: number;
+      promotionId: string | null;
+    };
+    const lineMeta: LineMeta[] = [];
+    let rackSubtotal = 0;
+    let promotionDiscountTotal = 0;
+
+    for (const item of input.items) {
+      const rack = item.listTotalPrice ?? item.totalPrice;
+      rackSubtotal += rack;
+      const promos = await promosForItemDate(item.date);
+      const { discount, promotionId } = pickBestPromotionForLine(rack, item.tourId, promos);
+      let linePromoD = 0;
+      let pid: string | null = null;
+      if (item.listTotalPrice != null && item.listTotalPrice > 0) {
+        linePromoD = discount;
+        pid = promotionId;
+        const expectedPay = Math.max(0, rack - linePromoD);
+        if (!pricesNearlyEqual(item.totalPrice, expectedPay)) {
+          return { ok: false, error: 'Fiyat doğrulanamadı. Sepeti yenileyip tekrar deneyin.' };
+        }
+      }
+      promotionDiscountTotal += linePromoD;
+      lineMeta.push({ item, rack, linePromoD, promotionId: pid });
+    }
 
     let couponId: string | null = null;
     let couponCode: string | null = null;
@@ -87,11 +128,11 @@ export async function createReservations(input: CreateReservationInput): Promise
       const { validateCoupon } = await import('./coupons');
       const validation = await validateCoupon({
         code: input.couponCode.trim(),
-        subtotal,
+        subtotal: rackSubtotal,
         items: input.items.map((i) => ({
           date: i.date,
           tourType: i.tourType ?? 'TOUR',
-          totalPrice: i.totalPrice,
+          totalPrice: i.listTotalPrice ?? i.totalPrice,
           title: '',
         })),
         userId: userId ?? undefined,
@@ -101,6 +142,8 @@ export async function createReservations(input: CreateReservationInput): Promise
       couponCode = input.couponCode.trim().toUpperCase();
       totalDiscount = validation.discountAmount;
     }
+
+    const useCouponNotPromotion = totalDiscount > promotionDiscountTotal;
 
     const ids: string[] = [];
     const couponUsages: { reservationId: string; tourId: string; date: string; totalPrice: number; itemDiscount: number; itemTotalPrice: number }[] = [];
@@ -131,7 +174,8 @@ export async function createReservations(input: CreateReservationInput): Promise
         });
     }
 
-    for (const item of input.items) {
+    for (const meta of lineMeta) {
+      const item = meta.item;
       const adults = Math.max(1, item.adultCount ?? Math.max(1, item.pax - (item.childCount ?? 0) - (item.infantCount ?? 0)));
       const children = Math.max(0, item.childCount ?? 0);
       const infants = Math.max(0, item.infantCount ?? 0);
@@ -159,13 +203,27 @@ export async function createReservations(input: CreateReservationInput): Promise
           };
         }
       }
-      let itemTotalPrice = item.totalPrice;
-      let itemDiscount = 0;
-      const itemOriginalPrice = item.totalPrice;
-      if (couponId && totalDiscount > 0 && subtotal > 0) {
-        itemDiscount = (item.totalPrice / subtotal) * totalDiscount;
-        itemTotalPrice = Math.max(0, item.totalPrice - itemDiscount);
+
+      const rack = meta.rack;
+      let itemTotalPrice: number;
+      let itemDiscount: number;
+      const itemOriginalPrice = rack;
+      const appliedCouponId = useCouponNotPromotion ? couponId : null;
+      const appliedCouponCode = useCouponNotPromotion ? couponCode : null;
+
+      if (useCouponNotPromotion && couponId && totalDiscount > 0 && rackSubtotal > 0) {
+        itemDiscount = (rack / rackSubtotal) * totalDiscount;
+        itemTotalPrice = Math.max(0, rack - itemDiscount);
+      } else if (item.listTotalPrice != null && item.listTotalPrice > 0) {
+        itemDiscount = meta.linePromoD;
+        itemTotalPrice = item.totalPrice;
+      } else {
+        itemDiscount = 0;
+        itemTotalPrice = item.totalPrice;
       }
+
+      const appliedPromotionId =
+        !useCouponNotPromotion && item.listTotalPrice != null && item.listTotalPrice > 0 ? meta.promotionId : null;
 
       const res = await prisma.reservation.create({
         data: {
@@ -188,27 +246,28 @@ export async function createReservations(input: CreateReservationInput): Promise
           adultCount: item.adultCount ?? adults,
           childCount: item.childCount ?? null,
           infantCount: item.infantCount ?? infants,
-          couponId: couponId ?? null,
-          couponCode: couponCode ?? null,
+          couponId: appliedCouponId ?? null,
+          couponCode: appliedCouponCode ?? null,
+          promotionId: appliedPromotionId ?? null,
           originalPrice: itemOriginalPrice,
           discountAmount: itemDiscount > 0 ? itemDiscount : null,
         },
       });
       ids.push(res.id);
 
-      if (couponId && itemDiscount > 0) {
+      if (appliedCouponId && itemDiscount > 0) {
         couponUsages.push({
           reservationId: res.id,
           tourId: item.tourId,
           date: item.date,
-          totalPrice: item.totalPrice,
+          totalPrice: rack,
           itemDiscount,
           itemTotalPrice,
         });
       }
     }
 
-    if (couponId && couponUsages.length > 0) {
+    if (couponId && useCouponNotPromotion && couponUsages.length > 0) {
       const { recordCouponUsage } = await import('./coupons');
       const tourIds = [...new Set(couponUsages.map(u => u.tourId))];
       const wantedTours = new Set(tourIds);

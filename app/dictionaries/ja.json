@@ -452,5 +452,25 @@
     "viewPolicy": "View Return Policy",
     "modalTitle": "Return Policy",
     "acknowledge": "I Read It"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "writeReview": "Write a Review",
+    "yourReview": "Your review",
+    "submit": "Submit",
+    "thankYou": "Thank you for your review! It will be visible after approval.",
+    "alreadyReviewed": "You have already reviewed this experience.",
+    "noReviews": "No reviews yet. Be the first!",
+    "showMore": "Show more reviews",
+    "rating": "Rating",
+    "loading": "Loading reviews…",
+    "close": "Close",
+    "reviewSubmitted": "Review submitted"
+  },
+  "promotion": {
+    "off": "off",
+    "discount": "Discount",
+    "originalPrice": "Original price",
+    "save": "You save"
   }
 }

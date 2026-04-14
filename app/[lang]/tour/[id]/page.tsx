@@ -9,6 +9,7 @@ import { getTourById, getTourDatePrice } from '../../../actions/tours';
 import { getTourWithVariants } from '../../../actions/variants';
 import { ProductVariantBookingCard } from '../../../components/ProductVariantBookingCard';
 import { TourDetailMainColumn, type FaqItem } from '../../../components/TourDetailMainColumn';
+import { TourReviewsSection } from '../../../components/TourReviewsSection';
 import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
@@ -708,6 +709,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                               openFaqIndex={openFaqIndex}
                               onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
                             />
+                            <TourReviewsSection tourId={tour.id} lang={locale} />
                         </div>
                         <div className="tour-detail-booking-card-wrapper" id="book-now">
                             <ProductVariantBookingCard
@@ -777,6 +779,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                   openFaqIndex={openFaqIndex}
                   onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
                 />
+                <TourReviewsSection tourId={tour.id} lang={locale} />
             </div>
 
             <div id="book-now" className="tour-detail-booking-card-wrapper">

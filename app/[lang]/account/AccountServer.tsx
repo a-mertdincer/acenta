@@ -12,7 +12,24 @@ type AccountTab = 'profile' | 'coupons' | 'reservations' | 'contact';
 export async function AccountServer({ lang, tab }: { lang: string; tab: AccountTab }) {
   const locale = (lang === 'tr' || lang === 'zh' ? lang : 'en') as 'en' | 'tr' | 'zh';
   const dict = await getDictionary(locale);
-  const accountDict = dict.account;
+  const accountDict = {
+    ...dict.account,
+    reviews: {
+      title: 'Reviews',
+      writeReview: 'Write a Review',
+      yourReview: 'Your review',
+      submit: 'Submit',
+      thankYou: 'Thank you! Your review will appear after approval.',
+      alreadyReviewed: 'Already reviewed.',
+      showMore: 'More',
+      rating: 'Rating',
+      close: 'Close',
+      reviewSubmitted: 'Review submitted',
+      ...(typeof dict === 'object' && dict !== null && 'reviews' in dict && dict.reviews && typeof dict.reviews === 'object'
+        ? dict.reviews
+        : {}),
+    },
+  };
   const profileRes = await getMyProfile();
   if (!profileRes.ok || !profileRes.profile) redirect(`/${lang}/login`);
 
@@ -41,21 +58,44 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
     discountAmount: u.discountAmount,
   }));
 
-  const serializedReservations = reservations.map((res: ReservationItem) => ({
-    id: res.id,
-    tourId: res.tourId,
-    date: res.date.toISOString(),
-    pax: res.pax,
-    totalPrice: res.totalPrice,
-    status: res.status,
-    notes: res.notes ?? null,
-    tour: res.tour ? { titleEn: res.tour.titleEn } : null,
-    cancellationRequestedAt: res.cancellationRequestedAt?.toISOString() ?? null,
-    updateRequestedAt: res.updateRequestedAt?.toISOString() ?? null,
-    couponCode: res.couponCode ?? null,
-    originalPrice: res.originalPrice ?? null,
-    discountAmount: res.discountAmount ?? null,
-  }));
+  const resIds = reservations.map((r: ReservationItem) => r.id);
+  const reviewRows =
+    resIds.length > 0
+      ? await prisma.review.findMany({
+          where: { reservationId: { in: resIds } },
+          select: { reservationId: true },
+        })
+      : [];
+  const reviewedSet = new Set(
+    reviewRows.map((x: { reservationId: string | null }) => x.reservationId).filter((id: string | null): id is string => Boolean(id))
+  );
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+
+  const serializedReservations = reservations.map((res: ReservationItem) => {
+    const activityDay = new Date(res.date);
+    activityDay.setHours(0, 0, 0, 0);
+    const confirmedPast =
+      res.status === 'CONFIRMED' && activityDay.getTime() < dayStart.getTime();
+    const hasRev = reviewedSet.has(res.id);
+    return {
+      id: res.id,
+      tourId: res.tourId,
+      date: res.date.toISOString(),
+      pax: res.pax,
+      totalPrice: res.totalPrice,
+      status: res.status,
+      notes: res.notes ?? null,
+      tour: res.tour ? { titleEn: res.tour.titleEn } : null,
+      cancellationRequestedAt: res.cancellationRequestedAt?.toISOString() ?? null,
+      updateRequestedAt: res.updateRequestedAt?.toISOString() ?? null,
+      couponCode: res.couponCode ?? null,
+      originalPrice: res.originalPrice ?? null,
+      discountAmount: res.discountAmount ?? null,
+      canWriteReview: confirmedPast && !hasRev,
+      hasReview: hasRev,
+    };
+  });
 
   const completedReservations = reservations.filter((r: ReservationItem) => r.status !== 'CANCELLED');
   const totalReservations = completedReservations.length;

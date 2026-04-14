@@ -44,6 +44,8 @@ export interface CartItem {
         pricingMode?: 'per_person' | 'flat';
     }[];
     totalPrice: number;
+    /** Promosyon öncesi toplam (varsa doğrulama) */
+    listTotalPrice?: number;
     /** For transfer: ASR (Kayseri) | NAV (Nevşehir) */
     transferAirport?: 'ASR' | 'NAV';
     /** When booking with variant system (Eco/Plus, Regular/Private) */

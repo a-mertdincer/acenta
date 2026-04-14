@@ -17,6 +17,7 @@ import { getEurTryRate } from '@/lib/exchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getTourWithVariants } from '@/app/actions/variants';
 import { getTierFromPrice } from '@/lib/pricingTiers';
+import { getPromotionCardPrices } from '@/app/actions/promotions';
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string; destination: string; category: string }>;
@@ -100,6 +101,11 @@ export default async function ToursCategoryPage(props: {
       ? String((dict as { askForPrice?: { button?: string } }).askForPrice?.button ?? '').trim() || 'Ask for Price'
       : 'Ask for Price';
   const rateData = lang === 'tr' ? await getEurTryRate() : null;
+  const promoRefDate = new Date();
+  const promoMap = await getPromotionCardPrices(
+    tours.map((tour) => ({ tourId: tour.id, rackPrice: Number(tour.fromPrice ?? tour.basePrice) })),
+    promoRefDate
+  );
 
   return (
     <>
@@ -140,14 +146,31 @@ export default async function ToursCategoryPage(props: {
                     <div className="tour-card-footer">
                       {(() => {
                         const isAsk = tour.isAskForPrice ?? false;
-                        const fromP = Number(tour.fromPrice ?? tour.basePrice);
+                        const rackP = Number(tour.fromPrice ?? tour.basePrice);
+                        const pm = promoMap.get(tour.id);
+                        const hasPromo = pm && pm.discount > 0 && rackP > 0;
+                        const fromP = hasPromo ? pm.final : rackP;
                         const shown = formatPriceByLang(fromP, lang, rateData?.rate ?? null);
+                        const shownRack = hasPromo ? formatPriceByLang(rackP, lang, rateData?.rate ?? null) : null;
+                        const promoDict = (dict as { promotion?: { off?: string } }).promotion;
                         return (
                           <span className="tour-card-price">
                             {isAsk
                               ? askForPriceLabel
                               : fromP > 0
-                                ? `${dict.home?.from ?? 'From'} ${shown.primary}`
+                                ? (
+                                    <>
+                                      {hasPromo && shownRack ? (
+                                        <>
+                                          <span className="tour-card-price-strike">{shownRack.primary}</span>{' '}
+                                        </>
+                                      ) : null}
+                                      {`${dict.home?.from ?? 'From'} ${shown.primary}`}
+                                      {hasPromo && pm.percentLabel != null ? (
+                                        <span className="tour-card-promo-badge">-{pm.percentLabel}% {promoDict?.off ?? 'off'}</span>
+                                      ) : null}
+                                    </>
+                                  )
                                 : contactForPriceLabel}
                             {!isAsk && shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
                           </span>

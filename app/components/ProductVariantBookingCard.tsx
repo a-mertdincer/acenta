@@ -351,6 +351,33 @@ export function ProductVariantBookingCard({
     : title;
   const formatShown = (eur: number) => formatPriceByLang(eur, lang, eurTryRate);
 
+  const [promoPreview, setPromoPreview] = useState<{
+    discount: number;
+    final: number;
+    percentOff: number | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedDate || total <= 0) {
+      setPromoPreview(null);
+      return;
+    }
+    void (async () => {
+      const { previewPromotionForBooking } = await import('@/app/actions/promotions');
+      const r = await previewPromotionForBooking(tourId, selectedDate, total);
+      if (!cancelled) {
+        setPromoPreview(r);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tourId, selectedDate, total]);
+
+  const payTotal = promoPreview && promoPreview.discount > 0 ? promoPreview.final : total;
+  const promoDict = (DICTS[lang] as { promotion?: { off?: string } }).promotion;
+
   const handleAddToCart = () => {
     if (!activeVariant) {
       alert('Bu seçenek için uygun varyant bulunamadı.');
@@ -372,7 +399,8 @@ export function ProductVariantBookingCard({
         .map((id) => options.find((o) => o.id === id))
         .filter((o): o is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' } => Boolean(o))
         .map((o) => ({ id: o.id, title: o.title, price: o.price, pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person' })),
-      totalPrice: total,
+      listTotalPrice: total,
+      totalPrice: payTotal,
       variantId: activeVariant.id,
       ...(data.hasAirportSelect && {
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
@@ -785,9 +813,21 @@ export function ProductVariantBookingCard({
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, marginBottom: 'var(--space-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-sm)' }}>
           <span>{t.total}</span>
-          <span style={{ color: 'var(--color-primary)' }}>
-            {formatShown(total).primary}
-            {formatShown(total).secondary ? <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatShown(total).secondary}</small> : null}
+          <span style={{ color: 'var(--color-primary)', textAlign: 'right' }}>
+            {promoPreview && promoPreview.discount > 0 ? (
+              <>
+                <span className="tour-price-strike">{formatShown(total).primary}</span>{' '}
+                {formatShown(payTotal).primary}
+                <small className="tour-promotion-pill" title={promoDict?.off}>
+                  {promoPreview.percentOff != null ? `-${promoPreview.percentOff}% ${promoDict?.off ?? 'off'}` : `-${formatShown(promoPreview.discount).primary}`}
+                </small>
+              </>
+            ) : (
+              <>
+                {formatShown(payTotal).primary}
+                {formatShown(payTotal).secondary ? <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatShown(payTotal).secondary}</small> : null}
+              </>
+            )}
           </span>
         </div>
         <Button style={{ width: '100%' }} onClick={handleAddToCart} disabled={!activeVariant}>

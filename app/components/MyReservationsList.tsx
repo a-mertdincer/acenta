@@ -6,6 +6,7 @@ import { getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 import { requestCancellationByGuest, requestUpdateByGuest } from '@/app/actions/reservations';
 import { getAvailableTourDatesForGuest } from '@/app/actions/tours';
+import { WriteReviewModal } from '@/app/components/WriteReviewModal';
 
 type ReservationItem = {
   id: string;
@@ -21,6 +22,8 @@ type ReservationItem = {
   couponCode?: string | null;
   originalPrice?: number | null;
   discountAmount?: number | null;
+  canWriteReview?: boolean;
+  hasReview?: boolean;
 };
 
 type DateFetchState = 'idle' | 'loading' | 'loaded' | 'empty' | 'error';
@@ -59,21 +62,35 @@ type ReservationLabels = {
   detailsTitle: string;
 };
 
+type ReviewLabels = {
+  title: string;
+  writeReview: string;
+  yourReview: string;
+  submit: string;
+  thankYou: string;
+  alreadyReviewed: string;
+  rating: string;
+  close: string;
+  reviewSubmitted: string;
+};
+
 type MyReservationsListProps = {
   reservations: ReservationItem[];
   lang: string;
   labels: ReservationLabels;
+  reviewLabels: ReviewLabels;
 };
 
 export function MyReservationsList({
   reservations,
   lang,
   labels,
+  reviewLabels,
 }: MyReservationsListProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {reservations.map((res) => (
-        <ReservationCard key={res.id} reservation={res} lang={lang} labels={labels} />
+        <ReservationCard key={res.id} reservation={res} lang={lang} labels={labels} reviewLabels={reviewLabels} />
       ))}
     </div>
   );
@@ -83,10 +100,12 @@ function ReservationCard({
   reservation,
   lang,
   labels,
+  reviewLabels,
 }: {
   reservation: ReservationItem;
   lang: string;
   labels: MyReservationsListProps['labels'];
+  reviewLabels: ReviewLabels;
 }) {
   const currentDateStr = typeof reservation.date === 'string'
     ? reservation.date.slice(0, 10)
@@ -133,6 +152,7 @@ function ReservationCard({
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateFetchState, setDateFetchState] = useState<DateFetchState>('idle');
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!editOpen || !reservation.tourId) {
@@ -288,6 +308,16 @@ function ReservationCard({
         </div>
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            {reservation.canWriteReview && (
+              <button type="button" className="btn btn-primary" onClick={() => setReviewOpen(true)}>
+                {reviewLabels.writeReview}
+              </button>
+            )}
+            {reservation.hasReview && !reservation.canWriteReview && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>
+                ✓ {reviewLabels.reviewSubmitted}
+              </span>
+            )}
             <button type="button" className="btn btn-secondary" onClick={openEdit} disabled={hasUpdateRequest}>
               {hasUpdateRequest ? labels.changeRequestPending : labels.changeRequest}
             </button>
@@ -339,6 +369,22 @@ function ReservationCard({
           </div>
         </form>
       )}
+
+      <WriteReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        reservationId={reservation.id}
+        tourTitle={reservation.tour?.titleEn ?? reservation.tourId}
+        closeLabel={reviewLabels.close}
+        labels={{
+          title: reviewLabels.title,
+          yourReview: reviewLabels.yourReview,
+          submit: reviewLabels.submit,
+          thankYou: reviewLabels.thankYou,
+          alreadyReviewed: reviewLabels.alreadyReviewed,
+          rating: reviewLabels.rating,
+        }}
+      />
 
       {cancelOpen && (
         <form onSubmit={handleCancel} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>

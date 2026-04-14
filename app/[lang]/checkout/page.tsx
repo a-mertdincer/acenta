@@ -39,9 +39,41 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
 
+    const rackSubtotal = items.reduce((s, i) => s + (i.listTotalPrice ?? i.totalPrice), 0);
+    const [pricePreview, setPricePreview] = useState<{
+        rackSubtotal: number;
+        promotionDiscountTotal: number;
+        couponDiscount: number;
+        effectiveDiscount: number;
+        finalTotal: number;
+        useCouponNotPromotion: boolean;
+    } | null>(null);
+
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (items.length === 0) return;
+        let cancelled = false;
+        void (async () => {
+            const { computeCheckoutPricing } = await import('../../actions/promotions');
+            const p = await computeCheckoutPricing({
+                items: items.map((i) => ({
+                    tourId: i.tourId,
+                    date: i.date,
+                    totalPrice: i.totalPrice,
+                    listTotalPrice: i.listTotalPrice,
+                    tourType: i.tourType,
+                })),
+                couponCode: couponApplied?.couponCode ?? null,
+            });
+            if (!cancelled) setPricePreview(p);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [items, couponApplied]);
 
     if (!mounted) {
         return (
@@ -62,8 +94,9 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
         );
     }
 
-    const subtotal = getTotal();
-    const total = couponApplied ? Math.max(0, subtotal - couponApplied.discountAmount) : subtotal;
+    const displayTotal =
+        pricePreview?.finalTotal ??
+        (couponApplied ? Math.max(0, rackSubtotal - couponApplied.discountAmount) : getTotal());
     const formatShown = (eur: number) => formatPriceByLang(eur, lang as 'en' | 'tr' | 'zh', eurTryRate);
 
     const handleApplyCoupon = async () => {
@@ -71,7 +104,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
         const { validateCoupon } = await import('../../actions/coupons');
         const result = await validateCoupon({
             code: couponCode,
-            subtotal,
+            subtotal: rackSubtotal,
             items: items.map(i => ({
                 date: i.date,
                 tourType: i.tourType,
@@ -127,6 +160,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                 ...(item.childCount != null && { childCount: item.childCount }),
                 ...(item.adultCount != null && { adultCount: item.adultCount }),
                 ...(item.infantCount != null && { infantCount: item.infantCount }),
+                ...(item.listTotalPrice != null && { listTotalPrice: item.listTotalPrice }),
             })),
         });
 
@@ -262,9 +296,24 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-sm)' }}>
                             <span>Subtotal</span>
-                            <span>{formatShown(subtotal).primary}</span>
+                            <span>{formatShown(pricePreview?.rackSubtotal ?? rackSubtotal).primary}</span>
                         </div>
-                        {couponApplied && (
+                        {pricePreview &&
+                            !pricePreview.useCouponNotPromotion &&
+                            pricePreview.promotionDiscountTotal > 0 && (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        color: 'var(--color-text-muted)',
+                                        fontSize: '0.95rem',
+                                    }}
+                                >
+                                    <span>Promotion</span>
+                                    <span>-{formatShown(pricePreview.promotionDiscountTotal).primary}</span>
+                                </div>
+                            )}
+                        {couponApplied && pricePreview?.useCouponNotPromotion && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
                                 <span>Discount ({couponApplied.couponCode})</span>
                                 <span>-{formatShown(couponApplied.discountAmount).primary}</span>
@@ -273,8 +322,8 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px dashed var(--color-border)', paddingTop: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: '1.5rem', fontWeight: 'bold' }}>
                             <span>Total</span>
                             <span style={{ color: 'var(--color-primary)' }}>
-                                {formatShown(total).primary}
-                                {formatShown(total).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(total).secondary}</small> : null}
+                                {formatShown(displayTotal).primary}
+                                {formatShown(displayTotal).secondary ? <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{formatShown(displayTotal).secondary}</small> : null}
                             </span>
                         </div>
                         {lang === 'tr' && (

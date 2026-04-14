@@ -19,6 +19,7 @@ model User {
   role         String        @default("CUSTOMER") // ADMIN or CUSTOMER
   reservations Reservation[]
   coupons      Coupon[]
+  reviews      Review[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -78,6 +79,7 @@ model Tour {
   prices             TourDatePrice[]
   variants           TourVariant[]
   reservations      Reservation[]
+  reviews           Review[]
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 }
@@ -242,6 +244,9 @@ model Reservation {
   discountAmount   Float?        @default(0)  // Uygulanan indirim
   // totalPrice = final price (indirim sonrası)
   cariRecords       CariRecord[]
+  promotionId       String?
+  promotion         Promotion?    @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  review            Review?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }
@@ -359,4 +364,42 @@ model SiteSetting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id                 String       @id @default(uuid())
+  tourId             String
+  tour               Tour         @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  reservationId      String?      @unique
+  reservation        Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  userId             String?
+  user               User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName          String
+  guestEmail         String?
+  rating             Int
+  comment            String
+  moderationStatus   String       @default("PENDING") // PENDING | APPROVED | REJECTED
+  adminNote          String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tourId])
+  @@index([moderationStatus])
+}
+
+model Promotion {
+  id                 String        @id @default(uuid())
+  name               String
+  discountType      String        // percentage | fixed
+  discountValue     Float
+  discountCurrency  String?
+  validFrom         DateTime
+  validUntil        DateTime
+  bookableFrom      DateTime
+  bookableUntil     DateTime
+  applicableTourIds Json?
+  isActive          Boolean       @default(true)
+  reservations      Reservation[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 }

@@ -22,6 +22,8 @@ type ReservationItem = {
   couponCode: string | null;
   originalPrice: number | null;
   discountAmount: number | null;
+  canWriteReview?: boolean;
+  hasReview?: boolean;
 };
 
 type CouponUsageView = {
@@ -128,6 +130,18 @@ type AccountLabels = {
     subject: string;
     message: string;
     send: string;
+  };
+  reviews: {
+    title: string;
+    writeReview: string;
+    yourReview: string;
+    submit: string;
+    thankYou: string;
+    alreadyReviewed: string;
+    showMore: string;
+    rating: string;
+    close: string;
+    reviewSubmitted: string;
   };
 };
 
@@ -330,7 +344,12 @@ export function AccountClient(props: {
               {labels.reservations.empty} <Link href={`/${lang}/tours`}>{labels.reservations.exploreTours}</Link>.
             </div>
           ) : (
-            <MyReservationsList reservations={reservations} lang={lang} labels={labels.reservationCard} />
+            <MyReservationsList
+              reservations={reservations}
+              lang={lang}
+              labels={labels.reservationCard}
+              reviewLabels={labels.reviews}
+            />
           )}
         </div>
       )}

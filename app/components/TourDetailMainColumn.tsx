@@ -55,6 +55,14 @@ export function TourDetailMainColumn({
 
   return (
     <>
+      <section className="tour-detail-gallery-section tour-detail-gallery-section--lead" id="gallery">
+        <TourDetailGallery
+          mainSrc={galleryMainSrc}
+          fallbackSrc={galleryFallback}
+          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
+        />
+      </section>
+
       <div
         className="tour-detail-desc-block"
         id={itineraryIdOnDescription ? 'itinerary' : undefined}
@@ -133,14 +141,6 @@ export function TourDetailMainColumn({
           </ul>
         </section>
       ) : null}
-
-      <section className="tour-structured-section tour-detail-gallery-section" id="gallery">
-        <TourDetailGallery
-          mainSrc={galleryMainSrc}
-          fallbackSrc={galleryFallback}
-          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
-        />
-      </section>
 
       {faqs.length > 0 ? (
         <section className="tour-structured-section" id="faqs">

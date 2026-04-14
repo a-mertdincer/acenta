@@ -1248,6 +1248,11 @@ main {
 .tour-detail-gallery-section {
   margin-top: var(--space-md);
 }
+
+.tour-detail-gallery-section--lead {
+  margin-top: 0;
+  margin-bottom: var(--space-lg);
+}
 .tour-gallery-lightbox {
   position: fixed;
   inset: 0;

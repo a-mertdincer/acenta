@@ -13,6 +13,9 @@ import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getTierFromPrice } from '@/lib/pricingTiers';
+import enPageDict from '@/app/dictionaries/en.json';
+import trPageDict from '@/app/dictionaries/tr.json';
+import zhPageDict from '@/app/dictionaries/zh.json';
 
 function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: number; price: number }[] | null, pax: number, basePrice: number): number {
   if (transferTiers?.length) {
@@ -332,6 +335,12 @@ function StickyAnchorBar({
   );
 }
 
+function getTourExtrasDict(lang: string): { whyBook: NonNullable<typeof enPageDict.whyBook>; tourCancellation: NonNullable<typeof enPageDict.tourCancellation> } {
+  if (lang === 'tr') return { whyBook: trPageDict.whyBook, tourCancellation: trPageDict.tourCancellation };
+  if (lang === 'zh') return { whyBook: zhPageDict.whyBook, tourCancellation: zhPageDict.tourCancellation };
+  return { whyBook: enPageDict.whyBook, tourCancellation: enPageDict.tourCancellation };
+}
+
 function mapDbTourToState(db: {
   id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
   highlightsEn?: string | null;
@@ -362,6 +371,9 @@ function mapDbTourToState(db: {
   ageGroups?: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; descriptionEn: string; descriptionTr: string; descriptionZh?: string | null }[];
   images?: { url: string; isPrimary: boolean }[];
   isAskForPrice?: boolean;
+  cancellationNoteEn?: string | null;
+  cancellationNoteTr?: string | null;
+  cancellationNoteZh?: string | null;
 }, _lang: Lang) {
   const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
   return {
@@ -398,6 +410,7 @@ function mapDbTourToState(db: {
       pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person',
     })),
     isAskForPrice: Boolean(db.isAskForPrice),
+    cancellationNote: getLocalizedContent(_lang, db.cancellationNoteEn, db.cancellationNoteTr, db.cancellationNoteZh),
   };
 }
 
@@ -507,6 +520,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                       ? (group.descriptionZh ?? '')
                       : group.descriptionEn,
                 })),
+                cancellationNote: null,
               });
               return;
             }
@@ -645,6 +659,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
         ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMainSrc)
         : null;
 
+    const { whyBook, tourCancellation } = getTourExtrasDict(lang);
+    const cancellationNoteLocalized = (tour as { cancellationNote?: string | null }).cancellationNote ?? null;
+
     return (
         <div className={`container tour-detail-layout${useVariantBooking ? ' tour-detail-layout--variant' : ''}`}>
             {productSchema && (
@@ -698,6 +715,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 tourType={tour.type}
                                 lang={lang as Lang}
                                 isAskForPrice={isAskForPrice}
+                                whyBook={whyBook}
+                                tourCancellationLabels={tourCancellation}
+                                cancellationNote={cancellationNoteLocalized}
                                 data={tourWithVariants ?? {
                                   id: tour.id,
                                   type: tour.type,

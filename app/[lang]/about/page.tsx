@@ -1,35 +1,76 @@
 import { getDictionary } from '../../dictionaries/getDictionary';
-import type { SiteLocale } from '@/lib/i18n';
+import { normalizeLocale } from '@/lib/i18n';
+import { WHATSAPP_CONTACT_HREF } from '@/lib/contact';
 
 export default async function AboutPage(props: { params: Promise<{ lang: string }> }) {
   const params = await props.params;
-  const lang = (params.lang || 'en') as SiteLocale;
+  const lang = normalizeLocale(params?.lang);
   const dict = await getDictionary(lang);
-  const home = dict.home as Record<string, string>;
-  const about = dict.about ?? {};
+  const about = (dict as { about?: Record<string, string> }).about ?? {};
 
   return (
     <section className="page-section">
       <div className="container about-page">
-        <h1>{about.title ?? dict.navigation.aboutUs ?? 'About Us'}</h1>
-        <p className="about-page-intro">{about.tagline ?? home.welcomeTagline ?? 'Your trusted travel partner in Cappadocia'}</p>
+        <h1>{about.title ?? 'About Us'}</h1>
+
+        <section className="about-badges-band" aria-label="Trust badges">
+          <ul className="about-badges-row">
+            <li className="about-badge-item">{about.badgeReliable}</li>
+            <li className="about-badge-sep" aria-hidden>
+              |
+            </li>
+            <li className="about-badge-item">{about.badgeGenerations}</li>
+            <li className="about-badge-sep" aria-hidden>
+              |
+            </li>
+            <li className="about-badge-item">{about.badgeSupport}</li>
+          </ul>
+          <p className="about-badges-tagline">{about.tagline}</p>
+        </section>
+
         <div className="about-page-hero">
-          <img src="/images/activities/culture-placeholder.svg" alt="About Kismet Goreme Travel" />
+          <img src="/images/activities/culture-placeholder.svg" alt="" />
         </div>
+
         <div className="about-page-card">
-          <h2>{home.welcomeHeading ?? 'Welcome to Kismet Goreme'}</h2>
-          <p>{home.welcomeBody1 ?? ''}</p>
-          <p>{home.welcomeBody2 ?? ''}</p>
-          <p>{about.body3 ?? 'We work with local experts and trusted partners to deliver safe transportation, transparent pricing, and memorable experiences.'}</p>
+          <h2>{about.welcomeTitle}</h2>
+          <p>{about.body1}</p>
+          <p>{about.body2}</p>
+          <p>{about.body3}</p>
+          <p>{about.body4}</p>
+
+          <h3 className="about-difference-title">{about.differenceTitle}</h3>
+          <ul className="about-difference-list">
+            <li>{about.diff1}</li>
+            <li>{about.diff2}</li>
+            <li>{about.diff3}</li>
+            <li>{about.diff4}</li>
+            <li>{about.diff5}</li>
+          </ul>
+
+          <p className="about-closing">{about.closingText}</p>
         </div>
+
         <div className="about-page-stats">
-          <div><strong>10+</strong><span>{about.statYears ?? 'Years'}</span></div>
-          <div><strong>500+</strong><span>{about.statGuests ?? 'Guests'}</span></div>
-          <div><strong>24/7</strong><span>{about.statSupport ?? 'Support'}</span></div>
+          <div>
+            <strong>10+</strong>
+            <span>{about.statYears}</span>
+          </div>
+          <div>
+            <strong>500+</strong>
+            <span>{about.statGuests}</span>
+          </div>
+          <div>
+            <strong>24/7</strong>
+            <span>{about.statSupport}</span>
+          </div>
         </div>
-        <a className="btn btn-primary" href="https://wa.me/905551234567" target="_blank" rel="noopener noreferrer">
-          {about.whatsappCta ?? 'Contact via WhatsApp'}
-        </a>
+
+        <p className="about-page-cta-wrap">
+          <a className="btn btn-primary" href={WHATSAPP_CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+            {about.whatsappCta}
+          </a>
+        </p>
       </div>
     </section>
   );

@@ -23,6 +23,8 @@ import { getLastTierPax, resolveTierPrice } from '@/lib/pricingTiers';
 import { useExchangeRate } from '@/app/hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { AskForPriceBookingBlock } from './AskForPriceModal';
+import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
+import { TourBookingTrustExtras, type TourCancellationLabels, type WhyBookDict } from './TourBookingTrustExtras';
 
 type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
@@ -101,6 +103,9 @@ export function ProductVariantBookingCard({
   ageGroups = [],
   minAgeLimit = null,
   isAskForPrice = false,
+  whyBook,
+  tourCancellationLabels,
+  cancellationNote,
 }: {
   tourId: string;
   tourType: string;
@@ -108,6 +113,9 @@ export function ProductVariantBookingCard({
   data: TourWithVariantsResult;
   title: string;
   isAskForPrice?: boolean;
+  whyBook: WhyBookDict;
+  tourCancellationLabels: TourCancellationLabels;
+  cancellationNote?: string | null;
   options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' }[];
   ageGroups?: {
     minAge: number;
@@ -225,6 +233,25 @@ export function ProductVariantBookingCard({
   const maxGuests = Math.max(1, activeVariant?.maxGroupSize ?? tierBasedMax ?? tierDerivedMax ?? 99);
   const totalGuests = adults + children + infants;
   const isAtGuestLimit = totalGuests >= maxGuests;
+
+  const bookingWhatsappHref = useMemo(() => {
+    const pax = Math.max(1, adults + children + infants);
+    return buildTourWhatsAppHref({
+      tourTitle: title,
+      dateYmd: selectedDate,
+      people: pax,
+    });
+  }, [title, selectedDate, adults, children, infants]);
+
+  const askPriceWhatsappHref = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return buildTourWhatsAppHref({
+      tourTitle: title,
+      dateYmd: d.toISOString().split('T')[0],
+      people: 2,
+    });
+  }, [title]);
 
   useEffect(() => {
     if (!activeVariant?.maxGroupSize) return;
@@ -365,6 +392,13 @@ export function ProductVariantBookingCard({
     return (
       <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
         <AskForPriceBookingBlock tourId={tourId} lang={lang} />
+        <TourBookingTrustExtras
+          whatsappHref={askPriceWhatsappHref}
+          whatsappLabel={t.askWhatsApp}
+          whyBook={whyBook}
+          cancellationNote={cancellationNote}
+          policyLabels={tourCancellationLabels}
+        />
       </div>
     );
   }
@@ -759,10 +793,15 @@ export function ProductVariantBookingCard({
         <Button style={{ width: '100%' }} onClick={handleAddToCart} disabled={!activeVariant}>
           {t.addToCart}
         </Button>
-        <p style={{ textAlign: 'center', marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-          {t.askWhatsApp}
-        </p>
       </div>
+
+      <TourBookingTrustExtras
+        whatsappHref={bookingWhatsappHref}
+        whatsappLabel={t.askWhatsApp}
+        whyBook={whyBook}
+        cancellationNote={cancellationNote}
+        policyLabels={tourCancellationLabels}
+      />
 
       {cartToastOpen && (
         <div

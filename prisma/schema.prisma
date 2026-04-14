@@ -67,6 +67,9 @@ model Tour {
   slug               String?         @unique // Optional URL slug e.g. green-tour
   isAskForPrice      Boolean         @default(false)
   isFeatured         Boolean         @default(false)
+  cancellationNoteEn String?
+  cancellationNoteTr String?
+  cancellationNoteZh String?
   ageGroups          ProductAgeGroup[]
   images             TourImage[]
   priceInquiries     PriceInquiry[]

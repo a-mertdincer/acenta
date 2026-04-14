@@ -366,7 +366,21 @@
   "about": {
     "title": "소개",
     "tagline": "카파도키아의 믿을 수 있는 여행사",
+    "welcomeTitle": "Welcome to Kısmet",
+    "body1": "Kismet Göreme Travel is a locally rooted travel agency built on years of hospitality experience in Cappadocia.",
+    "body2": "Our journey began with Kismet Cave House (2006) and continues with Kismet Cave Mansion (2025) — two boutique cave hotels that reflect our deep connection to the region and our long-standing experience in hosting guests from all around the world.",
     "body3": "현지 가이드와 함께 안전한 교통편과 투명한 가격으로 편안한 여행 경험을 제공합니다.",
+    "body4": "We both operate our own experiences and work closely with reliable local partners, allowing us to provide consistent quality, fair pricing, and reliable service.",
+    "differenceTitle": "What makes us different is how we communicate and care:",
+    "diff1": "Fast and direct support via WhatsApp",
+    "diff2": "Honest recommendations based on real local knowledge",
+    "diff3": "Flexible options tailored to your travel plans",
+    "diff4": "A team that truly values your time and questions",
+    "diff5": "A local team you can meet face-to-face during your stay, right here in Cappadocia",
+    "closingText": "Whether you book a single activity or plan your entire stay, our goal is simple — to make your Cappadocia experience smooth, reliable, and unforgettable.",
+    "badgeReliable": "Reliable Local Partners",
+    "badgeGenerations": "5 Generations Local Family Heritage",
+    "badgeSupport": "24/7 Support",
     "statYears": "년 경력",
     "statGuests": "만족 고객",
     "statSupport": "지원",
@@ -418,5 +432,17 @@
     "all": "전체 투어",
     "soon": "준비 중",
     "inDestination": "카파도키아"
+  },
+  "whyBook": {
+    "title": "Why book with Kismet Travel?",
+    "flexible": "Flexible Ticket",
+    "flexibleDesc": "Transferring your ticket to a different date is easy with a flexible ticket.",
+    "support": "24/7 Customer Service",
+    "noFees": "No Hidden Fees"
+  },
+  "tourCancellation": {
+    "viewPolicy": "View Return Policy",
+    "modalTitle": "Return Policy",
+    "acknowledge": "I Read It"
   }
 }

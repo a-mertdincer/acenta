@@ -365,12 +365,38 @@
   },
   "about": {
     "title": "关于我们",
-    "tagline": "卡帕多奇亚值得信赖的旅行社",
-    "body3": "我们与当地向导合作，提供安全交通和透明定价，为您带来无忧体验。",
+    "tagline": "您在卡帕多奇亚值得信赖的旅行社。",
+    "welcomeTitle": "欢迎来到 Kısmet",
+    "body1": "Kismet Göreme Travel 是一家扎根当地的旅行社，建立在卡帕多年的接待经验之上。",
+    "body2": "我们的旅程始于 Kismet Cave House（2006），并延续至 Kismet Cave Mansion（2025）——两家精品洞穴酒店，体现了我们与这片土地的深厚联系以及接待世界各地宾客的丰富经验。",
+    "body3": "如今，我们将这份经验延伸至旅行服务：精选的热气球飞行、一日游、机场接送以及地道的本地活动。",
+    "body4": "我们既运营自有体验，也与可靠的本地伙伴紧密合作，提供稳定品质、公平定价与可信赖的服务。",
+    "differenceTitle": "让我们与众不同的是沟通与关怀：",
+    "diff1": "通过 WhatsApp 提供快速、直接的支持",
+    "diff2": "基于真实当地知识的坦诚建议",
+    "diff3": "根据您的行程量身打造的灵活选择",
+    "diff4": "真正重视您的时间与问题的团队",
+    "diff5": "您入住期间可以在卡帕当面交流的本地团队",
+    "closingText": "无论您预订单项活动还是规划整段停留，我们的目标都很简单：让您的卡帕多奇亚之旅顺畅、可靠、难忘。",
+    "badgeReliable": "可靠的本地合作伙伴",
+    "badgeGenerations": "五代本地家族传承",
+    "badgeSupport": "24/7 支持",
     "statYears": "年经验",
     "statGuests": "满意游客",
     "statSupport": "全天候服务",
     "whatsappCta": "通过WhatsApp联系我们"
+  },
+  "whyBook": {
+    "title": "为什么选择 Kismet Travel 预订？",
+    "flexible": "灵活票",
+    "flexibleDesc": "凭借灵活票，您可轻松将行程改到其他日期。",
+    "support": "7×24 客户服务",
+    "noFees": "无隐形费用"
+  },
+  "tourCancellation": {
+    "viewPolicy": "查看退款政策",
+    "modalTitle": "退款政策",
+    "acknowledge": "我已阅读"
   },
   "contactPage": {
     "pageTitle": "联系我们",

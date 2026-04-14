@@ -365,12 +365,38 @@
   },
   "about": {
     "title": "Hakkımızda",
-    "tagline": "Kapadokya'daki güvenilir seyahat acenteniz",
-    "body3": "Yerel rehberlerle çalışıyor, güvenli ulaşım ve net fiyat politikası ile misafirlerimize sorunsuz bir deneyim sunuyoruz.",
+    "tagline": "Kapadokya'daki güvenilir seyahat acenteniz.",
+    "welcomeTitle": "Kısmet'e Hoş Geldiniz",
+    "body1": "Kismet Göreme Travel, Kapadokya'da yıllara dayanan konaklama deneyimi üzerine kurulmuş yerel köklere sahip bir seyahat acentesidir.",
+    "body2": "Yolculuğumuz Kismet Cave House (2006) ile başladı ve Kismet Cave Mansion (2025) ile devam ediyor — bölgeyle olan derin bağımızı ve dünyanın dört bir yanından gelen misafirlere ev sahipliği yapma konusundaki köklü deneyimimizi yansıtan iki butik mağara otel.",
+    "body3": "Bugün bu deneyimi seyahat hizmetlerine taşıyoruz; özenle seçilmiş sıcak hava balonu uçuşları, günlük turlar, havalimanı transferleri ve otantik yerel aktiviteler sunuyoruz.",
+    "body4": "Hem kendi deneyimlerimizi yönetiyor hem de güvenilir yerel partnerlerle yakın çalışarak tutarlı kalite, adil fiyatlandırma ve güvenilir hizmet sağlıyoruz.",
+    "differenceTitle": "Bizi farklı kılan, iletişim ve ilgi şeklimiz:",
+    "diff1": "WhatsApp üzerinden hızlı ve doğrudan destek",
+    "diff2": "Gerçek yerel bilgiye dayanan dürüst öneriler",
+    "diff3": "Seyahat planlarınıza uygun esnek seçenekler",
+    "diff4": "Zamanınıza ve sorularınıza gerçekten değer veren bir ekip",
+    "diff5": "Konaklamanız sırasında yüz yüze tanışabileceğiniz, burada Kapadokya'da yerel bir ekip",
+    "closingText": "İster tek bir aktivite rezerve edin, ister tüm konaklamanızı planlayın — amacımız basit: Kapadokya deneyiminizi sorunsuz, güvenilir ve unutulmaz kılmak.",
+    "badgeReliable": "Güvenilir Yerel Ortaklar",
+    "badgeGenerations": "5 Kuşaklık Yerel Aile Mirası",
+    "badgeSupport": "7/24 Destek",
     "statYears": "Yıl Tecrübe",
     "statGuests": "Mutlu Misafir",
     "statSupport": "Destek",
     "whatsappCta": "WhatsApp ile İletişime Geçin"
+  },
+  "whyBook": {
+    "title": "Neden Kısmet Travel ile rezervasyon yapmalısınız?",
+    "flexible": "Esnek bilet",
+    "flexibleDesc": "Biletinizi farklı bir tarihe kolayca aktarabilirsiniz.",
+    "support": "7/24 Müşteri Hizmetleri",
+    "noFees": "Gizli Ücret Yok"
+  },
+  "tourCancellation": {
+    "viewPolicy": "İade Politikasını Görüntüle",
+    "modalTitle": "İade Politikası",
+    "acknowledge": "Okudum"
   },
   "contactPage": {
     "pageTitle": "İletişim",

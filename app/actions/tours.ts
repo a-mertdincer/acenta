@@ -55,6 +55,9 @@ export interface TourWithOptions {
   faqsZh?: { question: string; answer: string }[] | null;
   isAskForPrice: boolean;
   isFeatured: boolean;
+  cancellationNoteEn?: string | null;
+  cancellationNoteTr?: string | null;
+  cancellationNoteZh?: string | null;
   createdAt: string;
   basePrice: number;
   capacity: number;
@@ -175,6 +178,9 @@ export async function getTours(filters?: { destination?: string; category?: stri
         faqsZh: Array.isArray(t.faqsZh) ? (t.faqsZh as { question: string; answer: string }[]) : null,
         isAskForPrice: Boolean((t as { isAskForPrice?: boolean }).isAskForPrice),
         isFeatured: Boolean((t as { isFeatured?: boolean }).isFeatured),
+        cancellationNoteEn: (t as { cancellationNoteEn?: string | null }).cancellationNoteEn?.trim() || null,
+        cancellationNoteTr: (t as { cancellationNoteTr?: string | null }).cancellationNoteTr?.trim() || null,
+        cancellationNoteZh: (t as { cancellationNoteZh?: string | null }).cancellationNoteZh?.trim() || null,
         createdAt: (() => {
           const row = t as unknown as { createdAt?: Date };
           return row.createdAt instanceof Date ? row.createdAt.toISOString() : new Date().toISOString();
@@ -334,6 +340,9 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
       isAskForPrice: Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice),
       isFeatured: Boolean((tour as { isFeatured?: boolean }).isFeatured),
+      cancellationNoteEn: (tour as { cancellationNoteEn?: string | null }).cancellationNoteEn?.trim() || null,
+      cancellationNoteTr: (tour as { cancellationNoteTr?: string | null }).cancellationNoteTr?.trim() || null,
+      cancellationNoteZh: (tour as { cancellationNoteZh?: string | null }).cancellationNoteZh?.trim() || null,
       createdAt: tour.createdAt instanceof Date ? tour.createdAt.toISOString() : new Date().toISOString(),
       basePrice: tour.basePrice,
       capacity: tour.capacity,
@@ -639,6 +648,9 @@ export type CreateTourInput = {
   faqsZh?: { question: string; answer: string }[] | null;
   isAskForPrice?: boolean;
   isFeatured?: boolean;
+  cancellationNoteEn?: string | null;
+  cancellationNoteTr?: string | null;
+  cancellationNoteZh?: string | null;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -697,6 +709,9 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         faqsZh: jsonInputOrNull(data.faqsZh),
         isAskForPrice: data.isAskForPrice ?? false,
         isFeatured: data.isFeatured ?? false,
+        cancellationNoteEn: data.cancellationNoteEn?.trim() || null,
+        cancellationNoteTr: data.cancellationNoteTr?.trim() || null,
+        cancellationNoteZh: data.cancellationNoteZh?.trim() || null,
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
@@ -784,6 +799,9 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         faqsZh: jsonInputOrNull(data.faqsZh),
         ...(data.isAskForPrice !== undefined && { isAskForPrice: data.isAskForPrice }),
         ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
+        ...(data.cancellationNoteEn !== undefined && { cancellationNoteEn: data.cancellationNoteEn?.trim() || null }),
+        ...(data.cancellationNoteTr !== undefined && { cancellationNoteTr: data.cancellationNoteTr?.trim() || null }),
+        ...(data.cancellationNoteZh !== undefined && { cancellationNoteZh: data.cancellationNoteZh?.trim() || null }),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',

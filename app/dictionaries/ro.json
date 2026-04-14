@@ -366,7 +366,21 @@
   "about": {
     "title": "Despre Noi",
     "tagline": "Agenția ta de încredere din Cappadocia",
+    "welcomeTitle": "Welcome to Kısmet",
+    "body1": "Kismet Göreme Travel is a locally rooted travel agency built on years of hospitality experience in Cappadocia.",
+    "body2": "Our journey began with Kismet Cave House (2006) and continues with Kismet Cave Mansion (2025) — two boutique cave hotels that reflect our deep connection to the region and our long-standing experience in hosting guests from all around the world.",
     "body3": "Lucrăm cu ghizi locali, oferind transport sigur și prețuri transparente pentru o experiență fără griji.",
+    "body4": "We both operate our own experiences and work closely with reliable local partners, allowing us to provide consistent quality, fair pricing, and reliable service.",
+    "differenceTitle": "What makes us different is how we communicate and care:",
+    "diff1": "Fast and direct support via WhatsApp",
+    "diff2": "Honest recommendations based on real local knowledge",
+    "diff3": "Flexible options tailored to your travel plans",
+    "diff4": "A team that truly values your time and questions",
+    "diff5": "A local team you can meet face-to-face during your stay, right here in Cappadocia",
+    "closingText": "Whether you book a single activity or plan your entire stay, our goal is simple — to make your Cappadocia experience smooth, reliable, and unforgettable.",
+    "badgeReliable": "Reliable Local Partners",
+    "badgeGenerations": "5 Generations Local Family Heritage",
+    "badgeSupport": "24/7 Support",
     "statYears": "Ani de Experiență",
     "statGuests": "Oaspeți Fericiți",
     "statSupport": "Asistență",
@@ -418,5 +432,17 @@
     "all": "Toate Tururile",
     "soon": "În curând",
     "inDestination": "Cappadocia"
+  },
+  "whyBook": {
+    "title": "Why book with Kismet Travel?",
+    "flexible": "Flexible Ticket",
+    "flexibleDesc": "Transferring your ticket to a different date is easy with a flexible ticket.",
+    "support": "24/7 Customer Service",
+    "noFees": "No Hidden Fees"
+  },
+  "tourCancellation": {
+    "viewPolicy": "View Return Policy",
+    "modalTitle": "Return Policy",
+    "acknowledge": "I Read It"
   }
 }

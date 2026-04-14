@@ -83,6 +83,9 @@ export default function AdminToursPage() {
     const [newBasePrice, setNewBasePrice] = useState('0');
     const [newAskForPrice, setNewAskForPrice] = useState(false);
     const [newFeatured, setNewFeatured] = useState(false);
+    const [newCancellationNoteEn, setNewCancellationNoteEn] = useState('');
+    const [newCancellationNoteTr, setNewCancellationNoteTr] = useState('');
+    const [newCancellationNoteZh, setNewCancellationNoteZh] = useState('');
     const [newCapacity, setNewCapacity] = useState('10');
     const [newDestination, setNewDestination] = useState('cappadocia');
     const [newCategory, setNewCategory] = useState('');
@@ -131,6 +134,9 @@ export default function AdminToursPage() {
     const [tourEditBasePrice, setTourEditBasePrice] = useState('0');
     const [tourEditAskForPrice, setTourEditAskForPrice] = useState(false);
     const [tourEditFeatured, setTourEditFeatured] = useState(false);
+    const [tourEditCancellationNoteEn, setTourEditCancellationNoteEn] = useState('');
+    const [tourEditCancellationNoteTr, setTourEditCancellationNoteTr] = useState('');
+    const [tourEditCancellationNoteZh, setTourEditCancellationNoteZh] = useState('');
     const [tourEditCapacity, setTourEditCapacity] = useState('10');
     const [tourEditDestination, setTourEditDestination] = useState('cappadocia');
     const [tourEditCategory, setTourEditCategory] = useState('');
@@ -351,6 +357,9 @@ export default function AdminToursPage() {
             setTourEditBasePrice(String(t.basePrice));
             setTourEditAskForPrice(Boolean((t as { isAskForPrice?: boolean }).isAskForPrice));
             setTourEditFeatured(Boolean((t as { isFeatured?: boolean }).isFeatured));
+            setTourEditCancellationNoteEn((t as { cancellationNoteEn?: string | null }).cancellationNoteEn ?? '');
+            setTourEditCancellationNoteTr((t as { cancellationNoteTr?: string | null }).cancellationNoteTr ?? '');
+            setTourEditCancellationNoteZh((t as { cancellationNoteZh?: string | null }).cancellationNoteZh ?? '');
             setTourEditCapacity(String(t.capacity));
             setTourEditHasTourType(Boolean(rec.hasTourType));
             setTourEditHasAirportSelect(Boolean(rec.hasAirportSelect));
@@ -579,6 +588,9 @@ export default function AdminToursPage() {
             basePrice: parseFloat(newBasePrice) || 0,
             isAskForPrice: newAskForPrice,
             isFeatured: newFeatured,
+            cancellationNoteEn: newCancellationNoteEn.trim() || null,
+            cancellationNoteTr: newCancellationNoteTr.trim() || null,
+            cancellationNoteZh: newCancellationNoteZh.trim() || null,
             capacity: parseInt(newCapacity, 10) || 0,
             destination: newDestination,
             category: newCategory || null,
@@ -626,6 +638,9 @@ export default function AdminToursPage() {
             setNewBasePrice('0');
             setNewAskForPrice(false);
             setNewFeatured(false);
+            setNewCancellationNoteEn('');
+            setNewCancellationNoteTr('');
+            setNewCancellationNoteZh('');
             setNewCapacity('10');
             setNewAttractionIds([]);
             setNewHasTourType(false);
@@ -683,6 +698,9 @@ export default function AdminToursPage() {
             basePrice: parseFloat(tourEditBasePrice) || 0,
             isAskForPrice: tourEditAskForPrice,
             isFeatured: tourEditFeatured,
+            cancellationNoteEn: tourEditCancellationNoteEn.trim() || null,
+            cancellationNoteTr: tourEditCancellationNoteTr.trim() || null,
+            cancellationNoteZh: tourEditCancellationNoteZh.trim() || null,
             capacity: parseInt(tourEditCapacity, 10) || 0,
             hasTourType: tourEditHasTourType,
             hasAirportSelect: tourEditHasAirportSelect,
@@ -1116,6 +1134,12 @@ export default function AdminToursPage() {
                             <input type="checkbox" checked={newFeatured} onChange={(e) => setNewFeatured(e.target.checked)} />
                             <span>Öne çıkar (ana sayfa Best Selling, en fazla 4)</span>
                         </label>
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (EN) — ürün sayfasında modal</label>
+                        <textarea value={newCancellationNoteEn} onChange={(e) => setNewCancellationNoteEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Optional" />
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (TR)</label>
+                        <textarea value={newCancellationNoteTr} onChange={(e) => setNewCancellationNoteTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (ZH)</label>
+                        <textarea value={newCancellationNoteZh} onChange={(e) => setNewCancellationNoteZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={newBasePrice} onChange={(e) => setNewBasePrice(e.target.value)} disabled={newAskForPrice} />
                             <Input label="Kapasite" type="number" min={1} value={newCapacity} onChange={(e) => setNewCapacity(e.target.value)} />
@@ -1317,6 +1341,12 @@ export default function AdminToursPage() {
                             <input type="checkbox" checked={tourEditFeatured} onChange={(e) => setTourEditFeatured(e.target.checked)} />
                             <span>Öne çıkar (ana sayfa Best Selling, en fazla 4)</span>
                         </label>
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (EN)</label>
+                        <textarea value={tourEditCancellationNoteEn} onChange={(e) => setTourEditCancellationNoteEn(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (TR)</label>
+                        <textarea value={tourEditCancellationNoteTr} onChange={(e) => setTourEditCancellationNoteTr(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>İptal / İade notu (ZH)</label>
+                        <textarea value={tourEditCancellationNoteZh} onChange={(e) => setTourEditCancellationNoteZh(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
                         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                             <Input label="Başlangıç fiyatı (€)" type="number" step="0.01" value={tourEditBasePrice} onChange={(e) => setTourEditBasePrice(e.target.value)} disabled={tourEditAskForPrice} />
                             <Input label="Kapasite" type="number" min={1} value={tourEditCapacity} onChange={(e) => setTourEditCapacity(e.target.value)} />

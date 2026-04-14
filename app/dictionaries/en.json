@@ -414,7 +414,15 @@
     "formSending": "Sending...",
     "subjectGeneral": "General",
     "subjectBooking": "Booking",
-    "subjectSupport": "Support"
+    "subjectSupport": "Support",
+    "messagingTitle": "Chat with us",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Chat now",
+    "addUs": "Add us",
+    "wechatHint": "Add us on WeChat using this ID:",
+    "messagingClose": "Close"
   },
   "askForPrice": {
     "button": "Ask for Price",

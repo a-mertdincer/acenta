@@ -402,7 +402,15 @@
     "formSending": "Verzenden...",
     "subjectGeneral": "Algemeen",
     "subjectBooking": "Boeking",
-    "subjectSupport": "Support"
+    "subjectSupport": "Support",
+    "messagingTitle": "Stuur ons een bericht",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Chat nu",
+    "addUs": "Voeg ons toe",
+    "wechatHint": "Voeg ons toe op WeChat met dit ID:",
+    "messagingClose": "Sluiten"
   },
   "askForPrice": {
     "button": "Vraag prijs",

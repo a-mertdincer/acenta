@@ -2642,6 +2642,157 @@ main {
   gap: var(--space-md);
   grid-template-columns: repeat(3, 1fr);
 }
+
+.contact-messaging-wrap {
+  margin-top: var(--space-xl);
+}
+.contact-messaging-title {
+  font-size: 1.05rem;
+  margin: 0 0 var(--space-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.contact-messaging-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, 1fr);
+}
+.contact-messaging-card {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: var(--space-md);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-sm);
+  min-height: 140px;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.contact-messaging-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+.contact-messaging-card:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.contact-messaging-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.contact-messaging-icon-img {
+  display: block;
+}
+.contact-messaging-app-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.contact-messaging-cta {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.contact-wechat-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+.contact-wechat-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.contact-wechat-modal-dialog {
+  position: relative;
+  z-index: 1;
+  background: var(--color-bg-card, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-lg);
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+.contact-wechat-modal-title {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.1rem;
+}
+.contact-wechat-modal-hint {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.contact-wechat-modal-id {
+  margin: 0 0 var(--space-lg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.05rem;
+  font-weight: 600;
+  word-break: break-all;
+}
+.contact-wechat-modal-close {
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .contact-messaging-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-contact-settings-form {
+  max-width: 520px;
+}
+.admin-contact-settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.admin-contact-settings-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.admin-contact-settings-input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--color-bg-card, #fff);
+}
+.admin-contact-settings-help {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md);
+  line-height: 1.45;
+}
+.admin-contact-settings-success {
+  color: var(--color-accent, #0a7a3e);
+  margin: 0 0 var(--space-sm);
+  font-size: 0.875rem;
+}
+.admin-contact-settings-error {
+  color: var(--color-error, #b42318);
+  margin: 0 0 var(--space-sm);
+  font-size: 0.875rem;
+}
 .about-page-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

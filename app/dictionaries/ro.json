@@ -402,7 +402,15 @@
     "formSending": "Se trimite...",
     "subjectGeneral": "General",
     "subjectBooking": "Rezervare",
-    "subjectSupport": "Suport"
+    "subjectSupport": "Suport",
+    "messagingTitle": "Scrie-ne",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Chat acum",
+    "addUs": "Adaugă-ne",
+    "wechatHint": "Adaugă-ne pe WeChat cu acest ID:",
+    "messagingClose": "Închide"
   },
   "askForPrice": {
     "button": "Cere prețul",

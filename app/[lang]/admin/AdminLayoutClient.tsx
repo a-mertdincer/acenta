@@ -27,6 +27,7 @@ const SIDEBAR_SECTIONS = [
     items: [
       { path: 'admin/users', label: 'Kullanıcılar', icon: '👥' },
       { path: 'admin/coupons', label: 'Kuponlar', icon: '🎟' },
+      { path: 'admin/contact-settings', label: 'İletişim linkleri', icon: '💬' },
     ],
   },
   {

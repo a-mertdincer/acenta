@@ -1,11 +1,14 @@
 import { getDictionary } from '../../dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
+import { getMessagingLinks } from '@/app/actions/siteSettings';
+import { ContactMessagingSection } from '@/app/components/ContactMessagingSection';
 
 export default async function ContactPage(props: { params: Promise<{ lang: string }> }) {
   const params = await props.params;
   const lang = (params.lang || 'en') as SiteLocale;
   const dict = await getDictionary(lang);
   const c = dict.contactPage ?? {};
+  const messaging = await getMessagingLinks();
 
   return (
     <section className="page-section">
@@ -26,6 +29,21 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
             <p>{c.address ?? 'Göreme, Nevşehir, Türkiye'}</p>
           </div>
         </div>
+        <ContactMessagingSection
+          whatsappLink={messaging.whatsapp_link}
+          wechatId={messaging.wechat_id}
+          lineLink={messaging.line_link}
+          labels={{
+            messagingTitle: c.messagingTitle ?? 'Chat with us',
+            whatsapp: c.whatsapp ?? 'WhatsApp',
+            wechat: c.wechat ?? 'WeChat',
+            line: c.line ?? 'LINE',
+            chatNow: c.chatNow ?? 'Chat now',
+            addUs: c.addUs ?? 'Add us',
+            wechatHint: c.wechatHint ?? 'Add us on WeChat using this ID:',
+            messagingClose: c.messagingClose ?? 'Close',
+          }}
+        />
         <div className="contact-form-card">
           <h2>{c.messageTitle ?? 'Send us a message'}</h2>
           <form className="contact-form-grid" action="#">

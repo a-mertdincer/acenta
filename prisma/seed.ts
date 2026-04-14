@@ -144,6 +144,19 @@ async function main() {
         console.warn('Transfer variants not created (run: npx prisma generate).', e)
     }
 
+    const messagingDefaults = [
+        { key: 'whatsapp_link', value: 'https://wa.me/905362115993' },
+        { key: 'wechat_id', value: 'kismetgoreme' },
+        { key: 'line_link', value: 'https://line.me/ti/p/~kismetgoreme' },
+    ] as const
+    for (const d of messagingDefaults) {
+        await prisma.siteSetting.upsert({
+            where: { key: d.key },
+            create: { key: d.key, value: d.value },
+            update: {},
+        })
+    }
+
     console.log('Seed data inserted successfully')
 }
 

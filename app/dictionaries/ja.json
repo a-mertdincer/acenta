@@ -402,7 +402,15 @@
     "formSending": "送信中...",
     "subjectGeneral": "一般的なお問い合わせ",
     "subjectBooking": "ご予約について",
-    "subjectSupport": "カスタマーサポート"
+    "subjectSupport": "カスタマーサポート",
+    "messagingTitle": "チャットでお問い合わせ",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "チャット",
+    "addUs": "友だち追加",
+    "wechatHint": "このIDでWeChatの友だちを追加してください:",
+    "messagingClose": "閉じる"
   },
   "askForPrice": {
     "button": "料金を問い合わせる",

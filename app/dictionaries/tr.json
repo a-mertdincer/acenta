@@ -414,7 +414,15 @@
     "formSending": "Gönderiliyor...",
     "subjectGeneral": "Genel",
     "subjectBooking": "Rezervasyon",
-    "subjectSupport": "Destek"
+    "subjectSupport": "Destek",
+    "messagingTitle": "Bize yazın",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Şimdi yaz",
+    "addUs": "Bizi ekleyin",
+    "wechatHint": "WeChat’te bu ID ile bizi ekleyin:",
+    "messagingClose": "Kapat"
   },
   "askForPrice": {
     "button": "Fiyat Sorun",

@@ -414,7 +414,15 @@
     "formSending": "发送中...",
     "subjectGeneral": "一般咨询",
     "subjectBooking": "预订咨询",
-    "subjectSupport": "客服支持"
+    "subjectSupport": "客服支持",
+    "messagingTitle": "与我们聊天",
+    "whatsapp": "WhatsApp",
+    "wechat": "微信",
+    "line": "LINE",
+    "chatNow": "立即聊天",
+    "addUs": "添加我们",
+    "wechatHint": "使用此ID在微信上添加我们：",
+    "messagingClose": "关闭"
   },
   "askForPrice": {
     "button": "询价",

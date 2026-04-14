@@ -402,7 +402,15 @@
     "formSending": "Отправка...",
     "subjectGeneral": "Общий вопрос",
     "subjectBooking": "Бронирование",
-    "subjectSupport": "Поддержка"
+    "subjectSupport": "Поддержка",
+    "messagingTitle": "Напишите нам",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Написать сейчас",
+    "addUs": "Добавьте нас",
+    "wechatHint": "Добавьте нас в WeChat по этому ID:",
+    "messagingClose": "Закрыть"
   },
   "askForPrice": {
     "button": "Запросить цену",

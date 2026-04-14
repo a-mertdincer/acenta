@@ -402,7 +402,15 @@
     "formSending": "Enviando...",
     "subjectGeneral": "General",
     "subjectBooking": "Reserva",
-    "subjectSupport": "Soporte"
+    "subjectSupport": "Soporte",
+    "messagingTitle": "Escríbenos",
+    "whatsapp": "WhatsApp",
+    "wechat": "WeChat",
+    "line": "LINE",
+    "chatNow": "Chatear ahora",
+    "addUs": "Añádenos",
+    "wechatHint": "Añádenos en WeChat con este ID:",
+    "messagingClose": "Cerrar"
   },
   "askForPrice": {
     "button": "Solicitar precio",

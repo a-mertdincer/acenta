@@ -18,6 +18,7 @@
     "db:down": "docker-compose down",
     "db:migrate": "prisma migrate deploy",
     "setup": "prisma migrate deploy && npm run seed",
+    "seed:tour-images": "tsx scripts/seed-tour-images.ts",
     "prepare": "husky"
   },
   "prisma": {

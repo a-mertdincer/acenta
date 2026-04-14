@@ -80,6 +80,11 @@ function InstagramIcon({ className }: { className?: string }) {
 const MAP_EMBED =
   'https://www.google.com/maps?q=K%C4%B1smet+G%C3%B6reme+Travel+G%C3%B6reme&output=embed';
 
+/** Footer brand mark — `public/logo.png` (source dimensions match file). */
+const FOOTER_LOGO_SRC = '/logo.png' as const;
+const FOOTER_LOGO_WIDTH = 711;
+const FOOTER_LOGO_HEIGHT = 564;
+
 export function Footer({ lang, footer: f, navigation }: FooterProps) {
   const footer = f ?? {};
   const brand = footer.infoBrand ?? 'Kısmet Göreme Travel';
@@ -89,9 +94,14 @@ export function Footer({ lang, footer: f, navigation }: FooterProps) {
         <div className="site-footer-v2-top">
           <div className="site-footer-v2-brand">
             <Link href={`/${lang}`} className="site-footer-logo-link">
-              <span className="site-footer-logo-wrap">
-                <Image src="/logo.png" alt={brand} fill className="site-footer-logo-img" sizes="200px" />
-              </span>
+              <Image
+                src={FOOTER_LOGO_SRC}
+                alt={brand}
+                width={FOOTER_LOGO_WIDTH}
+                height={FOOTER_LOGO_HEIGHT}
+                className="site-footer-logo-img"
+                sizes="(max-width: 640px) 160px, 220px"
+              />
             </Link>
           </div>
           <div className="site-footer-v2-grid">

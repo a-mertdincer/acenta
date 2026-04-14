@@ -24,11 +24,24 @@ export function getHomeImagePath(key: HomeImageKey): string {
 }
 
 const TOUR_IMAGE_KEYS: Record<string, keyof typeof FALLBACKS.tours> = {
-  BALLOON: 'balloon', TOUR: 'green-tour', TRANSFER: 'transfer', ACTIVITY: 'green-tour', CONCIERGE: 'green-tour', PACKAGE: 'green-tour',
+  BALLOON: 'balloon',
+  TOUR: 'green-tour',
+  TRANSFER: 'transfer',
+  ACTIVITY: 'green-tour',
+  CONCIERGE: 'green-tour',
+  PACKAGE: 'green-tour',
 };
+
+/** Local raster files under public/ (nested paths; not flat key.jpg) */
+const TOUR_TYPE_LOCAL_PATH: Record<keyof typeof FALLBACKS.tours, string> = {
+  balloon: '/images/tours/balloon/balon-goreme/ballom-flight.jpg',
+  'green-tour': '/images/tours/daily-tours/green-tour/1105287.jpg',
+  transfer: '/images/tours/transfer/airport-transfer/8-1-768x576.jpg',
+};
+
 export function getTourImagePath(type: string): string {
   const key = TOUR_IMAGE_KEYS[type] ?? 'green-tour';
-  return `/images/tours/${key}.jpg`;
+  return TOUR_TYPE_LOCAL_PATH[key] ?? TOUR_TYPE_LOCAL_PATH['green-tour'];
 }
 
 export function getHomeImageFallback(key: HomeImageKey): string {

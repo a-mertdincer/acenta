@@ -29,7 +29,12 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
         </section>
 
         <div className="about-page-hero">
-          <img src="/images/activities/culture-placeholder.svg" alt="" />
+          <img
+            src="/images/tours/balloon/balon-goreme/1590144-3840x2160-desktop-4k-goreme-national-park-wallpaper-image.jpg"
+            alt={about.title ?? 'About'}
+            loading="eager"
+            decoding="async"
+          />
         </div>
 
         <div className="about-page-card">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
 
 export interface AttractionSlide {
   id: string;
@@ -42,7 +43,7 @@ export function HomeAttractionsCarousel({ title, items, imageFallback }: HomeAtt
                     decoding="async"
                     onError={(e) => {
                       const el = e.currentTarget;
-                      const placeholder = '/images/activities/tour-placeholder.svg';
+                      const placeholder = DEFAULT_ACTIVITY_CARD_IMAGE;
                       const n = Number(el.dataset.imgErr ?? '0') + 1;
                       el.dataset.imgErr = String(n);
                       if (n === 1) {

@@ -654,6 +654,14 @@ main {
   justify-content: center;
   transition: transform var(--transition-normal);
 }
+.home-activity-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
 .home-activity-card:hover .home-activity-icon {
   color: var(--color-accent);
   transform: scale(1.1);

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getDictionary } from '@/app/dictionaries/getDictionary';
 import { getAttractions } from '@/app/actions/attractions';
 import type { SiteLocale } from '@/lib/i18n';
+import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
 
 export default async function AttractionsPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
@@ -29,7 +30,7 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
               <Link href={`/${lang}/attractions/${row.slug}`} className="tour-card-link-area" aria-label={name}>
                 <div className="tour-card-image">
                   <img
-                    src={row.imageUrl ?? '/images/activities/tour-placeholder.svg'}
+                    src={row.imageUrl ?? DEFAULT_ACTIVITY_CARD_IMAGE}
                     alt={name}
                     className="tour-card-image-img"
                   />

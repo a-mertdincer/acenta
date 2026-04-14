@@ -239,7 +239,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   const stripIds = new Set([...bestIds, ...packageIds]);
   const moreTours = sortedByNewest.filter((t) => !stripIds.has(t.id));
 
-  const attractions = await getAttractions();
+  const attractions = await getAttractions({ resolveImages: true });
   const attractionSlides = attractions.map((a) => ({
     id: a.id,
     name: lang === 'tr' ? a.nameTr : lang === 'zh' ? (a.nameZh ?? a.nameEn) : a.nameEn,
@@ -352,7 +352,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
       <HomeAttractionsCarousel
         title={homeDict.attractionsCarouselTitle ?? FALLBACK_HOME.attractionsCarouselTitle}
         items={attractionSlides}
-        imageFallback={getTourImageFallback('TOUR')}
+        imageFallback={getTourImagePath('TOUR')}
       />
 
       <HomeWhyChooseUs sectionTitle={homeDict.whyChooseTitle ?? FALLBACK_HOME.whyChooseTitle} items={whyItems} />

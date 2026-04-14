@@ -7,7 +7,7 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
   const { lang } = await props.params;
   const locale = (lang || 'en') as SiteLocale;
   const dict = await getDictionary(locale);
-  const rows = await getAttractions();
+  const rows = await getAttractions({ resolveImages: true });
 
   const ap = dict.attractionsPage ?? {};
   const listTitle = ap.title ?? 'Discover Cappadocia';

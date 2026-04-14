@@ -38,10 +38,20 @@ export function HomeAttractionsCarousel({ title, items, imageFallback }: HomeAtt
                     src={item.imageUrl || imageFallback}
                     alt=""
                     className="home-attr-img"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       const el = e.currentTarget;
-                      if (el.src.endsWith(imageFallback)) return;
-                      el.src = imageFallback;
+                      const placeholder = '/images/activities/tour-placeholder.svg';
+                      const n = Number(el.dataset.imgErr ?? '0') + 1;
+                      el.dataset.imgErr = String(n);
+                      if (n === 1) {
+                        el.src = imageFallback;
+                        return;
+                      }
+                      if (n === 2) {
+                        el.src = placeholder;
+                      }
                     }}
                   />
                 </div>

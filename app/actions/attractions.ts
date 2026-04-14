@@ -3,13 +3,25 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getSession } from './auth';
+import { SUPPORTED_LOCALES } from '@/lib/i18n';
 
 function revalidateAttractions() {
-  ['en', 'tr', 'zh'].forEach((lang) => {
+  SUPPORTED_LOCALES.forEach((lang) => {
+    revalidatePath(`/${lang}`);
     revalidatePath(`/${lang}/attractions`);
     revalidatePath(`/${lang}/tours`);
     revalidatePath(`/${lang}/admin/attractions`);
   });
+}
+
+function pickFirstLinkedTourImage(
+  links: { tour: { images: { url: string }[] } }[]
+): string | null {
+  for (const link of links) {
+    const u = link.tour.images[0]?.url?.trim();
+    if (u) return u;
+  }
+  return null;
 }
 
 export type AttractionRow = {
@@ -26,8 +38,55 @@ export type AttractionRow = {
   tourCount: number;
 };
 
-export async function getAttractions(): Promise<AttractionRow[]> {
+/**
+ * @param options.resolveImages When true (public home / attractions list), `imageUrl` is
+ *   DB value or the first available primary image from linked tours. Admin must call without this
+ *   so `imageUrl` stays the raw DB field for forms.
+ */
+export async function getAttractions(options?: { resolveImages?: boolean }): Promise<AttractionRow[]> {
+  const resolveImages = options?.resolveImages === true;
   try {
+    if (resolveImages) {
+      const rows = await prisma.attraction.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          _count: { select: { tours: true } },
+          tours: {
+            orderBy: { createdAt: 'asc' },
+            take: 12,
+            include: {
+              tour: {
+                select: {
+                  images: {
+                    orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+                    take: 1,
+                    select: { url: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      return rows.map((row) => {
+        const stored = row.imageUrl?.trim() || null;
+        const fromTour = pickFirstLinkedTourImage(row.tours);
+        return {
+          id: row.id,
+          slug: row.slug,
+          nameEn: row.nameEn,
+          nameTr: row.nameTr,
+          nameZh: row.nameZh ?? null,
+          descriptionEn: row.descriptionEn ?? null,
+          descriptionTr: row.descriptionTr ?? null,
+          descriptionZh: row.descriptionZh ?? null,
+          imageUrl: stored || fromTour,
+          sortOrder: row.sortOrder,
+          tourCount: row._count.tours,
+        };
+      });
+    }
+
     const rows = await prisma.attraction.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {

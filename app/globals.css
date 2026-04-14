@@ -3947,10 +3947,15 @@ main {
   gap: var(--space-md);
   width: max-content;
   padding: var(--space-md);
-  animation: home-attr-marquee 48s linear infinite;
+  animation: home-attr-marquee 120s linear infinite;
 }
 .home-attr-viewport:hover .home-attr-track {
   animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-attr-track {
+    animation-duration: 240s;
+  }
 }
 @keyframes home-attr-marquee {
   0% {

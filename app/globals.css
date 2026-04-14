@@ -18,6 +18,8 @@
   --color-text-light: #F5F0EB;
   --color-gold: #D4A853;
   --color-primary-soft: rgba(200, 149, 108, 0.15);
+  --color-whatsapp: #25d366;
+  --color-whatsapp-hover: #1ebe57;
 
   /* Legacy aliases for existing classes */
   --color-bg-light: var(--color-bg-warm);
@@ -776,6 +778,20 @@ main {
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-md);
+}
+
+.home-cta .home-cta-wa.btn-secondary {
+  background: var(--color-whatsapp);
+  border: 2px solid var(--color-whatsapp);
+  color: var(--color-bg-card);
+}
+
+.home-cta .home-cta-wa.btn-secondary:hover {
+  background: var(--color-whatsapp-hover);
+  border-color: var(--color-whatsapp-hover);
+  color: var(--color-bg-card);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
 }
 
 /* Home hero — full viewport, dramatic overlay */
@@ -4174,17 +4190,50 @@ main {
   gap: var(--space-sm);
   align-items: center;
 }
-.site-footer-wa-icon {
+
+.site-footer-logo-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #25d366;
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  line-height: 0;
+}
+
+.site-footer-logo-link:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.site-footer-logo-wrap {
+  position: relative;
+  display: block;
+  width: min(200px, 55vw);
+  height: 56px;
+}
+
+.site-footer-logo-img {
+  object-fit: contain;
+  object-position: left center;
+}
+
+.site-footer-v2-social .site-footer-social-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.site-footer-v2-social .site-footer-social-link {
+  color: var(--color-primary);
+}
+
+.site-footer-v2-social .site-footer-social-link:hover {
+  color: var(--color-gold);
+  transform: scale(1.08);
 }
 @media (max-width: 1024px) {
   .site-footer-v2-grid {

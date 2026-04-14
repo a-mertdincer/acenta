@@ -11,6 +11,8 @@ import { ProductVariantBookingCard } from '../../../components/ProductVariantBoo
 import { TourDetailMainColumn, type FaqItem } from '../../../components/TourDetailMainColumn';
 import { TourReviewsSection } from '../../../components/TourReviewsSection';
 import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
+import { TourBookingTrustExtras } from '../../../components/TourBookingTrustExtras';
+import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getTierFromPrice } from '@/lib/pricingTiers';
@@ -663,6 +665,19 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const { whyBook, tourCancellation } = getTourExtrasDict(lang);
     const cancellationNoteLocalized = (tour as { cancellationNote?: string | null }).cancellationNote ?? null;
 
+    const askPriceNextDay = new Date();
+    askPriceNextDay.setDate(askPriceNextDay.getDate() + 1);
+    const askPriceWhatsappHrefLegacy = buildTourWhatsAppHref({
+      tourTitle: title,
+      dateYmd: askPriceNextDay.toISOString().split('T')[0],
+      people: 2,
+    });
+    const pageDictForVariant = lang === 'tr' ? trPageDict : lang === 'zh' ? zhPageDict : enPageDict;
+    const askWhatsAppLabel =
+      (pageDictForVariant as { variant?: { askWhatsApp?: string } }).variant?.askWhatsApp ??
+      (enPageDict as { variant?: { askWhatsApp?: string } }).variant?.askWhatsApp ??
+      'Ask on WhatsApp';
+
     return (
         <div className={`container tour-detail-layout${useVariantBooking ? ' tour-detail-layout--variant' : ''}`}>
             {productSchema && (
@@ -786,6 +801,14 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 {isAskForPrice ? (
                   <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
                     <AskForPriceBookingBlock tourId={tour.id} lang={locale} />
+                    <TourBookingTrustExtras
+                      lang={lang}
+                      whatsappHref={askPriceWhatsappHrefLegacy}
+                      whatsappLabel={askWhatsAppLabel}
+                      whyBook={whyBook}
+                      cancellationNote={cancellationNoteLocalized}
+                      policyLabels={tourCancellation}
+                    />
                   </div>
                 ) : (
                 <div className="card tour-detail-booking-card" style={{ padding: 'var(--space-xl)' }}>

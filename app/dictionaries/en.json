@@ -396,7 +396,9 @@
   "tourCancellation": {
     "viewPolicy": "View Return Policy",
     "modalTitle": "Return Policy",
-    "acknowledge": "I Read It"
+    "acknowledge": "I Read It",
+    "defaultBody": "Cancellations, date changes, and refunds follow our general booking rules and the conditions stated at purchase. For tour-specific rules or exceptions, our team will confirm in writing. Thank you for your understanding.",
+    "fullTermsLink": "Full cancellation & refund terms (legal)"
   },
   "contactPage": {
     "pageTitle": "Contact",

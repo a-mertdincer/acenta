@@ -421,6 +421,7 @@ export function ProductVariantBookingCard({
       <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
         <AskForPriceBookingBlock tourId={tourId} lang={lang} />
         <TourBookingTrustExtras
+          lang={lang}
           whatsappHref={askPriceWhatsappHref}
           whatsappLabel={t.askWhatsApp}
           whyBook={whyBook}
@@ -836,6 +837,7 @@ export function ProductVariantBookingCard({
       </div>
 
       <TourBookingTrustExtras
+        lang={lang}
         whatsappHref={bookingWhatsappHref}
         whatsappLabel={t.askWhatsApp}
         whyBook={whyBook}

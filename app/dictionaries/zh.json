@@ -396,7 +396,9 @@
   "tourCancellation": {
     "viewPolicy": "查看退款政策",
     "modalTitle": "退款政策",
-    "acknowledge": "我已阅读"
+    "acknowledge": "我已阅读",
+    "defaultBody": "取消、改期与退款遵循我们的通用预订规则及购买时的条款。若涉及产品特殊规则，我们的团队将以书面形式确认。感谢您的理解。",
+    "fullTermsLink": "完整取消与退款条款（法律页面）"
   },
   "contactPage": {
     "pageTitle": "联系我们",

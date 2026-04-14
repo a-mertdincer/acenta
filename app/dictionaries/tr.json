@@ -396,7 +396,9 @@
   "tourCancellation": {
     "viewPolicy": "İade Politikasını Görüntüle",
     "modalTitle": "İade Politikası",
-    "acknowledge": "Okudum"
+    "acknowledge": "Okudum",
+    "defaultBody": "İptal, tarih değişikliği ve iade işlemleri genel rezervasyon kurallarımıza ve satın alma anındaki koşullara tabidir. Tura özel kurallar veya istisnalar için ekibimiz yazılı olarak teyit eder. Anlayışınız için teşekkürler.",
+    "fullTermsLink": "Tam iptal ve iade şartları (yasal metin)"
   },
   "contactPage": {
     "pageTitle": "İletişim",

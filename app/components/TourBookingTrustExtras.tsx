@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export interface WhyBookDict {
   title: string;
@@ -14,9 +15,13 @@ export interface TourCancellationLabels {
   viewPolicy: string;
   modalTitle: string;
   acknowledge: string;
+  /** Shown when the tour has no custom cancellation note in admin. */
+  defaultBody: string;
+  fullTermsLink: string;
 }
 
 interface TourBookingTrustExtrasProps {
+  lang: string;
   whatsappHref: string;
   whatsappLabel: string;
   whyBook: WhyBookDict;
@@ -25,6 +30,7 @@ interface TourBookingTrustExtrasProps {
 }
 
 export function TourBookingTrustExtras({
+  lang,
   whatsappHref,
   whatsappLabel,
   whyBook,
@@ -32,7 +38,10 @@ export function TourBookingTrustExtras({
   policyLabels,
 }: TourBookingTrustExtrasProps) {
   const [open, setOpen] = useState(false);
-  const note = typeof cancellationNote === 'string' ? cancellationNote.trim() : '';
+  const tourNote = typeof cancellationNote === 'string' ? cancellationNote.trim() : '';
+  const fallbackBody = policyLabels.defaultBody.trim();
+  const policyBodyText = tourNote || fallbackBody;
+  const showReturnPolicy = policyBodyText.length > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -63,13 +72,13 @@ export function TourBookingTrustExtras({
         </ul>
       </section>
 
-      {note ? (
+      {showReturnPolicy ? (
         <button type="button" className="tour-cancellation-policy-link" onClick={() => setOpen(true)}>
           📋 {policyLabels.viewPolicy}
         </button>
       ) : null}
 
-      {open && note ? (
+      {open ? (
         <div
           className="tour-cancellation-modal-backdrop"
           role="presentation"
@@ -96,7 +105,14 @@ export function TourBookingTrustExtras({
               </button>
             </div>
             <div className="tour-cancellation-modal-body">
-              <p className="tour-cancellation-modal-text">{note}</p>
+              <p className="tour-cancellation-modal-text">{policyBodyText}</p>
+              {policyLabels.fullTermsLink?.trim() ? (
+                <p className="tour-cancellation-modal-legal">
+                  <Link href={`/${lang}/legal/cancellation`} className="tour-cancellation-modal-legal-link">
+                    {policyLabels.fullTermsLink}
+                  </Link>
+                </p>
+              ) : null}
             </div>
             <div className="tour-cancellation-modal-footer">
               <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>

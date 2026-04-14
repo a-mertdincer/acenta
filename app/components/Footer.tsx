@@ -80,8 +80,8 @@ function InstagramIcon({ className }: { className?: string }) {
 const MAP_EMBED =
   'https://www.google.com/maps?q=K%C4%B1smet+G%C3%B6reme+Travel+G%C3%B6reme&output=embed';
 
-/** Footer brand mark — `public/logo.png` (source dimensions match file). */
-const FOOTER_LOGO_SRC = '/logo.png' as const;
+/** Footer brand mark — `public/logoyeni.png` (source dimensions match file). */
+const FOOTER_LOGO_SRC = '/logoyeni.png' as const;
 const FOOTER_LOGO_WIDTH = 711;
 const FOOTER_LOGO_HEIGHT = 564;
 

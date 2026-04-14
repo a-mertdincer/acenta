@@ -3947,14 +3947,14 @@ main {
   gap: var(--space-md);
   width: max-content;
   padding: var(--space-md);
-  animation: home-attr-marquee 120s linear infinite;
+  animation: home-attr-marquee 300s linear infinite;
 }
 .home-attr-viewport:hover .home-attr-track {
   animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
   .home-attr-track {
-    animation-duration: 240s;
+    animation-duration: 600s;
   }
 }
 @keyframes home-attr-marquee {
@@ -3994,6 +3994,10 @@ main {
   font-size: 0.82rem;
   color: var(--color-text-muted);
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
 }
 
 /* Why choose us grid */

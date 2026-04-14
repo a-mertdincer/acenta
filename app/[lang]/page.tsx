@@ -15,6 +15,7 @@ import { HomeStatsBand } from '../components/HomeStatsBand';
 import { HomeHowItWorks } from '../components/HomeHowItWorks';
 import { HomeWhyChooseUs } from '../components/HomeWhyChooseUs';
 import { HomeAttractionsCarousel } from '../components/HomeAttractionsCarousel';
+import { attractionCardSummary } from '@/lib/attractionSummary';
 
 const MOCK_CARDS = [
   { titleKey: 'standardBalloon', descKey: 'standardBalloonDesc', price: 150, tourId: 'mock-balloon', type: 'BALLOON' },
@@ -240,17 +241,21 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   const moreTours = sortedByNewest.filter((t) => !stripIds.has(t.id));
 
   const attractions = await getAttractions({ resolveImages: true });
-  const attractionSlides = attractions.map((a) => ({
-    id: a.id,
-    name: lang === 'tr' ? a.nameTr : lang === 'zh' ? (a.nameZh ?? a.nameEn) : a.nameEn,
-    description:
+  const attractionSlides = attractions.map((a) => {
+    const fullDesc =
       lang === 'tr'
-        ? (a.descriptionTr ?? undefined)
+        ? a.descriptionTr
         : lang === 'zh'
-          ? (a.descriptionZh ?? a.descriptionEn ?? undefined)
-          : (a.descriptionEn ?? undefined),
-    imageUrl: a.imageUrl,
-  }));
+          ? (a.descriptionZh ?? a.descriptionEn)
+          : a.descriptionEn;
+    const summary = fullDesc?.trim() ? attractionCardSummary(fullDesc, 130) : undefined;
+    return {
+      id: a.id,
+      name: lang === 'tr' ? a.nameTr : lang === 'zh' ? (a.nameZh ?? a.nameEn) : a.nameEn,
+      description: summary,
+      imageUrl: a.imageUrl,
+    };
+  });
 
   const statsItems = [
     { head: homeDict.stats1Head ?? FALLBACK_HOME.stats1Head, sub: homeDict.stats1Sub ?? FALLBACK_HOME.stats1Sub },

@@ -1,44 +1,54 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { SiteLocale } from '@/lib/i18n';
-
-type Lang = SiteLocale;
+import { EMAIL_INFO, PHONE_DISPLAY, PHONE_TEL_HREF, WHATSAPP_CONTACT_HREF } from '@/lib/contact';
 
 interface FooterDict {
-  about: string;
+  about?: string;
   aboutDesc?: string;
   quickLinks?: string;
-  contact: string;
-  phone: string;
-  email: string;
+  contact?: string;
+  phone?: string;
+  email?: string;
   legal?: string;
-  privacy: string;
-  cancellation: string;
-  rights: string;
+  privacy?: string;
+  cancellation?: string;
+  rights?: string;
+  colCompany?: string;
+  colLegal?: string;
+  colExperience?: string;
+  colInfo?: string;
+  linkAbout?: string;
+  linkContactFooter?: string;
+  legalTerms?: string;
+  legalDistanceSales?: string;
+  legalKvkk?: string;
+  expBalloon?: string;
+  expDaily?: string;
+  expAdventure?: string;
+  expCultural?: string;
+  expWorkshops?: string;
+  infoBrand?: string;
+  infoAddress1?: string;
+  infoAddress2?: string;
+  infoPhoneLabel?: string;
+  infoEmailLabel?: string;
+  infoTursab?: string;
+  caveMansion?: string;
+  caveHouse?: string;
+  copyrightName?: string;
 }
 
 interface FooterProps {
-  lang: Lang;
+  lang: SiteLocale;
   footer?: FooterDict;
   navigation?: { home: string; tours: string; aboutUs: string; contact: string };
 }
 
-const defaultFooter: FooterDict = {
-  about: 'About us',
-  aboutDesc: 'Kismet Goreme Travel — premium tours and hot air balloon experiences in Cappadocia.',
-  quickLinks: 'Quick links',
-  contact: 'Contact',
-  phone: 'Phone',
-  email: 'Email',
-  legal: 'Legal',
-  privacy: 'Privacy Policy',
-  cancellation: 'Cancellation Policy',
-  rights: 'All rights reserved.',
-};
-
 const FOOTER_SOCIAL = [
-  { href: 'https://www.tripadvisor.com', label: 'TripAdvisor' },
   { href: 'https://www.instagram.com', label: 'Instagram' },
-];
+  { href: 'https://www.tripadvisor.com', label: 'TripAdvisor' },
+] as const;
 
 function TripAdvisorIcon({ className }: { className?: string }) {
   return (
@@ -56,55 +66,110 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+const MAP_EMBED =
+  'https://www.google.com/maps?q=K%C4%B1smet+G%C3%B6reme+Travel+G%C3%B6reme&output=embed';
+
 export function Footer({ lang, footer: f, navigation }: FooterProps) {
-  const footer = f ?? defaultFooter;
+  const footer = f ?? {};
+  const brand = footer.infoBrand ?? 'Kısmet Göreme Travel';
   return (
-    <footer id="contact" className="site-footer">
+    <footer id="contact" className="site-footer site-footer-v2">
       <div className="container site-footer-inner">
-        <div className="site-footer-grid">
-          <div className="site-footer-block">
-            <h3 className="site-footer-title">{footer.about}</h3>
-            <p className="site-footer-text">
-              {footer.aboutDesc ?? defaultFooter.aboutDesc}
-            </p>
-            <div className="site-footer-social">
-              {FOOTER_SOCIAL.map(({ href, label }, i) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label={label}>
-                  {i === 0 ? <TripAdvisorIcon /> : <InstagramIcon />}
+        <div className="site-footer-v2-top">
+          <div className="site-footer-v2-brand">
+            <Link href={`/${lang}`} className="site-footer-logo-link">
+              <Image src="/logo_seffaf.png" alt="" width={200} height={52} className="site-footer-logo-img" />
+            </Link>
+          </div>
+          <div className="site-footer-v2-grid">
+            <div>
+              <h3 className="site-footer-title">{footer.colCompany ?? 'Company'}</h3>
+              <nav className="site-footer-links" aria-label="Company">
+                <Link href={`/${lang}/about`}>{footer.linkAbout ?? navigation?.aboutUs ?? 'About'}</Link>
+                <Link href={`/${lang}/contact`}>{footer.linkContactFooter ?? navigation?.contact ?? 'Contact'}</Link>
+              </nav>
+            </div>
+            <div>
+              <h3 className="site-footer-title">{footer.colLegal ?? 'Legal'}</h3>
+              <nav className="site-footer-links" aria-label="Legal">
+                <Link href={`/${lang}/legal/terms`}>{footer.legalTerms ?? 'Terms'}</Link>
+                <Link href={`/${lang}/legal/cancellation`}>{footer.cancellation ?? 'Cancellation'}</Link>
+                <Link href={`/${lang}/legal/distance-sales`}>{footer.legalDistanceSales ?? 'Distance sales'}</Link>
+                <Link href={`/${lang}/legal/privacy`}>{footer.privacy ?? 'Privacy'}</Link>
+                <Link href={`/${lang}/legal/kvkk`}>{footer.legalKvkk ?? 'KVKK'}</Link>
+              </nav>
+            </div>
+            <div>
+              <h3 className="site-footer-title">{footer.colExperience ?? 'Experience'}</h3>
+              <nav className="site-footer-links" aria-label="Experience">
+                <Link href={`/${lang}/tours?category=balloon-flights`}>{footer.expBalloon ?? 'Balloon'}</Link>
+                <Link href={`/${lang}/tours?category=daily-tours`}>{footer.expDaily ?? 'Daily tours'}</Link>
+                <Link href={`/${lang}/tours?category=adventure-activities`}>{footer.expAdventure ?? 'Adventure'}</Link>
+                <Link href={`/${lang}/tours?category=cultural-experiences`}>{footer.expCultural ?? 'Cultural'}</Link>
+                <Link href={`/${lang}/tours?category=workshops`}>{footer.expWorkshops ?? 'Workshops'}</Link>
+              </nav>
+            </div>
+            <div>
+              <h3 className="site-footer-title">{footer.colInfo ?? 'Information'}</h3>
+              <p className="site-footer-text site-footer-info-block">
+                <strong>{brand}</strong>
+                <br />
+                {footer.infoAddress1 ?? 'İsali-Gaferli-Avcılar Mah.'}
+                <br />
+                {footer.infoAddress2 ?? 'Kağnıyolu Sok. No:8/Z-01'}
+                <br />
+                <span className="site-footer-label">{footer.infoPhoneLabel ?? footer.phone}:</span>{' '}
+                <a href={PHONE_TEL_HREF} className="site-footer-link">
+                  {PHONE_DISPLAY}
                 </a>
-              ))}
+                <br />
+                <span className="site-footer-label">{footer.infoEmailLabel ?? footer.email}:</span>{' '}
+                <a href={`mailto:${EMAIL_INFO}`} className="site-footer-link">
+                  {EMAIL_INFO}
+                </a>
+                <br />
+                {footer.infoTursab ?? 'TÜRSAB No: 18701'}
+              </p>
+              <div className="site-footer-map-wrap">
+                <iframe
+                  title="Map"
+                  src={MAP_EMBED}
+                  className="site-footer-map"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             </div>
           </div>
-          <div className="site-footer-block">
-            <h3 className="site-footer-title">{footer.quickLinks ?? 'Quick links'}</h3>
-            <nav className="site-footer-quicklinks" aria-label="Footer navigation">
-              <Link href={`/${lang}`}>{navigation?.home ?? 'Home'}</Link>
-              <Link href={`/${lang}/tours`}>{navigation?.tours ?? 'Tours'}</Link>
-              <Link href={`/${lang}/about`}>{navigation?.aboutUs ?? 'About'}</Link>
-              <Link href={`/${lang}/contact`}>{navigation?.contact ?? 'Contact'}</Link>
-            </nav>
+        </div>
+
+        <div className="site-footer-v2-bottom">
+          <div className="site-footer-cave-row">
+            <a href="https://kismetcavemansion.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+              <span className="footer-cave-name">{footer.caveMansion ?? 'Kismet Cave Mansion'}</span>
+            </a>
+            <a href="https://kismetcavehouse.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+              <span className="footer-cave-name">{footer.caveHouse ?? 'Kismet Cave House'}</span>
+            </a>
           </div>
-          <div className="site-footer-block">
-            <h3 className="site-footer-title">{footer.contact}</h3>
-            <p className="site-footer-text">
-              <span className="site-footer-label">{footer.phone}:</span>{' '}
-              <a href="tel:+903842123456" className="site-footer-link">+90 384 212 34 56</a>
-              <br />
-              <span className="site-footer-label">{footer.email}:</span>{' '}
-              <a href="mailto:info@kismetgoreme.com" className="site-footer-link">info@kismetgoreme.com</a>
-            </p>
-          </div>
-          <div className="site-footer-block">
-            <h3 className="site-footer-title">{footer.legal ?? 'Legal'}</h3>
-            <p className="site-footer-text">
-              <Link href={`/${lang}/legal/privacy`} className="site-footer-link">{footer.privacy}</Link>
-              <br />
-              <Link href={`/${lang}/legal/cancellation`} className="site-footer-link">{footer.cancellation}</Link>
-            </p>
+          <div className="site-footer-v2-social">
+            {FOOTER_SOCIAL.map(({ href, label }, i) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label={label}>
+                {i === 0 ? <InstagramIcon /> : <TripAdvisorIcon />}
+              </a>
+            ))}
+            <a href={WHATSAPP_CONTACT_HREF} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="WhatsApp">
+              <span className="site-footer-wa-icon" aria-hidden>
+                WA
+              </span>
+            </a>
           </div>
         </div>
+
         <div className="site-footer-bottom">
-          <p className="site-footer-copy">&copy; {new Date().getFullYear()} Kısmet Göreme Travel. {footer.rights}</p>
+          <p className="site-footer-copy">
+            &copy; {new Date().getFullYear()} {footer.copyrightName ?? brand}. {footer.rights ?? 'All rights reserved.'}
+          </p>
         </div>
       </div>
     </footer>

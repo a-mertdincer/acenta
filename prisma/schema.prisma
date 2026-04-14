@@ -66,6 +66,7 @@ model Tour {
   ageRestrictionZh   String?
   slug               String?         @unique // Optional URL slug e.g. green-tour
   isAskForPrice      Boolean         @default(false)
+  isFeatured         Boolean         @default(false)
   ageGroups          ProductAgeGroup[]
   images             TourImage[]
   priceInquiries     PriceInquiry[]

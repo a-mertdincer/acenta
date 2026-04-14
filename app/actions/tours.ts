@@ -5,9 +5,11 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 import { getCategoryQuerySlugs, normalizeCategorySlug } from '@/lib/destinations';
+import { SUPPORTED_LOCALES } from '@/lib/i18n';
 
 function revalidateTours() {
-  ['en', 'tr', 'zh'].forEach(lang => {
+  SUPPORTED_LOCALES.forEach((lang) => {
+    revalidatePath(`/${lang}`);
     revalidatePath(`/${lang}/tours`);
     revalidatePath(`/${lang}/tour`);
     revalidatePath(`/${lang}/admin/tours`);
@@ -52,6 +54,8 @@ export interface TourWithOptions {
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
   isAskForPrice: boolean;
+  isFeatured: boolean;
+  createdAt: string;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -170,6 +174,11 @@ export async function getTours(filters?: { destination?: string; category?: stri
         faqsTr: Array.isArray(t.faqsTr) ? (t.faqsTr as { question: string; answer: string }[]) : null,
         faqsZh: Array.isArray(t.faqsZh) ? (t.faqsZh as { question: string; answer: string }[]) : null,
         isAskForPrice: Boolean((t as { isAskForPrice?: boolean }).isAskForPrice),
+        isFeatured: Boolean((t as { isFeatured?: boolean }).isFeatured),
+        createdAt: (() => {
+          const row = t as unknown as { createdAt?: Date };
+          return row.createdAt instanceof Date ? row.createdAt.toISOString() : new Date().toISOString();
+        })(),
         basePrice: t.basePrice,
         capacity: t.capacity,
         destination: t.destination ?? 'cappadocia',
@@ -324,6 +333,8 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
       faqsTr: parseFaqArray((tour as { faqsTr?: unknown }).faqsTr),
       faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
       isAskForPrice: Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice),
+      isFeatured: Boolean((tour as { isFeatured?: boolean }).isFeatured),
+      createdAt: tour.createdAt instanceof Date ? tour.createdAt.toISOString() : new Date().toISOString(),
       basePrice: tour.basePrice,
       capacity: tour.capacity,
       destination: t.destination ?? 'cappadocia',
@@ -627,6 +638,7 @@ export type CreateTourInput = {
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
   isAskForPrice?: boolean;
+  isFeatured?: boolean;
   basePrice: number;
   capacity: number;
   destination?: string;
@@ -684,6 +696,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),
         isAskForPrice: data.isAskForPrice ?? false,
+        isFeatured: data.isFeatured ?? false,
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',
@@ -770,6 +783,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),
         ...(data.isAskForPrice !== undefined && { isAskForPrice: data.isAskForPrice }),
+        ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
         basePrice: Number(data.basePrice) || 0,
         capacity: Number(data.capacity) || 0,
         destination: data.destination?.trim() || 'cappadocia',

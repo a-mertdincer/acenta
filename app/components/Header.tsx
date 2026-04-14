@@ -259,7 +259,7 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
       <div className="site-header">
         <div className="site-header-inner">
           <Link href={`/${lang}`} className="site-logo" onClick={() => setMobileOpen(false)} aria-label={nav.home}>
-            <Image src="/logo.png" alt="Kismet Goreme Travel logo" width={280} height={72} className="site-logo-img" priority />
+            <Image src="/logo_seffaf.png" alt="Kismet Goreme Travel logo" width={280} height={72} className="site-logo-img" priority />
           </Link>
 
           <button

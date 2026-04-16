@@ -29,6 +29,7 @@ export type TransferAirportTiers = { ASR?: TransferTier[]; NAV?: TransferTier[] 
 export interface TourWithOptions {
   id: string;
   type: string;
+  slug?: string | null;
   titleTr: string;
   titleEn: string;
   titleZh: string;
@@ -349,12 +350,15 @@ export async function getRelatedTours(currentTourId: string, limit = 4): Promise
   }
 }
 
-export async function getTourById(id: string): Promise<TourWithOptions | null> {
+export async function getTourById(idOrSlug: string): Promise<TourWithOptions | null> {
   try {
-    const tour = await prisma.tour.findUnique({
-      where: { id },
-    });
+    // Try id first (UUID-like), then fall back to slug lookup.
+    let tour = await prisma.tour.findUnique({ where: { id: idOrSlug } });
+    if (!tour) {
+      tour = await prisma.tour.findUnique({ where: { slug: idOrSlug } });
+    }
     if (!tour) return null;
+    const id = tour.id;
     const options = await prisma.tourOption.findMany({
       where: { tourId: id },
       orderBy: { createdAt: 'asc' },
@@ -399,6 +403,7 @@ export async function getTourById(id: string): Promise<TourWithOptions | null> {
     return {
       id: tour.id,
       type: tour.type,
+      slug: (tour as { slug?: string | null }).slug ?? null,
       titleTr: tour.titleTr,
       titleEn: tour.titleEn,
       titleZh: tour.titleZh,
@@ -705,8 +710,19 @@ export async function getAvailableTourDatesForGuest(
 }
 
 // --- Tour CRUD (admin only) ---
+function normalizeSlug(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const v = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return v || null;
+}
+
 export type CreateTourInput = {
   type: TourType;
+  slug?: string | null;
   titleEn: string;
   titleTr: string;
   titleZh: string;
@@ -768,6 +784,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
     const createdTour = await prisma.tour.create({
       data: {
         type: data.type,
+        slug: normalizeSlug(data.slug),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),
@@ -858,6 +875,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
       where: { id: tourId },
       data: {
         type: data.type,
+        ...(data.slug !== undefined && { slug: normalizeSlug(data.slug) }),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),

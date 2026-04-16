@@ -290,6 +290,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     const summary = fullDesc?.trim() ? attractionCardSummary(fullDesc, 130) : undefined;
     return {
       id: a.id,
+      slug: a.slug,
       name: lang === 'tr' ? a.nameTr : lang === 'zh' ? (a.nameZh ?? a.nameEn) : a.nameEn,
       description: summary,
       imageUrl: a.imageUrl,
@@ -402,6 +403,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         title={homeDict.attractionsCarouselTitle ?? FALLBACK_HOME.attractionsCarouselTitle}
         items={attractionSlides}
         imageFallback={getTourImagePath('TOUR')}
+        lang={lang}
       />
 
       <HomeWhyChooseUs sectionTitle={homeDict.whyChooseTitle ?? FALLBACK_HOME.whyChooseTitle} items={whyItems} />

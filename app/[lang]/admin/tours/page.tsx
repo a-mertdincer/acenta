@@ -56,6 +56,7 @@ export default function AdminToursPage() {
     const [showNewTourForm, setShowNewTourForm] = useState(false);
     const [createSaving, setCreateSaving] = useState(false);
     const [newType, setNewType] = useState<TourType>('TOUR');
+    const [newSlug, setNewSlug] = useState('');
     const [newTitleEn, setNewTitleEn] = useState('');
     const [newTitleTr, setNewTitleTr] = useState('');
     const [newTitleZh, setNewTitleZh] = useState('');
@@ -107,6 +108,7 @@ export default function AdminToursPage() {
     const [editTourId, setEditTourId] = useState<string | null>(null);
     const [editSaving, setEditSaving] = useState(false);
     const [tourEditType, setTourEditType] = useState<TourType>('TOUR');
+    const [tourEditSlug, setTourEditSlug] = useState('');
     const [tourEditTitleEn, setTourEditTitleEn] = useState('');
     const [tourEditTitleTr, setTourEditTitleTr] = useState('');
     const [tourEditTitleZh, setTourEditTitleZh] = useState('');
@@ -327,6 +329,7 @@ export default function AdminToursPage() {
                 images?: { id: string; url: string; isPrimary: boolean }[];
             };
             setTourEditType('TOUR');
+            setTourEditSlug((t as { slug?: string | null }).slug ?? '');
             setTourEditDestination(rec.destination ?? 'cappadocia');
             setTourEditCategory(rec.category ?? '');
             setTourEditTitleEn(t.titleEn);
@@ -561,6 +564,7 @@ export default function AdminToursPage() {
         setCreateSaving(true);
         const result = await createTour({
             type: newType,
+            slug: newSlug.trim() || null,
             titleEn: newTitleEn.trim(),
             titleTr: newTitleTr.trim() || newTitleEn.trim(),
             titleZh: newTitleZh.trim() || newTitleEn.trim(),
@@ -668,6 +672,7 @@ export default function AdminToursPage() {
         setEditSaving(true);
         const result = await updateTour(editTourId, {
             type: tourEditType,
+            slug: tourEditSlug.trim() || null,
             titleEn: tourEditTitleEn.trim(),
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
@@ -1071,6 +1076,17 @@ export default function AdminToursPage() {
                         <Input label="Başlık (TR)" value={newTitleTr} onChange={(e) => setNewTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
                         <Input label="Başlık (ZH)" value={newTitleZh} onChange={(e) => setNewTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
                         <div>
+                            <Input
+                                label="Slug (SEO URL)"
+                                value={newSlug}
+                                onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, ''))}
+                                placeholder="e.g. cappadocia-green-tour"
+                            />
+                            <small style={{ color: 'var(--color-text-muted)' }}>
+                                Boş bırakılırsa id kullanılır. Sadece küçük harf, rakam ve tire.
+                            </small>
+                        </div>
+                        <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>
                             <textarea value={newDescEn} onChange={(e) => setNewDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />
                         </div>
@@ -1277,6 +1293,17 @@ export default function AdminToursPage() {
                         <Input label="Başlık (EN) *" value={tourEditTitleEn} onChange={(e) => setTourEditTitleEn(e.target.value)} placeholder="e.g. Green Tour" required />
                         <Input label="Başlık (TR)" value={tourEditTitleTr} onChange={(e) => setTourEditTitleTr(e.target.value)} placeholder="e.g. Yeşil Tur" />
                         <Input label="Başlık (ZH)" value={tourEditTitleZh} onChange={(e) => setTourEditTitleZh(e.target.value)} placeholder="e.g. 绿线之旅" />
+                        <div>
+                            <Input
+                                label="Slug (SEO URL)"
+                                value={tourEditSlug}
+                                onChange={(e) => setTourEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, ''))}
+                                placeholder="e.g. cappadocia-green-tour"
+                            />
+                            <small style={{ color: 'var(--color-text-muted)' }}>
+                                Boş bırakılırsa id kullanılır. Benzersiz olmalı.
+                            </small>
+                        </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>
                             <textarea value={tourEditDescEn} onChange={(e) => setTourEditDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />

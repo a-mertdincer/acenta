@@ -23,6 +23,25 @@ const EMPTY_FORM = {
   sortOrder: '0',
 };
 
+async function uploadImageToCloudinary(file: File): Promise<string> {
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloud || !preset) {
+    throw new Error('Cloudinary env eksik: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME / NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET');
+  }
+  const body = new FormData();
+  body.append('file', file);
+  body.append('upload_preset', preset);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
+    method: 'POST',
+    body,
+  });
+  if (!res.ok) throw new Error('Görsel upload başarısız');
+  const json = (await res.json()) as { secure_url?: string };
+  if (!json.secure_url) throw new Error('Upload URL alınamadı');
+  return json.secure_url;
+}
+
 export default function AdminAttractionsPage(props: { params: Promise<{ lang: string }> }) {
   use(props.params);
   const [rows, setRows] = useState<AttractionRow[]>([]);
@@ -30,6 +49,32 @@ export default function AdminAttractionsPage(props: { params: Promise<{ lang: st
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Sadece JPG, PNG veya WEBP yükleyebilirsiniz.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Dosya boyutu 5MB\'ı aşamaz.');
+      e.target.value = '';
+      return;
+    }
+    setImageUploading(true);
+    try {
+      const url = await uploadImageToCloudinary(file);
+      setForm((p) => ({ ...p, imageUrl: url }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Yükleme başarısız');
+    } finally {
+      setImageUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const refresh = async () => {
     setLoading(true);
@@ -111,7 +156,36 @@ export default function AdminAttractionsPage(props: { params: Promise<{ lang: st
           <Input label="Name EN" value={form.nameEn} onChange={(e) => setForm((p) => ({ ...p, nameEn: e.target.value }))} required />
           <Input label="Name TR" value={form.nameTr} onChange={(e) => setForm((p) => ({ ...p, nameTr: e.target.value }))} />
           <Input label="Name ZH" value={form.nameZh} onChange={(e) => setForm((p) => ({ ...p, nameZh: e.target.value }))} />
-          <Input label="Image URL" value={form.imageUrl} onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))} />
+          <div>
+            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 600 }}>Görsel</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageFileUpload}
+              disabled={imageUploading}
+              style={{ width: '100%' }}
+            />
+            {imageUploading ? (
+              <small style={{ color: 'var(--color-text-muted)' }}>Yükleniyor…</small>
+            ) : null}
+            {form.imageUrl ? (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={form.imageUrl} alt="" style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4, objectFit: 'cover' }} />
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setForm((p) => ({ ...p, imageUrl: '' }))}>
+                  Kaldır
+                </button>
+              </div>
+            ) : null}
+            <small style={{ display: 'block', marginTop: 4, color: 'var(--color-text-muted)' }}>
+              Veya URL yapıştırın:
+            </small>
+            <Input
+              label=""
+              value={form.imageUrl}
+              onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
+              placeholder="https://..."
+            />
+          </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <ResizableDescriptionField label="Description EN" value={form.descriptionEn} onChange={(value) => setForm((p) => ({ ...p, descriptionEn: value }))} />
             <ResizableDescriptionField label="Description TR" value={form.descriptionTr} onChange={(value) => setForm((p) => ({ ...p, descriptionTr: value }))} />

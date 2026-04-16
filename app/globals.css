@@ -4072,6 +4072,19 @@ main {
   border-radius: 10px;
   overflow: hidden;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.home-attr-card--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.home-attr-card--link:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-accent);
 }
 .home-attr-img-wrap {
   aspect-ratio: 4 / 3;
@@ -4247,6 +4260,13 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+}
+.footer-cave-logo {
+  max-height: 40px;
+  width: auto;
+  margin-right: 8px;
+  object-fit: contain;
+  background: transparent;
 }
 .footer-cave-card {
   display: inline-flex;

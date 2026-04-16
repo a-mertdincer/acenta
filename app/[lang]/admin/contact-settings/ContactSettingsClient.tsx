@@ -1,20 +1,54 @@
 'use client';
 
 import { useState, useTransition, type FormEvent } from 'react';
-import { updateMessagingSettings } from '@/app/actions/siteSettings';
+import {
+  updateMessagingSettings,
+  updateSocialSettings,
+  updateContactInfo,
+} from '@/app/actions/siteSettings';
+import type { MessagingLinks, SocialLinks, ContactInfo } from '@/lib/messagingSettings';
 
 type Props = {
-  initial: {
-    whatsapp_link: string;
-    wechat_id: string;
-    line_link: string;
-  };
+  initialMessaging: MessagingLinks;
+  initialSocial: SocialLinks;
+  initialContact: ContactInfo;
 };
 
-export function ContactSettingsClient({ initial }: Props) {
-  const [whatsapp, setWhatsapp] = useState(initial.whatsapp_link);
-  const [wechat, setWechat] = useState(initial.wechat_id);
-  const [line, setLine] = useState(initial.line_link);
+function Field({
+  label,
+  placeholder,
+  value,
+  onChange,
+  type = 'text',
+  hint,
+}: {
+  label: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: 'text' | 'url' | 'email' | 'tel';
+  hint?: string;
+}) {
+  return (
+    <label className="admin-contact-settings-label">
+      <span>{label}</span>
+      <input
+        type={type}
+        className="admin-contact-settings-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {hint ? <small style={{ color: 'var(--color-text-muted)' }}>{hint}</small> : null}
+    </label>
+  );
+}
+
+export function ContactSettingsClient({ initialMessaging, initialSocial, initialContact }: Props) {
+  const [messaging, setMessaging] = useState<MessagingLinks>(initialMessaging);
+  const [social, setSocial] = useState<SocialLinks>(initialSocial);
+  const [contact, setContact] = useState<ContactInfo>(initialContact);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -24,65 +58,134 @@ export function ContactSettingsClient({ initial }: Props) {
     setMessage(null);
     setError(null);
     startTransition(async () => {
-      const res = await updateMessagingSettings({
-        whatsapp_link: whatsapp,
-        wechat_id: wechat,
-        line_link: line,
-      });
-      if (res.ok) {
-        setMessage('Kaydedildi.');
-      } else {
-        setError(res.error ?? 'Kayıt başarısız');
-      }
+      const [m, s, c] = await Promise.all([
+        updateMessagingSettings(messaging),
+        updateSocialSettings(social),
+        updateContactInfo(contact),
+      ]);
+      if (!m.ok) return setError(m.error ?? 'Mesajlaşma ayarları kaydedilemedi');
+      if (!s.ok) return setError(s.error ?? 'Sosyal medya ayarları kaydedilemedi');
+      if (!c.ok) return setError(c.error ?? 'İletişim bilgileri kaydedilemedi');
+      setMessage('Kaydedildi.');
     });
   };
 
   return (
-    <form onSubmit={submit} className="admin-contact-settings-form">
-      <div className="admin-contact-settings-fields">
-        <label className="admin-contact-settings-label">
-          <span>WhatsApp linki</span>
-          <input
+    <form onSubmit={submit} className="admin-contact-settings-form" style={{ display: 'grid', gap: 'var(--space-xl)' }}>
+      <section>
+        <h2 style={{ marginBottom: 'var(--space-md)' }}>Mesajlaşma uygulamaları</h2>
+        <div className="admin-contact-settings-fields">
+          <Field
+            label="WhatsApp linki"
             type="url"
-            name="whatsapp_link"
-            className="admin-contact-settings-input"
-            value={whatsapp}
-            onChange={(ev) => setWhatsapp(ev.target.value)}
+            value={messaging.whatsapp_link}
+            onChange={(v) => setMessaging((p) => ({ ...p, whatsapp_link: v }))}
             placeholder="https://wa.me/..."
-            autoComplete="off"
           />
-        </label>
-        <label className="admin-contact-settings-label">
-          <span>WeChat ID</span>
-          <input
-            type="text"
-            name="wechat_id"
-            className="admin-contact-settings-input"
-            value={wechat}
-            onChange={(ev) => setWechat(ev.target.value)}
+          <Field
+            label="WeChat ID"
+            value={messaging.wechat_id}
+            onChange={(v) => setMessaging((p) => ({ ...p, wechat_id: v }))}
             placeholder="kullanıcı adı"
-            autoComplete="off"
+            hint="Doğrudan bağlantı yok; ziyaretçiye ID gösterilir."
           />
-        </label>
-        <label className="admin-contact-settings-label">
-          <span>LINE linki</span>
-          <input
+          <Field
+            label="LINE linki"
             type="url"
-            name="line_link"
-            className="admin-contact-settings-input"
-            value={line}
-            onChange={(ev) => setLine(ev.target.value)}
+            value={messaging.line_link}
+            onChange={(v) => setMessaging((p) => ({ ...p, line_link: v }))}
             placeholder="https://line.me/..."
-            autoComplete="off"
           />
-        </label>
-      </div>
+          <Field
+            label="Telegram linki"
+            type="url"
+            value={messaging.telegram_link}
+            onChange={(v) => setMessaging((p) => ({ ...p, telegram_link: v }))}
+            placeholder="https://t.me/..."
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2 style={{ marginBottom: 'var(--space-md)' }}>Sosyal medya</h2>
+        <div className="admin-contact-settings-fields">
+          <Field
+            label="Instagram"
+            type="url"
+            value={social.instagram_link}
+            onChange={(v) => setSocial((p) => ({ ...p, instagram_link: v }))}
+            placeholder="https://instagram.com/..."
+          />
+          <Field
+            label="Facebook"
+            type="url"
+            value={social.facebook_link}
+            onChange={(v) => setSocial((p) => ({ ...p, facebook_link: v }))}
+            placeholder="https://facebook.com/..."
+          />
+          <Field
+            label="TripAdvisor"
+            type="url"
+            value={social.tripadvisor_link}
+            onChange={(v) => setSocial((p) => ({ ...p, tripadvisor_link: v }))}
+            placeholder="https://tripadvisor.com/..."
+          />
+          <Field
+            label="Rednote (Xiaohongshu)"
+            type="url"
+            value={social.rednote_link}
+            onChange={(v) => setSocial((p) => ({ ...p, rednote_link: v }))}
+            placeholder="https://xiaohongshu.com/..."
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2 style={{ marginBottom: 'var(--space-md)' }}>İletişim bilgileri</h2>
+        <div className="admin-contact-settings-fields">
+          <Field
+            label="Adres"
+            value={contact.contact_address}
+            onChange={(v) => setContact((p) => ({ ...p, contact_address: v }))}
+            placeholder="İsali-Gaferli-Avcılar Mah. ..."
+          />
+          <Field
+            label="Telefon"
+            type="tel"
+            value={contact.contact_phone}
+            onChange={(v) => setContact((p) => ({ ...p, contact_phone: v }))}
+            placeholder="+90 536 211 59 93"
+          />
+          <Field
+            label="E-posta"
+            type="email"
+            value={contact.contact_email}
+            onChange={(v) => setContact((p) => ({ ...p, contact_email: v }))}
+            placeholder="info@kismetgoremetravel.com"
+          />
+          <Field
+            label="TÜRSAB No"
+            value={contact.contact_tursab}
+            onChange={(v) => setContact((p) => ({ ...p, contact_tursab: v }))}
+            placeholder="18701"
+          />
+          <Field
+            label="Google Maps embed URL"
+            type="url"
+            value={contact.contact_maps_embed_url}
+            onChange={(v) => setContact((p) => ({ ...p, contact_maps_embed_url: v }))}
+            placeholder="https://www.google.com/maps/embed?..."
+            hint="Google Maps'ten 'Paylaş → Harita yerleştir' seçeneğinden alınan iframe src'si."
+          />
+        </div>
+      </section>
+
       <p className="admin-contact-settings-help">
-        Boş bırakılan uygulama iletişim sayfasında gösterilmez. WeChat için doğrudan bağlantı yok; ziyaretçiye ID gösterilir.
+        Boş bırakılan alanlar sitede gösterilmez. Mesajlaşma/sosyal medya simgeleri yalnızca link girildiğinde görünür.
       </p>
       {message ? <p className="admin-contact-settings-success">{message}</p> : null}
       {error ? <p className="admin-contact-settings-error">{error}</p> : null}
-      <button type="submit" className="btn btn-primary" disabled={pending}>
+      <button type="submit" className="btn btn-primary" disabled={pending} style={{ justifySelf: 'start' }}>
         {pending ? 'Kaydediliyor…' : 'Kaydet'}
       </button>
     </form>

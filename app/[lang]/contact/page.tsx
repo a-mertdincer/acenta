@@ -1,14 +1,17 @@
 import { getDictionary } from '../../dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
-import { getMessagingLinks } from '@/app/actions/siteSettings';
+import { getMessagingLinks, getContactInfo } from '@/app/actions/siteSettings';
 import { ContactMessagingSection } from '@/app/components/ContactMessagingSection';
+
+export const dynamic = 'force-dynamic';
 
 export default async function ContactPage(props: { params: Promise<{ lang: string }> }) {
   const params = await props.params;
   const lang = (params.lang || 'en') as SiteLocale;
   const dict = await getDictionary(lang);
   const c = dict.contactPage ?? {};
-  const messaging = await getMessagingLinks();
+  const [messaging, contactInfo] = await Promise.all([getMessagingLinks(), getContactInfo()]);
+  const phoneTel = `tel:${contactInfo.contact_phone.replace(/[^+\d]/g, '')}`;
 
   return (
     <section className="page-section">
@@ -18,26 +21,28 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
         <div className="contact-page-grid">
           <div className="contact-page-card">
             <h2>{c.phone ?? (lang === 'zh' ? '电话' : 'Phone')}</h2>
-            <a href="tel:+903842123456">+90 384 212 34 56</a>
+            <a href={phoneTel}>{contactInfo.contact_phone}</a>
           </div>
           <div className="contact-page-card">
             <h2>{c.email ?? (lang === 'zh' ? '电子邮件' : 'Email')}</h2>
-            <a href="mailto:info@kismetgoreme.com">info@kismetgoreme.com</a>
+            <a href={`mailto:${contactInfo.contact_email}`}>{contactInfo.contact_email}</a>
           </div>
           <div className="contact-page-card">
             <h2>{c.addressLabel ?? (lang === 'zh' ? '地址' : 'Address')}</h2>
-            <p>{c.address ?? 'Göreme, Nevşehir, Türkiye'}</p>
+            <p>{contactInfo.contact_address}</p>
           </div>
         </div>
         <ContactMessagingSection
           whatsappLink={messaging.whatsapp_link}
           wechatId={messaging.wechat_id}
           lineLink={messaging.line_link}
+          telegramLink={messaging.telegram_link}
           labels={{
             messagingTitle: c.messagingTitle ?? 'Chat with us',
             whatsapp: c.whatsapp ?? 'WhatsApp',
             wechat: c.wechat ?? 'WeChat',
             line: c.line ?? 'LINE',
+            telegram: (c as { telegram?: string }).telegram ?? 'Telegram',
             chatNow: c.chatNow ?? 'Chat now',
             addUs: c.addUs ?? 'Add us',
             wechatHint: c.wechatHint ?? 'Add us on WeChat using this ID:',
@@ -56,14 +61,16 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
             </button>
           </form>
         </div>
-        <div className="contact-map-wrap">
-          <iframe
-            title="Kismet Goreme map"
-            src="https://maps.google.com/maps?q=Goreme%20Nevsehir%20Turkey&t=&z=13&ie=UTF8&iwloc=&output=embed"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
+        {contactInfo.contact_maps_embed_url ? (
+          <div className="contact-map-wrap">
+            <iframe
+              title="Kismet Goreme map"
+              src={contactInfo.contact_maps_embed_url}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        ) : null}
       </div>
     </section>
   );

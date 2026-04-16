@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { SiteLocale } from '@/lib/i18n';
-import { EMAIL_INFO, PHONE_DISPLAY, PHONE_TEL_HREF, WHATSAPP_CONTACT_HREF } from '@/lib/contact';
+import { getContactInfo, getSocialLinks, getMessagingLinks } from '@/app/actions/siteSettings';
 
 interface FooterDict {
   about?: string;
@@ -45,11 +45,6 @@ interface FooterProps {
   navigation?: { home: string; tours: string; aboutUs: string; contact: string };
 }
 
-const FOOTER_SOCIAL = [
-  { href: 'https://www.instagram.com', label: 'Instagram' },
-  { href: 'https://www.tripadvisor.com', label: 'TripAdvisor' },
-] as const;
-
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" width="20" height="20" aria-hidden>
@@ -77,17 +72,41 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-const MAP_EMBED =
-  'https://www.google.com/maps?q=K%C4%B1smet+G%C3%B6reme+Travel+G%C3%B6reme&output=embed';
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width="20" height="20" aria-hidden>
+      <path fill="currentColor" d="M13.5 21v-7.5h2.53l.38-2.94H13.5V8.7c0-.85.24-1.43 1.46-1.43h1.56V4.63c-.27-.04-1.2-.12-2.28-.12-2.25 0-3.8 1.37-3.8 3.9v2.17H7.9v2.94h2.54V21h3.06z" />
+    </svg>
+  );
+}
+
+function RednoteIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width="20" height="20" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="currentColor" />
+      <text x="12" y="15" textAnchor="middle" fontSize="8" fontWeight="700" fill="#fff" fontFamily="system-ui">小红</text>
+    </svg>
+  );
+}
 
 /** Footer brand mark — `public/logoyeni.png` (source dimensions match file). */
 const FOOTER_LOGO_SRC = '/logoyeni.png' as const;
 const FOOTER_LOGO_WIDTH = 711;
 const FOOTER_LOGO_HEIGHT = 564;
 
-export function Footer({ lang, footer: f, navigation }: FooterProps) {
+const HOTEL_LOGO_MANSION = '/images/hotels/kismet-cave-mansion.png';
+const HOTEL_LOGO_HOUSE = '/images/hotels/kismet-cave-house.png';
+
+export async function Footer({ lang, footer: f, navigation }: FooterProps) {
+  const [contactInfo, social, messaging] = await Promise.all([
+    getContactInfo(),
+    getSocialLinks(),
+    getMessagingLinks(),
+  ]);
   const footer = f ?? {};
   const brand = footer.infoBrand ?? 'Kısmet Göreme Travel';
+  const phoneTel = `tel:${contactInfo.contact_phone.replace(/[^+\d]/g, '')}`;
+  const addressLines = contactInfo.contact_address.split(/\s*,\s*/).filter(Boolean);
   return (
     <footer id="contact" className="site-footer site-footer-v2">
       <div className="container site-footer-inner">
@@ -137,31 +156,36 @@ export function Footer({ lang, footer: f, navigation }: FooterProps) {
               <p className="site-footer-text site-footer-info-block">
                 <strong>{brand}</strong>
                 <br />
-                {footer.infoAddress1 ?? 'İsali-Gaferli-Avcılar Mah.'}
-                <br />
-                {footer.infoAddress2 ?? 'Kağnıyolu Sok. No:8/Z-01'}
+                {addressLines.map((line, i) => (
+                  <span key={i}>
+                    {line}
+                    {i < addressLines.length - 1 ? <br /> : null}
+                  </span>
+                ))}
                 <br />
                 <span className="site-footer-label">{footer.infoPhoneLabel ?? footer.phone}:</span>{' '}
-                <a href={PHONE_TEL_HREF} className="site-footer-link">
-                  {PHONE_DISPLAY}
+                <a href={phoneTel} className="site-footer-link">
+                  {contactInfo.contact_phone}
                 </a>
                 <br />
                 <span className="site-footer-label">{footer.infoEmailLabel ?? footer.email}:</span>{' '}
-                <a href={`mailto:${EMAIL_INFO}`} className="site-footer-link">
-                  {EMAIL_INFO}
+                <a href={`mailto:${contactInfo.contact_email}`} className="site-footer-link">
+                  {contactInfo.contact_email}
                 </a>
                 <br />
-                {footer.infoTursab ?? 'TÜRSAB No: 18701'}
+                {footer.infoTursab ?? 'TÜRSAB No'}: {contactInfo.contact_tursab}
               </p>
-              <div className="site-footer-map-wrap">
-                <iframe
-                  title="Map"
-                  src={MAP_EMBED}
-                  className="site-footer-map"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
+              {contactInfo.contact_maps_embed_url ? (
+                <div className="site-footer-map-wrap">
+                  <iframe
+                    title="Map"
+                    src={contactInfo.contact_maps_embed_url}
+                    className="site-footer-map"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -169,21 +193,50 @@ export function Footer({ lang, footer: f, navigation }: FooterProps) {
         <div className="site-footer-v2-bottom">
           <div className="site-footer-cave-row">
             <a href="https://kismetcavemansion.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+              <img
+                src={HOTEL_LOGO_MANSION}
+                alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
+                className="footer-cave-logo"
+                loading="lazy"
+              />
               <span className="footer-cave-name">{footer.caveMansion ?? 'Kismet Cave Mansion'}</span>
             </a>
             <a href="https://kismetcavehouse.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+              <img
+                src={HOTEL_LOGO_HOUSE}
+                alt={footer.caveHouse ?? 'Kismet Cave House'}
+                className="footer-cave-logo"
+                loading="lazy"
+              />
               <span className="footer-cave-name">{footer.caveHouse ?? 'Kismet Cave House'}</span>
             </a>
           </div>
           <div className="site-footer-v2-social">
-            {FOOTER_SOCIAL.map(({ href, label }, i) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label={label}>
-                {i === 0 ? <InstagramIcon className="site-footer-social-icon" /> : <TripAdvisorIcon className="site-footer-social-icon" />}
+            {social.instagram_link ? (
+              <a href={social.instagram_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="Instagram">
+                <InstagramIcon className="site-footer-social-icon" />
               </a>
-            ))}
-            <a href={WHATSAPP_CONTACT_HREF} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="WhatsApp">
-              <WhatsAppIcon className="site-footer-social-icon" />
-            </a>
+            ) : null}
+            {social.facebook_link ? (
+              <a href={social.facebook_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="Facebook">
+                <FacebookIcon className="site-footer-social-icon" />
+              </a>
+            ) : null}
+            {social.tripadvisor_link ? (
+              <a href={social.tripadvisor_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="TripAdvisor">
+                <TripAdvisorIcon className="site-footer-social-icon" />
+              </a>
+            ) : null}
+            {social.rednote_link ? (
+              <a href={social.rednote_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="Rednote">
+                <RednoteIcon className="site-footer-social-icon" />
+              </a>
+            ) : null}
+            {messaging.whatsapp_link ? (
+              <a href={messaging.whatsapp_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="WhatsApp">
+                <WhatsAppIcon className="site-footer-social-icon" />
+              </a>
+            ) : null}
           </div>
         </div>
 

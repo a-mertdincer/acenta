@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo } from 'react';
 import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
 
 export interface AttractionSlide {
   id: string;
+  slug?: string;
   name: string;
   description?: string;
   imageUrl: string | null;
@@ -14,9 +16,10 @@ interface HomeAttractionsCarouselProps {
   title: string;
   items: AttractionSlide[];
   imageFallback: string;
+  lang: string;
 }
 
-export function HomeAttractionsCarousel({ title, items, imageFallback }: HomeAttractionsCarouselProps) {
+export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: HomeAttractionsCarouselProps) {
   const loopItems = useMemo(() => {
     if (items.length === 0) return [];
     return [...items, ...items];
@@ -32,36 +35,51 @@ export function HomeAttractionsCarousel({ title, items, imageFallback }: HomeAtt
         </h2>
         <div className="home-attr-viewport" role="region" aria-roledescription="carousel">
           <div className="home-attr-track">
-            {loopItems.map((item, idx) => (
-              <article key={`${item.id}-${idx}`} className="home-attr-card">
-                <div className="home-attr-img-wrap">
-                  <img
-                    src={item.imageUrl || imageFallback}
-                    alt=""
-                    className="home-attr-img"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      const el = e.currentTarget;
-                      const placeholder = DEFAULT_ACTIVITY_CARD_IMAGE;
-                      const n = Number(el.dataset.imgErr ?? '0') + 1;
-                      el.dataset.imgErr = String(n);
-                      if (n === 1) {
-                        el.src = imageFallback;
-                        return;
-                      }
-                      if (n === 2) {
-                        el.src = placeholder;
-                      }
-                    }}
-                  />
-                </div>
-                <div className="home-attr-card-body">
-                  <h3 className="home-attr-card-title">{item.name}</h3>
-                  {item.description ? <p className="home-attr-card-desc">{item.description}</p> : null}
-                </div>
-              </article>
-            ))}
+            {loopItems.map((item, idx) => {
+              const body = (
+                <>
+                  <div className="home-attr-img-wrap">
+                    <img
+                      src={item.imageUrl || imageFallback}
+                      alt={item.name}
+                      className="home-attr-img"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const el = e.currentTarget;
+                        const placeholder = DEFAULT_ACTIVITY_CARD_IMAGE;
+                        const n = Number(el.dataset.imgErr ?? '0') + 1;
+                        el.dataset.imgErr = String(n);
+                        if (n === 1) {
+                          el.src = imageFallback;
+                          return;
+                        }
+                        if (n === 2) {
+                          el.src = placeholder;
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="home-attr-card-body">
+                    <h3 className="home-attr-card-title">{item.name}</h3>
+                    {item.description ? <p className="home-attr-card-desc">{item.description}</p> : null}
+                  </div>
+                </>
+              );
+              return item.slug ? (
+                <Link
+                  key={`${item.id}-${idx}`}
+                  href={`/${lang}/attractions/${item.slug}`}
+                  className="home-attr-card home-attr-card--link"
+                >
+                  {body}
+                </Link>
+              ) : (
+                <article key={`${item.id}-${idx}`} className="home-attr-card">
+                  {body}
+                </article>
+              );
+            })}
           </div>
         </div>
       </div>

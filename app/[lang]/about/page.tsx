@@ -60,7 +60,7 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
 
         <div className="about-page-hero">
           <img
-            src="/images/about-hero.jpg"
+            src="/images/about-hero.png"
             alt={about.title ?? 'About'}
             loading="eager"
             decoding="async"

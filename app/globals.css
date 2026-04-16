@@ -1047,6 +1047,111 @@ main {
   font-size: 0.85rem;
   box-shadow: var(--shadow-md);
 }
+/* Breadcrumbs */
+.breadcrumbs {
+  margin-bottom: var(--space-md);
+}
+.breadcrumbs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.breadcrumbs-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.breadcrumbs-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.breadcrumbs-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+.breadcrumbs-current {
+  color: var(--color-text, #1a2638);
+  font-weight: 500;
+}
+.breadcrumbs-separator {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+  user-select: none;
+}
+
+/* Cart reminder banner */
+.cart-reminder-banner {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--color-primary);
+  color: white;
+  padding: 10px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.cart-reminder-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.cart-reminder-text {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.cart-reminder-text strong {
+  font-weight: 700;
+}
+.cart-reminder-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.cart-reminder-banner .btn-primary {
+  background: white;
+  color: var(--color-primary);
+  border: none;
+}
+.cart-reminder-banner .btn-primary:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+.cart-reminder-dismiss {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cart-reminder-dismiss:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.about-page-card a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.about-page-card a:hover {
+  color: var(--color-text, #1a2638);
+}
+
 .related-tours-section {
   margin-top: var(--space-2xl, 3rem);
   padding-top: var(--space-xl);
@@ -1086,6 +1191,11 @@ main {
 }
 .card-body h3 {
   font-family: var(--font-heading);
+  color: var(--color-secondary);
+}
+.home-attr-card-title,
+.reservation-card-title {
+  color: var(--color-secondary);
 }
 .card-desc {
   color: var(--color-text-muted);
@@ -3194,8 +3304,11 @@ main {
   line-height: 1.55;
 }
 .about-page-cta-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: center;
   margin-top: var(--space-lg);
-  text-align: center;
 }
 
 .tour-booking-extras {

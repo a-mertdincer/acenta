@@ -2,6 +2,7 @@ import { getDictionary } from '../../dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
 import { getMessagingLinks, getContactInfo } from '@/app/actions/siteSettings';
 import { ContactMessagingSection } from '@/app/components/ContactMessagingSection';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,12 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
   return (
     <section className="page-section">
       <div className="container contact-page">
+        <Breadcrumbs
+          items={[
+            { label: dict.navigation?.home ?? 'Home', href: `/${lang}` },
+            { label: c.pageTitle ?? dict.navigation?.contact ?? 'Contact' },
+          ]}
+        />
         <h1>{c.pageTitle ?? dict.navigation.contact ?? 'Contact'}</h1>
         <p className="contact-page-intro">{c.pageDescription ?? 'Reach us for any questions or custom travel requests.'}</p>
         <div className="contact-page-grid">

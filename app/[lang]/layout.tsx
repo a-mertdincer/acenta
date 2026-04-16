@@ -4,6 +4,7 @@ import { getDictionary } from '../dictionaries/getDictionary';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { ScrollReveal } from '../components/ScrollReveal';
+import { CartReminderBanner } from '../components/CartReminderBanner';
 import { getSession } from '../actions/auth';
 import { getActiveCouponCountForUser } from '../actions/coupons';
 import { normalizeLocale, SUPPORTED_LOCALES, type SiteLocale } from '@/lib/i18n';
@@ -91,11 +92,18 @@ export default async function RootLayout(props: {
 }) {
   const { children } = props;
   let lang: SiteLocale = 'en';
-  let dict: { navigation?: typeof fallbackNav; footer?: typeof fallbackFooter; headerUserMenu?: typeof fallbackHeaderUserMenu; categories?: typeof fallbackCategories } = {
+  let dict: {
+    navigation?: typeof fallbackNav;
+    footer?: typeof fallbackFooter;
+    headerUserMenu?: typeof fallbackHeaderUserMenu;
+    categories?: typeof fallbackCategories;
+    cart?: Record<string, string>;
+  } = {
     navigation: fallbackNav,
     footer: fallbackFooter,
     headerUserMenu: fallbackHeaderUserMenu,
     categories: fallbackCategories,
+    cart: {},
   };
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let activeCouponCount = 0;
@@ -114,6 +122,7 @@ export default async function RootLayout(props: {
       footer: d.footer ?? fallbackFooter,
       headerUserMenu: d.headerUserMenu ?? fallbackHeaderUserMenu,
       categories: d.categories ?? fallbackCategories,
+      cart: (d as { cart?: Record<string, string> }).cart ?? {},
     } : dict;
     session = s;
   } catch {
@@ -146,6 +155,17 @@ export default async function RootLayout(props: {
           isAdmin={session?.role === 'ADMIN'}
           userName={session?.name}
           activeCouponCount={activeCouponCount}
+        />
+        <CartReminderBanner
+          lang={lang}
+          labels={{
+            text: (dict?.cart as { reminderText?: string })?.reminderText ?? 'You have',
+            items: (dict?.cart as { reminderItems?: string })?.reminderItems ?? 'items',
+            guests: (dict?.cart as { reminderGuests?: string })?.reminderGuests ?? 'guests',
+            suffix: (dict?.cart as { reminderSuffix?: string })?.reminderSuffix ?? 'waiting in your cart',
+            dismiss: (dict?.cart as { reminderDismiss?: string })?.reminderDismiss ?? 'Dismiss',
+            goToCart: (dict?.cart as { goToCart?: string })?.goToCart ?? 'Go to Cart',
+          }}
         />
         <main>
           {children}

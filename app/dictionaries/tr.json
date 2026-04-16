@@ -371,7 +371,7 @@
     "tagline": "Kapadokya'daki güvenilir seyahat acenteniz.",
     "welcomeTitle": "Kısmet'e Hoş Geldiniz",
     "body1": "Kismet Göreme Travel, Kapadokya'da yıllara dayanan konaklama deneyimi üzerine kurulmuş yerel köklere sahip bir seyahat acentesidir.",
-    "body2": "Yolculuğumuz Kismet Cave House (2006) ile başladı ve Kismet Cave Mansion (2025) ile devam ediyor — bölgeyle olan derin bağımızı ve dünyanın dört bir yanından gelen misafirlere ev sahipliği yapma konusundaki köklü deneyimimizi yansıtan iki butik mağara otel.",
+    "body2": "Yolculuğumuz {{caveHouse}} ile başladı ve {{caveMansion}} ile devam ediyor — bölgeye olan derin bağımızı ve dünyanın dört bir yanından gelen misafirleri ağırlama deneyimimizi yansıtan iki butik mağara otel.",
     "body3": "Bugün bu deneyimi seyahat hizmetlerine taşıyoruz; özenle seçilmiş sıcak hava balonu uçuşları, günlük turlar, havalimanı transferleri ve otantik yerel aktiviteler sunuyoruz.",
     "body4": "Hem kendi deneyimlerimizi yönetiyor hem de güvenilir yerel partnerlerle yakın çalışarak tutarlı kalite, adil fiyatlandırma ve güvenilir hizmet sağlıyoruz.",
     "differenceTitle": "Bizi farklı kılan, iletişim ve ilgi şeklimiz:",
@@ -387,7 +387,10 @@
     "statYears": "Yıl Tecrübe",
     "statGuests": "Mutlu Misafir",
     "statSupport": "Destek",
-    "whatsappCta": "WhatsApp ile İletişime Geçin"
+    "whatsappCta": "WhatsApp ile İletişime Geçin",
+    "exploreButton": "Keşfet",
+    "contactButton": "İletişim",
+    "statLocal": "Yerel Deneyim"
   },
   "whyBook": {
     "title": "Neden Kısmet Travel ile rezervasyon yapmalısınız?",
@@ -477,5 +480,12 @@
     "discount": "Discount",
     "originalPrice": "Original price",
     "save": "You save"
+  },
+  "cart": {
+    "reminderText": "Sepetinizde",
+    "reminderItems": "ürün",
+    "reminderGuests": "kişi",
+    "reminderSuffix": "bekliyor",
+    "reminderDismiss": "Kapat"
   }
 }

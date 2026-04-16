@@ -13,6 +13,7 @@ import { TourReviewsSection } from '../../../components/TourReviewsSection';
 import { RelatedToursSection } from '../../../components/RelatedToursSection';
 import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { TourBookingTrustExtras } from '../../../components/TourBookingTrustExtras';
+import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
@@ -680,11 +681,20 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
       (enPageDict as { variant?: { askWhatsApp?: string } }).variant?.askWhatsApp ??
       'Ask on WhatsApp';
 
+    const homeLabel = lang === 'tr' ? 'Ana Sayfa' : lang === 'zh' ? '首页' : 'Home';
+    const toursLabel = lang === 'tr' ? 'Turlar' : lang === 'zh' ? '旅游' : 'Tours';
+    const breadcrumbItems: { label: string; href?: string }[] = [
+      { label: homeLabel, href: `/${lang}` },
+      { label: toursLabel, href: `/${lang}/tours` },
+      { label: title },
+    ];
+
     return (
         <div className={`container tour-detail-layout${useVariantBooking ? ' tour-detail-layout--variant' : ''}`}>
             {productSchema && (
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
             )}
+            <Breadcrumbs items={breadcrumbItems} />
             <StickyAnchorBar sections={anchorSections} />
             {useVariantBooking ? (
                 <>

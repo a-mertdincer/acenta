@@ -1,16 +1,46 @@
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { getDictionary } from '../../dictionaries/getDictionary';
 import { normalizeLocale } from '@/lib/i18n';
-import { WHATSAPP_CONTACT_HREF } from '@/lib/contact';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
+function renderBody2(text: string): ReactNode[] {
+  const parts = text.split(/(\{\{caveHouse\}\}|\{\{caveMansion\}\})/);
+  return parts.map((part, i) => {
+    if (part === '{{caveHouse}}') {
+      return (
+        <a key={`ch-${i}`} href="https://kismetcavehouse.com" target="_blank" rel="noopener noreferrer">
+          Kismet Cave House (2006)
+        </a>
+      );
+    }
+    if (part === '{{caveMansion}}') {
+      return (
+        <a key={`cm-${i}`} href="https://kismetcavemansion.com" target="_blank" rel="noopener noreferrer">
+          Kismet Cave Mansion (2025)
+        </a>
+      );
+    }
+    return <span key={`t-${i}`}>{part}</span>;
+  });
+}
 
 export default async function AboutPage(props: { params: Promise<{ lang: string }> }) {
   const params = await props.params;
   const lang = normalizeLocale(params?.lang);
   const dict = await getDictionary(lang);
   const about = (dict as { about?: Record<string, string> }).about ?? {};
+  const nav = (dict as { navigation?: Record<string, string> }).navigation ?? {};
 
   return (
     <section className="page-section">
       <div className="container about-page">
+        <Breadcrumbs
+          items={[
+            { label: nav.home ?? 'Home', href: `/${lang}` },
+            { label: about.title ?? nav.aboutUs ?? 'About Us' },
+          ]}
+        />
         <h1>{about.title ?? 'About Us'}</h1>
 
         <section className="about-badges-band" aria-label="Trust badges">
@@ -30,7 +60,7 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
 
         <div className="about-page-hero">
           <img
-            src="/images/tours/balloon/balon-goreme/1590144-3840x2160-desktop-4k-goreme-national-park-wallpaper-image.jpg"
+            src="/images/about-hero.jpg"
             alt={about.title ?? 'About'}
             loading="eager"
             decoding="async"
@@ -40,7 +70,7 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
         <div className="about-page-card">
           <h2>{about.welcomeTitle}</h2>
           <p>{about.body1}</p>
-          <p>{about.body2}</p>
+          <p>{about.body2 ? renderBody2(about.body2) : null}</p>
           <p>{about.body3}</p>
           <p>{about.body4}</p>
 
@@ -66,16 +96,19 @@ export default async function AboutPage(props: { params: Promise<{ lang: string 
             <span>{about.statGuests}</span>
           </div>
           <div>
-            <strong>24/7</strong>
-            <span>{about.statSupport}</span>
+            <strong>100%</strong>
+            <span>{about.statLocal ?? 'Local Experience'}</span>
           </div>
         </div>
 
-        <p className="about-page-cta-wrap">
-          <a className="btn btn-primary" href={WHATSAPP_CONTACT_HREF} target="_blank" rel="noopener noreferrer">
-            {about.whatsappCta}
-          </a>
-        </p>
+        <div className="about-page-cta-wrap">
+          <Link className="btn btn-primary" href={`/${lang}/tours`}>
+            {about.exploreButton ?? 'Explore'}
+          </Link>
+          <Link className="btn btn-secondary" href={`/${lang}/contact`}>
+            {about.contactButton ?? nav.contact ?? 'Contact'}
+          </Link>
+        </div>
       </div>
     </section>
   );

@@ -6,6 +6,7 @@ import { getDictionary } from '@/app/dictionaries/getDictionary';
 import type { SiteLocale } from '@/lib/i18n';
 import { getEurTryRate } from '@/lib/exchangeRate';
 import { TourCardImageWithFallback } from '@/app/components/TourCardImageWithFallback';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
 export default async function AttractionDetailPage(props: {
   params: Promise<{ lang: string; slug: string }>;
@@ -23,13 +24,18 @@ export default async function AttractionDetailPage(props: {
   const title = locale === 'tr' ? row.nameTr : locale === 'zh' ? (row.nameZh ?? row.nameEn) : row.nameEn;
   const description = locale === 'tr' ? row.descriptionTr : locale === 'zh' ? row.descriptionZh : row.descriptionEn;
 
+  const attractionsLabel = dict.navigation?.attractions ?? (locale === 'zh' ? '景点' : locale === 'tr' ? 'Gezi Noktaları' : 'Attractions');
+  const homeLabel = dict.navigation?.home ?? (locale === 'zh' ? '首页' : locale === 'tr' ? 'Ana Sayfa' : 'Home');
+
   return (
     <div className="container page-section">
-      <div style={{ marginBottom: 'var(--space-lg)' }}>
-        <Link href={`/${lang}/attractions`} className="site-footer-link">
-          ← {dict.navigation?.attractions ?? (locale === 'zh' ? '返回景点' : 'Attractions')}
-        </Link>
-      </div>
+      <Breadcrumbs
+        items={[
+          { label: homeLabel, href: `/${lang}` },
+          { label: attractionsLabel, href: `/${lang}/attractions` },
+          { label: title },
+        ]}
+      />
       <h1>{title}</h1>
       {description ? <div className="tours-page-subtitle attraction-description">{description}</div> : null}
       <div className="tours-grid">

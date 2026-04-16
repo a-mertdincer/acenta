@@ -4,6 +4,7 @@ import { TourCardImage } from '../../components/TourCardImage';
 import { getTourImagePath, getTourImageFallback } from '../../../lib/imagePaths';
 import { getTours } from '../../actions/tours';
 import { ActivitiesDestinationSection } from '../../components/ActivitiesDestinationSection';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { getEurTryRate } from '@/lib/exchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getCategoryBySlug, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
@@ -78,8 +79,24 @@ export default async function ToursPage(props: {
         ? String((dict as { askForPrice?: { button?: string } }).askForPrice?.button ?? '').trim() || 'Ask for Price'
         : 'Ask for Price';
 
+    const categoryConfig = selectedCategory ? getCategoryBySlug('cappadocia', selectedCategory) : null;
+    const categoryLabel = categoryConfig ? getCategoryLabel(categoryConfig, lang) : selectedCategory || null;
+
     return (
         <>
+            <div className="container" style={{ paddingTop: 'var(--space-md)' }}>
+                <Breadcrumbs
+                    items={[
+                        { label: dict.navigation.home ?? 'Home', href: `/${lang}` },
+                        ...(categoryLabel
+                            ? [
+                                  { label: dict.navigation.tours ?? 'Tours', href: `/${lang}/tours` },
+                                  { label: categoryLabel },
+                              ]
+                            : [{ label: dict.navigation.tours ?? 'Tours' }]),
+                    ]}
+                />
+            </div>
             <ActivitiesDestinationSection
                 lang={lang}
                 title={(dict.tours as { allTours?: string }).allTours ?? dict.navigation.tours}

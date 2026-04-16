@@ -371,7 +371,7 @@
     "tagline": "您在卡帕多奇亚值得信赖的旅行社。",
     "welcomeTitle": "欢迎来到 Kısmet",
     "body1": "Kismet Göreme Travel 是一家扎根当地的旅行社，建立在卡帕多年的接待经验之上。",
-    "body2": "我们的旅程始于 Kismet Cave House（2006），并延续至 Kismet Cave Mansion（2025）——两家精品洞穴酒店，体现了我们与这片土地的深厚联系以及接待世界各地宾客的丰富经验。",
+    "body2": "我们的旅程始于 {{caveHouse}},并延续至 {{caveMansion}}——两家精品洞穴酒店体现了我们与本地区的深厚联系,以及我们多年来接待来自世界各地客人的丰富经验。",
     "body3": "如今，我们将这份经验延伸至旅行服务：精选的热气球飞行、一日游、机场接送以及地道的本地活动。",
     "body4": "我们既运营自有体验，也与可靠的本地伙伴紧密合作，提供稳定品质、公平定价与可信赖的服务。",
     "differenceTitle": "让我们与众不同的是沟通与关怀：",
@@ -387,7 +387,10 @@
     "statYears": "年经验",
     "statGuests": "满意游客",
     "statSupport": "全天候服务",
-    "whatsappCta": "通过WhatsApp联系我们"
+    "whatsappCta": "通过WhatsApp联系我们",
+    "exploreButton": "探索",
+    "contactButton": "联系",
+    "statLocal": "本地体验"
   },
   "whyBook": {
     "title": "为什么选择 Kismet Travel 预订？",
@@ -477,5 +480,12 @@
     "discount": "Discount",
     "originalPrice": "Original price",
     "save": "You save"
+  },
+  "cart": {
+    "reminderText": "您的购物车中还有",
+    "reminderItems": "件商品",
+    "reminderGuests": "位宾客",
+    "reminderSuffix": "等待结账",
+    "reminderDismiss": "关闭"
   }
 }

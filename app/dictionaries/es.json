@@ -371,7 +371,7 @@
     "tagline": "Tu agencia de viajes de confianza en Capadocia",
     "welcomeTitle": "Welcome to Kısmet",
     "body1": "Kismet Göreme Travel is a locally rooted travel agency built on years of hospitality experience in Cappadocia.",
-    "body2": "Our journey began with Kismet Cave House (2006) and continues with Kismet Cave Mansion (2025) — two boutique cave hotels that reflect our deep connection to the region and our long-standing experience in hosting guests from all around the world.",
+    "body2": "Nuestro viaje comenzó con {{caveHouse}} y continúa con {{caveMansion}}, dos hoteles cueva boutique que reflejan nuestra profunda conexión con la región y nuestra larga experiencia recibiendo huéspedes de todo el mundo.",
     "body3": "Trabajamos con guías locales, ofreciendo transporte seguro y precios transparentes para una experiencia impecable.",
     "body4": "We both operate our own experiences and work closely with reliable local partners, allowing us to provide consistent quality, fair pricing, and reliable service.",
     "differenceTitle": "What makes us different is how we communicate and care:",
@@ -387,7 +387,10 @@
     "statYears": "Años de Experiencia",
     "statGuests": "Huéspedes Felices",
     "statSupport": "Soporte",
-    "whatsappCta": "Contáctanos por WhatsApp"
+    "whatsappCta": "Contáctanos por WhatsApp",
+    "exploreButton": "Explorar",
+    "contactButton": "Contacto",
+    "statLocal": "Experiencia local"
   },
   "contactPage": {
     "pageTitle": "Contacto",
@@ -477,5 +480,12 @@
     "discount": "Discount",
     "originalPrice": "Original price",
     "save": "You save"
+  },
+  "cart": {
+    "reminderText": "Tienes",
+    "reminderItems": "artículos",
+    "reminderGuests": "huéspedes",
+    "reminderSuffix": "esperando en tu carrito",
+    "reminderDismiss": "Cerrar"
   }
 }

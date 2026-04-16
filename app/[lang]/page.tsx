@@ -53,31 +53,33 @@ const FALLBACK_HOME: Record<string, string> = {
   stats6Head: '5 Generations',
   stats6Sub: 'Local Family Heritage',
   howItWorksTitle: 'How It Works',
-  howItWorks1Title: 'Book Your Tour',
-  howItWorks1Desc: 'Find your best tour and make your free reservation.',
-  howItWorks2Title: 'Pay in Vehicle',
-  howItWorks2Desc: 'When we come to pick you up you can pay in cash.',
-  howItWorks3Title: 'Pick-Up',
-  howItWorks3Desc: 'We will pick you up from your hotel to the tour that you booked.',
-  howItWorks4Title: 'Drop-Off',
-  howItWorks4Desc: 'After the tour we will drop you off at your hotel.',
+  hiw1Title: 'Choose Your Experience',
+  hiw1Desc: 'Explore our tours and activities, and pick the ones that fit your travel style.',
+  hiw2Title: 'Contact & Reserve Easily',
+  hiw2Desc: "Reach out via WhatsApp — we'll help you plan and secure your reservation in minutes.",
+  hiw3Title: 'Hotel Pick-Up',
+  hiw3Desc: 'We pick you up directly from your hotel and take you to the activity.',
+  hiw4Title: 'Pay On-Site',
+  hiw4Desc: 'No prepayment required — you can pay in cash during the service.',
+  hiw5Title: 'Enjoy & Return Comfortably',
+  hiw5Desc: 'After your experience, we safely drop you back at your hotel.',
   whyChooseTitle: 'Why Choose Us',
-  whyChoose1Title: 'Impressions for a Lifetime',
-  whyChoose1Desc: 'Memorable moments crafted with care.',
-  whyChoose2Title: 'Bright VIP Vehicle & Balloons',
-  whyChoose2Desc: 'Comfortable transfers and premium balloon partners.',
-  whyChoose3Title: 'Insurance',
-  whyChoose3Desc: 'Clear coverage options where applicable.',
-  whyChoose4Title: 'Experience',
-  whyChoose4Desc: 'Years of local know-how and curated routes.',
-  whyChoose5Title: 'Safety',
-  whyChoose5Desc: 'Trained teams and safety-first operations.',
-  whyChoose6Title: 'Quality',
-  whyChoose6Desc: 'Hand-picked services and attention to detail.',
-  whyChoose7Title: 'Tourism Licensed',
-  whyChoose7Desc: 'Fully licensed travel services.',
-  whyChoose8Title: 'Moneyback Guarantee',
-  whyChoose8Desc: 'Fair policies and support if plans change.',
+  wcu1Title: 'Local Expertise, Real Experiences',
+  wcu1Desc: 'Born and raised in Cappadocia, we design experiences based on real local knowledge — not generic routes.',
+  wcu2Title: 'Reliable Local Partners',
+  wcu2Desc: 'We work with carefully selected, reliable local partners for balloons, tours, and transfers to ensure consistent quality.',
+  wcu3Title: 'Flexible & Guest-Oriented Booking',
+  wcu3Desc: 'No-pressure booking, easy planning, and personalized assistance — we adapt to your travel style.',
+  wcu4Title: 'Tailor-Made Experiences',
+  wcu4Desc: 'From classic tours to unique local activities, we create journeys that fit your interests — not fixed packages.',
+  wcu5Title: 'Safety & Professional Operation',
+  wcu5Desc: 'Licensed guides, insured activities, and well-organized operations for a smooth and secure experience.',
+  wcu6Title: 'Hand-Picked Quality Services',
+  wcu6Desc: 'We personally test and select every experience we offer — from balloon flights to hidden valley tours.',
+  wcu7Title: 'Fully Licensed Travel Agency',
+  wcu7Desc: 'Operating under official tourism regulations, providing trusted and professional travel services.',
+  wcu8Title: 'Support Before & During Your Trip',
+  wcu8Desc: "Fast communication via WhatsApp and on-site support — we're with you at every step of your journey.",
   ctaLine1: 'Plan your Cappadocia journey with reliable local experts.',
   ctaLine2: 'Contact us via WhatsApp.',
   ctaLine3: 'Fast replies within 5–15 minutes.',
@@ -303,18 +305,19 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     { head: homeDict.stats6Head ?? FALLBACK_HOME.stats6Head, sub: homeDict.stats6Sub ?? FALLBACK_HOME.stats6Sub },
   ];
 
-  const howSteps = [
-    { title: homeDict.howItWorks1Title ?? '', description: homeDict.howItWorks1Desc ?? '' },
-    { title: homeDict.howItWorks2Title ?? '', description: homeDict.howItWorks2Desc ?? '' },
-    { title: homeDict.howItWorks3Title ?? '', description: homeDict.howItWorks3Desc ?? '' },
-    { title: homeDict.howItWorks4Title ?? '', description: homeDict.howItWorks4Desc ?? '' },
-  ];
+  const howSteps = Array.from({ length: 5 }, (_, i) => {
+    const n = i + 1;
+    return {
+      title: homeDict[`hiw${n}Title`] ?? FALLBACK_HOME[`hiw${n}Title`] ?? '',
+      description: homeDict[`hiw${n}Desc`] ?? FALLBACK_HOME[`hiw${n}Desc`] ?? '',
+    };
+  });
 
   const whyItems = Array.from({ length: 8 }, (_, i) => {
     const n = i + 1;
     return {
-      title: homeDict[`whyChoose${n}Title`] ?? '',
-      description: homeDict[`whyChoose${n}Desc`] ?? '',
+      title: homeDict[`wcu${n}Title`] ?? FALLBACK_HOME[`wcu${n}Title`] ?? '',
+      description: homeDict[`wcu${n}Desc`] ?? FALLBACK_HOME[`wcu${n}Desc`] ?? '',
     };
   });
 

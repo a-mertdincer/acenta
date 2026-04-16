@@ -306,7 +306,8 @@
     "addToCart": "Ajouter au panier",
     "dateClosed": "Cette date n'est pas disponible à la réservation.",
     "transferPrice": "Prix pour {pax} personne(s)",
-    "highlights": "Points forts"
+    "highlights": "Points forts",
+    "customersAlsoLiked": "Les clients ont aussi aimé"
   },
   "footer": {
     "about": "À propos",

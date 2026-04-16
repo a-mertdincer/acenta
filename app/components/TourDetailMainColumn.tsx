@@ -51,22 +51,10 @@ export function TourDetailMainColumn({
   onToggleFaq,
 }: TourDetailMainColumnProps) {
   const hasHighlights = highlightsItems.length > 0;
-  const itineraryIdOnDescription = itineraryItems.length === 0;
 
   return (
     <>
-      <section className="tour-detail-gallery-section tour-detail-gallery-section--lead" id="gallery">
-        <TourDetailGallery
-          mainSrc={galleryMainSrc}
-          fallbackSrc={galleryFallback}
-          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
-        />
-      </section>
-
-      <div
-        className="tour-detail-desc-block"
-        id={itineraryIdOnDescription ? 'itinerary' : undefined}
-      >
+      <div className="tour-detail-desc-block" id="description">
         <h2>{descriptionSectionTitle}</h2>
         <ProductDescription text={desc} />
       </div>
@@ -160,6 +148,14 @@ export function TourDetailMainColumn({
           </div>
         </section>
       ) : null}
+
+      <section className="tour-detail-gallery-section" id="gallery">
+        <TourDetailGallery
+          mainSrc={galleryMainSrc}
+          fallbackSrc={galleryFallback}
+          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
+        />
+      </section>
     </>
   );
 }

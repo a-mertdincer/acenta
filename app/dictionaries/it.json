@@ -306,7 +306,8 @@
     "addToCart": "Aggiungi al carrello",
     "dateClosed": "Questa data non è disponibile per le prenotazioni.",
     "transferPrice": "Prezzo per {pax} persona/e",
-    "highlights": "In evidenza"
+    "highlights": "In evidenza",
+    "customersAlsoLiked": "Anche i clienti hanno apprezzato"
   },
   "footer": {
     "about": "Chi siamo",

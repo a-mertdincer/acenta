@@ -306,7 +306,8 @@
     "addToCart": "Add to cart",
     "dateClosed": "This date is closed for booking.",
     "transferPrice": "Price for {pax} passenger(s)",
-    "highlights": "Highlights"
+    "highlights": "Highlights",
+    "customersAlsoLiked": "Customers Also Liked"
   },
   "footer": {
     "about": "About us",

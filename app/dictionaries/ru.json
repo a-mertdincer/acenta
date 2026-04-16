@@ -306,7 +306,8 @@
     "addToCart": "В корзину",
     "dateClosed": "На эту дату бронирование закрыто.",
     "transferPrice": "Цена для {pax} чел.",
-    "highlights": "Основные моменты"
+    "highlights": "Основные моменты",
+    "customersAlsoLiked": "Клиентам также понравилось"
   },
   "footer": {
     "about": "О нас",

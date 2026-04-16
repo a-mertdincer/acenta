@@ -306,7 +306,8 @@
     "addToCart": "カートに追加",
     "dateClosed": "この日付は予約を受け付けておりません。",
     "transferPrice": "{pax}名の料金",
-    "highlights": "ハイライト"
+    "highlights": "ハイライト",
+    "customersAlsoLiked": "こちらもおすすめ"
   },
   "footer": {
     "about": "私たちについて",

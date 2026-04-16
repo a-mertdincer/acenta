@@ -306,7 +306,8 @@
     "addToCart": "In den Warenkorb",
     "dateClosed": "Dieses Datum ist nicht buchbar.",
     "transferPrice": "Preis für {pax} Person(en)",
-    "highlights": "Highlights"
+    "highlights": "Highlights",
+    "customersAlsoLiked": "Kunden mochten auch"
   },
   "footer": {
     "about": "Über uns",

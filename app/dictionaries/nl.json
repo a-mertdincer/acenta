@@ -306,7 +306,8 @@
     "addToCart": "In winkelwagen",
     "dateClosed": "Deze datum is niet beschikbaar voor boekingen.",
     "transferPrice": "Prijs voor {pax} persoon/personen",
-    "highlights": "Hoogtepunten"
+    "highlights": "Hoogtepunten",
+    "customersAlsoLiked": "Klanten vonden ook leuk"
   },
   "footer": {
     "about": "Over ons",

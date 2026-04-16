@@ -306,7 +306,8 @@
     "addToCart": "Dodaj do koszyka",
     "dateClosed": "Ten termin jest niedostępny.",
     "transferPrice": "Cena dla {pax} osób",
-    "highlights": "Najważniejsze"
+    "highlights": "Najważniejsze",
+    "customersAlsoLiked": "Klientom spodobało się również"
   },
   "footer": {
     "about": "O nas",

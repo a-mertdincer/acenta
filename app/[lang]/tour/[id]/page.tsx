@@ -10,6 +10,7 @@ import { getTourWithVariants } from '../../../actions/variants';
 import { ProductVariantBookingCard } from '../../../components/ProductVariantBookingCard';
 import { TourDetailMainColumn, type FaqItem } from '../../../components/TourDetailMainColumn';
 import { TourReviewsSection } from '../../../components/TourReviewsSection';
+import { RelatedToursSection } from '../../../components/RelatedToursSection';
 import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { TourBookingTrustExtras } from '../../../components/TourBookingTrustExtras';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
@@ -648,12 +649,13 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const faqNavLabel = 'FAQs';
     const anchorSections: { id: string; label: string }[] = [
       { id: 'book-now', label: bookNavLabel },
-      { id: 'itinerary', label: t.itinerary },
+      { id: 'description', label: t.description },
     ];
+    if (itineraryItems.length > 0) anchorSections.push({ id: 'itinerary', label: t.itinerary });
     if (hasHighlights) anchorSections.push({ id: 'highlights', label: t.highlights });
     if (whatsIncludedItems.length > 0) anchorSections.push({ id: 'whats-included', label: t.whatsIncluded });
-    anchorSections.push({ id: 'gallery', label: t.gallery });
     if (faqs.length > 0) anchorSections.push({ id: 'faqs', label: faqNavLabel });
+    anchorSections.push({ id: 'gallery', label: t.gallery });
 
     const askPriceLabel = locale === 'tr' ? 'Fiyat Sorun' : locale === 'zh' ? '询价' : 'Ask for Price';
 
@@ -1013,6 +1015,28 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 )}
             </div>
                 </>
+            )}
+            {!id.startsWith('mock-') && (
+              <RelatedToursSection
+                tourId={tour.id}
+                lang={locale}
+                heading={
+                  (lang === 'tr'
+                    ? (trPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked
+                    : lang === 'zh'
+                      ? (zhPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked
+                      : (enPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked) ?? 'Customers Also Liked'
+                }
+                fromLabel={
+                  lang === 'tr'
+                    ? ((trPageDict as { home?: { from?: string } }).home?.from ?? 'Başlangıç')
+                    : lang === 'zh'
+                      ? ((zhPageDict as { home?: { from?: string } }).home?.from ?? '起价')
+                      : ((enPageDict as { home?: { from?: string } }).home?.from ?? 'From')
+                }
+                bookLabel={t.bookNow}
+                askForPriceLabel={askPriceLabel}
+              />
             )}
             {cartToastOpen && (
               <div

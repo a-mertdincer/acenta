@@ -264,6 +264,91 @@ function buildTransferAirportTiers(
   };
 }
 
+export type RelatedTourCard = {
+  id: string;
+  type: string;
+  titleEn: string;
+  titleTr: string;
+  titleZh: string;
+  basePrice: number;
+  category: string | null;
+  isAskForPrice: boolean;
+  imageUrl: string | null;
+};
+
+const COMPLEMENTARY_TYPES: Record<string, string[]> = {
+  BALLOON: ['TRANSFER', 'CONCIERGE', 'TOUR', 'ACTIVITY'],
+  TOUR: ['BALLOON', 'ACTIVITY', 'TRANSFER', 'CONCIERGE'],
+  TRANSFER: ['BALLOON', 'TOUR', 'ACTIVITY', 'CONCIERGE'],
+  ACTIVITY: ['BALLOON', 'TOUR', 'TRANSFER', 'CONCIERGE'],
+  CONCIERGE: ['BALLOON', 'TOUR', 'ACTIVITY', 'TRANSFER'],
+  PACKAGE: ['BALLOON', 'TOUR', 'TRANSFER', 'ACTIVITY'],
+};
+
+/**
+ * Category-based v1 related-tours picker: prefer tours whose type is complementary
+ * to the current tour's type, fall back to any other active tour. Returns up to `limit`.
+ */
+export async function getRelatedTours(currentTourId: string, limit = 4): Promise<RelatedTourCard[]> {
+  try {
+    const current = await prisma.tour.findUnique({
+      where: { id: currentTourId },
+      select: { type: true },
+    });
+    const currentType = current?.type ?? 'TOUR';
+    const preferred = COMPLEMENTARY_TYPES[currentType] ?? [];
+
+    const candidates = await prisma.tour.findMany({
+      where: { NOT: { id: currentTourId } },
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+    });
+    const images = await prisma.tourImage.findMany({
+      where: { tourId: { in: candidates.map((t) => t.id) } },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    });
+    const firstImageByTour = new Map<string, string>();
+    for (const img of images) {
+      if (!firstImageByTour.has(img.tourId)) firstImageByTour.set(img.tourId, img.url);
+    }
+
+    const byType = new Map<string, typeof candidates>();
+    for (const tour of candidates) {
+      const list = byType.get(tour.type) ?? [];
+      list.push(tour);
+      byType.set(tour.type, list);
+    }
+
+    const picked: typeof candidates = [];
+    // Round-robin across preferred types first, then fallback types.
+    const order = [...preferred, ...Array.from(byType.keys()).filter((k) => !preferred.includes(k))];
+    let changed = true;
+    while (picked.length < limit && changed) {
+      changed = false;
+      for (const type of order) {
+        if (picked.length >= limit) break;
+        const list = byType.get(type);
+        if (!list || list.length === 0) continue;
+        picked.push(list.shift()!);
+        changed = true;
+      }
+    }
+
+    return picked.map((t) => ({
+      id: t.id,
+      type: t.type,
+      titleEn: t.titleEn,
+      titleTr: t.titleTr,
+      titleZh: t.titleZh,
+      basePrice: Number(t.basePrice ?? 0),
+      category: t.category ?? null,
+      isAskForPrice: Boolean(t.isAskForPrice),
+      imageUrl: firstImageByTour.get(t.id) ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getTourById(id: string): Promise<TourWithOptions | null> {
   try {
     const tour = await prisma.tour.findUnique({

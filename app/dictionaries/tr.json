@@ -306,7 +306,8 @@
     "addToCart": "Sepete Ekle",
     "dateClosed": "Bu tarih için rezervasyon kabul edilmemektedir.",
     "transferPrice": "{pax} kişi için fiyat",
-    "highlights": "Öne Çıkanlar"
+    "highlights": "Öne Çıkanlar",
+    "customersAlsoLiked": "Bunları da Beğenebilirsiniz"
   },
   "footer": {
     "about": "Hakkımızda",

@@ -306,7 +306,8 @@
     "addToCart": "Adaugă în coș",
     "dateClosed": "Această dată nu este disponibilă pentru rezervări.",
     "transferPrice": "Preț pentru {pax} persoană/persoane",
-    "highlights": "Repere"
+    "highlights": "Repere",
+    "customersAlsoLiked": "Clienților le-au plăcut și"
   },
   "footer": {
     "about": "Despre noi",

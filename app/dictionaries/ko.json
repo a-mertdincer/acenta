@@ -306,7 +306,8 @@
     "addToCart": "장바구니에 담기",
     "dateClosed": "이 날짜는 예약이 마감되었습니다.",
     "transferPrice": "{pax}명 가격",
-    "highlights": "하이라이트"
+    "highlights": "하이라이트",
+    "customersAlsoLiked": "다른 고객들이 함께 본 상품"
   },
   "footer": {
     "about": "소개",

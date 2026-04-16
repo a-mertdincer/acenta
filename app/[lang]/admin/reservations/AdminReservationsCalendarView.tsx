@@ -11,11 +11,41 @@ interface Res {
   date: Date;
   guestName: string;
   pax: number;
+  adultCount?: number | null;
+  childCount?: number | null;
+  infantCount?: number | null;
   totalPrice: number;
   status: string;
-  tour?: { titleEn: string; type: string };
-  variant?: { titleEn: string } | null;
+  tour?: { titleEn: string; titleTr: string; type: string } | null;
+  variant?: { titleEn: string; titleTr: string } | null;
   notes?: string | null;
+  transferHotelName?: string | null;
+}
+
+function formatTourTitle(tour: Res['tour'], lang: string): string {
+  if (!tour) return '';
+  if (lang === 'tr' && tour.titleTr) return tour.titleTr;
+  return tour.titleEn;
+}
+
+function formatVariantTitle(variant: Res['variant'], lang: string): string {
+  if (!variant) return '';
+  if (lang === 'tr' && variant.titleTr) return variant.titleTr;
+  return variant.titleEn;
+}
+
+function formatPaxBreakdown(r: Res, lang: string): string {
+  const adults = r.adultCount ?? r.pax;
+  const children = r.childCount ?? 0;
+  const infants = r.infantCount ?? 0;
+  const parts: string[] = [];
+  const adultLabel = lang === 'tr' ? 'yetişkin' : lang === 'zh' ? '成人' : 'adult';
+  const childLabel = lang === 'tr' ? 'çocuk' : lang === 'zh' ? '儿童' : 'child';
+  const infantLabel = lang === 'tr' ? 'bebek' : lang === 'zh' ? '婴儿' : 'infant';
+  if (adults > 0) parts.push(`${adults} ${adultLabel}`);
+  if (children > 0) parts.push(`${children} ${childLabel}`);
+  if (infants > 0) parts.push(`${infants} ${infantLabel}`);
+  return parts.join(' + ');
 }
 
 function toLocalDateStr(d: Date): string {
@@ -175,7 +205,12 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
             <p style={{ color: 'var(--color-text-muted)' }}>Bu günde rezervasyon yok.</p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              {selectedItems.map((r) => (
+              {selectedItems.map((r) => {
+                const tourTitle = formatTourTitle(r.tour, lang);
+                const variantTitle = formatVariantTitle(r.variant, lang);
+                const paxBreakdown = formatPaxBreakdown(r, lang);
+                const hotel = r.transferHotelName?.trim();
+                return (
                 <li
                   key={r.id}
                   style={{
@@ -185,17 +220,35 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                     borderLeft: `4px solid ${TOUR_COLOR[r.tour?.type ?? ''] ?? '#888'}`,
                   }}
                 >
-                  <div style={{ marginBottom: 4 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${selectedDate}`} style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
                       {r.guestName}
                     </Link>
-                    <span style={{ color: 'var(--color-text-muted)', marginLeft: 8 }}>
-                      · {r.pax} kişi · €{r.totalPrice.toFixed(2)}
-                    </span>
+                    {tourTitle ? (
+                      <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600, background: `${TOUR_COLOR[r.tour?.type ?? ''] ?? '#888'}22`, color: TOUR_COLOR[r.tour?.type ?? ''] ?? 'var(--color-text)' }}>
+                        {tourTitle}
+                      </span>
+                    ) : null}
+                    {variantTitle ? (
+                      <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.78rem', background: 'var(--color-bg-alt)', color: 'var(--color-text-muted)' }}>
+                        {variantTitle}
+                      </span>
+                    ) : null}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                    {r.notes && <>🏨 {r.notes}</>}
+                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>
+                    👥 {paxBreakdown || `${r.pax} ${lang === 'tr' ? 'kişi' : 'pax'}`}
+                    <span style={{ marginLeft: 8 }}>· €{r.totalPrice.toFixed(2)}</span>
                   </div>
+                  {hotel ? (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                      🏨 {hotel}
+                    </div>
+                  ) : null}
+                  {r.notes ? (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 8, fontStyle: 'italic' }}>
+                      📝 {r.notes}
+                    </div>
+                  ) : null}
                   <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 'bold', ...getReservationStatusStyle(r.status) }}>
                     {getReservationStatusLabel(r.status)}
                   </span>
@@ -217,7 +270,8 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                     </Link>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
           <div style={{ marginTop: 'var(--space-lg)' }}>

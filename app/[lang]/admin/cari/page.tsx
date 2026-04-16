@@ -431,16 +431,18 @@ export default function AdminCariPage() {
         ) : filteredRecords.length === 0 ? (
           <p style={{ padding: 'var(--space-xl)', color: 'var(--color-text-muted)' }}>Bu ay için kayıt yok. Yeni kayıt ekleyin.</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table style={{ width: '100%', minWidth: 1400, borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                <th style={{ padding: 'var(--space-md)' }}>Oda</th>
+                <th style={{ padding: 'var(--space-md)' }}>Otel / Oda</th>
                 <th style={{ padding: 'var(--space-md)' }}>Ad</th>
                 <th style={{ padding: 'var(--space-md)' }}>Aktivite</th>
                 <th style={{ padding: 'var(--space-md)' }}>Acenta</th>
                 <th style={{ padding: 'var(--space-md)' }}>Satış</th>
                 <th style={{ padding: 'var(--space-md)' }}>Maliyet</th>
-                <th style={{ padding: 'var(--space-md)' }}>Ödeme</th>
+                <th style={{ padding: 'var(--space-md)' }}>Ödeme Yöntemi</th>
+                <th style={{ padding: 'var(--space-md)' }}>Ödeme Kime</th>
+                <th style={{ padding: 'var(--space-md)' }}>Firma Ödemesi</th>
                 <th style={{ padding: 'var(--space-md)' }}>Durum</th>
                 <th style={{ padding: 'var(--space-md)' }}>Kâr</th>
                 <th style={{ padding: 'var(--space-md)' }}>İşlem</th>
@@ -449,7 +451,12 @@ export default function AdminCariPage() {
             <tbody>
               {filteredRecords.map((r) => (
                 <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => startEdit(r)}>
-                  <td style={{ padding: 'var(--space-md)' }}>{r.roomNumber ?? '—'}</td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    <div style={{ fontWeight: 600 }}>{r.hotelName ?? '—'}</div>
+                    {r.roomNumber ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Oda: {r.roomNumber}</div>
+                    ) : null}
+                  </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.guestName}</td>
                   <td style={{ padding: 'var(--space-md)' }}>
                     {r.activityType} · {(() => {
@@ -465,7 +472,32 @@ export default function AdminCariPage() {
                   <td style={{ padding: 'var(--space-md)' }}>{r.agentName ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.saleCurrency} {r.salePrice.toFixed(2)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.costAmount != null ? `${r.costCurrency ?? 'EUR'} ${r.costAmount.toFixed(2)}` : '—'}</td>
-                  <td style={{ padding: 'var(--space-md)' }}>{r.paymentMethod}</td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    {r.paymentMethod === 'cash' ? '💵 Nakit'
+                      : r.paymentMethod === 'transfer' ? '🏦 Havale'
+                      : r.paymentMethod === 'card' ? '💳 Kart'
+                      : r.paymentMethod}
+                  </td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    {r.paymentDestination === 'internal' ? (
+                      <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600 }}>Bize</span>
+                    ) : r.paymentDestination === 'agency_direct' ? (
+                      <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600 }}>Partner Acenta</span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: 'var(--space-md)' }}>
+                    {r.paidToAgency === 'paid' ? (
+                      <span style={{ background: '#d1fae5', color: '#065f46', padding: '3px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600 }}>Ödendi</span>
+                    ) : r.paidToAgency === 'pending' ? (
+                      <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600 }}>Beklemede</span>
+                    ) : r.paidToAgency === 'unpaid' ? (
+                      <span style={{ background: '#fee2e2', color: '#991b1b', padding: '3px 8px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600 }}>Ödenmedi</span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: 'var(--space-md)' }}>
                     {(() => {
                       const status = getStatusBadge(r);

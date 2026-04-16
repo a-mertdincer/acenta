@@ -2806,8 +2806,9 @@ main {
 }
 .about-page-hero img {
   width: 100%;
-  max-height: 260px;
-  object-fit: cover;
+  height: auto;
+  max-height: 720px;
+  object-fit: contain;
   display: block;
 }
 .about-page-intro,

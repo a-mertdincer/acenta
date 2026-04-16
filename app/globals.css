@@ -4268,6 +4268,9 @@ main {
   object-fit: contain;
   background: transparent;
 }
+.footer-cave-logo--mansion {
+  max-height: 120px;
+}
 .footer-cave-card {
   display: inline-flex;
   align-items: center;

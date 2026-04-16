@@ -196,7 +196,7 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
               <img
                 src={HOTEL_LOGO_MANSION}
                 alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
-                className="footer-cave-logo"
+                className="footer-cave-logo footer-cave-logo--mansion"
                 loading="lazy"
               />
               <span className="footer-cave-name">{footer.caveMansion ?? 'Kismet Cave Mansion'}</span>

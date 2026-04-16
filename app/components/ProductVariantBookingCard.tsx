@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from './Button';
 import { useCartStore } from '../store/cartStore';
@@ -93,20 +93,7 @@ function getAgePolicyDetail(
   return normalized;
 }
 
-export function ProductVariantBookingCard({
-  tourId,
-  tourType,
-  lang,
-  data,
-  title,
-  options,
-  ageGroups = [],
-  minAgeLimit = null,
-  isAskForPrice = false,
-  whyBook,
-  tourCancellationLabels,
-  cancellationNote,
-}: {
+type ProductVariantBookingCardProps = {
   tourId: string;
   tourType: string;
   lang: Lang;
@@ -124,7 +111,70 @@ export function ProductVariantBookingCard({
     description: string;
   }[];
   minAgeLimit?: number | null;
-}) {
+};
+
+function AskPriceOnlyCard({
+  tourId,
+  lang,
+  title,
+  whyBook,
+  tourCancellationLabels,
+  cancellationNote,
+}: Pick<ProductVariantBookingCardProps, 'tourId' | 'lang' | 'title' | 'whyBook' | 'tourCancellationLabels' | 'cancellationNote'>) {
+  const t = useMemo(() => getVariantStrings(lang), [lang]);
+  const askPriceWhatsappHref = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return buildTourWhatsAppHref({
+      tourTitle: title,
+      dateYmd: d.toISOString().split('T')[0],
+      people: 2,
+    });
+  }, [title]);
+  return (
+    <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
+      <AskForPriceBookingBlock tourId={tourId} lang={lang} />
+      <TourBookingTrustExtras
+        lang={lang}
+        whatsappHref={askPriceWhatsappHref}
+        whatsappLabel={t.askWhatsApp}
+        whyBook={whyBook}
+        cancellationNote={cancellationNote}
+        policyLabels={tourCancellationLabels}
+      />
+    </div>
+  );
+}
+
+export function ProductVariantBookingCard(props: ProductVariantBookingCardProps) {
+  if (props.isAskForPrice) {
+    return (
+      <AskPriceOnlyCard
+        tourId={props.tourId}
+        lang={props.lang}
+        title={props.title}
+        whyBook={props.whyBook}
+        tourCancellationLabels={props.tourCancellationLabels}
+        cancellationNote={props.cancellationNote}
+      />
+    );
+  }
+  return <ProductVariantBookingCardInner {...props} />;
+}
+
+function ProductVariantBookingCardInner({
+  tourId,
+  tourType,
+  lang,
+  data,
+  title,
+  options,
+  ageGroups = [],
+  minAgeLimit = null,
+  whyBook,
+  tourCancellationLabels,
+  cancellationNote,
+}: ProductVariantBookingCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const t = useMemo(() => getVariantStrings(lang), [lang]);
@@ -242,16 +292,6 @@ export function ProductVariantBookingCard({
       people: pax,
     });
   }, [title, selectedDate, adults, children, infants]);
-
-  const askPriceWhatsappHref = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return buildTourWhatsAppHref({
-      tourTitle: title,
-      dateYmd: d.toISOString().split('T')[0],
-      people: 2,
-    });
-  }, [title]);
 
   useEffect(() => {
     if (!activeVariant?.maxGroupSize) return;
@@ -415,22 +455,6 @@ export function ProductVariantBookingCard({
     setCartToastTitle(variantTitle);
     setCartToastOpen(true);
   };
-
-  if (isAskForPrice) {
-    return (
-      <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
-        <AskForPriceBookingBlock tourId={tourId} lang={lang} />
-        <TourBookingTrustExtras
-          lang={lang}
-          whatsappHref={askPriceWhatsappHref}
-          whatsappLabel={t.askWhatsApp}
-          whyBook={whyBook}
-          cancellationNote={cancellationNote}
-          policyLabels={tourCancellationLabels}
-        />
-      </div>
-    );
-  }
 
   if (data.variants.length === 0) return null;
 

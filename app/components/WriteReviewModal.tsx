@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { submitReview } from '@/app/actions/reviews';
 
@@ -27,8 +28,27 @@ export function WriteReviewModal(props: {
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
 
-  if (!props.open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!props.open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') props.onClose();
+    };
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [props.open, props.onClose]);
+
+  if (!props.open || !mounted) return null;
 
   const send = () => {
     setErr(null);
@@ -48,7 +68,7 @@ export function WriteReviewModal(props: {
     });
   };
 
-  return (
+  return createPortal(
     <div className="write-review-modal-root" role="presentation">
       <button type="button" className="write-review-modal-backdrop" aria-label="Close" onClick={props.onClose} />
       <div className="write-review-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="write-review-title">
@@ -96,6 +116,7 @@ export function WriteReviewModal(props: {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

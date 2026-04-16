@@ -16,6 +16,14 @@ interface HomeExperienceCardProps {
   categoryBadge?: string;
   isAskForPrice?: boolean;
   askForPriceLabel?: string;
+  originalPrice?: number;
+  discountedPrice?: number | null;
+  percentLabel?: number | null;
+  discountAmount?: number;
+}
+
+function formatAmount(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
 
 export function HomeExperienceCard({
@@ -31,8 +39,14 @@ export function HomeExperienceCard({
   categoryBadge,
   isAskForPrice = false,
   askForPriceLabel = 'Ask for Price',
+  originalPrice,
+  discountedPrice = null,
+  percentLabel = null,
+  discountAmount = 0,
 }: HomeExperienceCardProps) {
   const [imgSrc, setImgSrc] = useState(imageSrc);
+  const hasDiscount = !isAskForPrice && discountedPrice != null && discountAmount > 0;
+  const shownOriginal = originalPrice ?? price;
 
   return (
     <div className="card card-hover">
@@ -44,7 +58,13 @@ export function HomeExperienceCard({
             onError={() => setImgSrc(imageFallback)}
             className="card-image-fill"
           />
-          <span className="card-price-badge">{isAskForPrice ? askForPriceLabel : `${fromLabel} €${price}`}</span>
+          {isAskForPrice ? (
+            <span className="card-price-badge">{askForPriceLabel}</span>
+          ) : hasDiscount ? (
+            <span className="card-promo-badge">
+              {percentLabel != null ? `-${percentLabel}%` : `Save €${formatAmount(discountAmount)}`}
+            </span>
+          ) : null}
         </div>
       </Link>
       <div className="card-body">
@@ -52,7 +72,22 @@ export function HomeExperienceCard({
         <h3>{title}</h3>
         <p className="card-desc">{desc}</p>
         <div className="card-footer">
-          <span className="card-price">{isAskForPrice ? askForPriceLabel : `${fromLabel} €${price}`}</span>
+          <span className="card-price">
+            {isAskForPrice ? (
+              askForPriceLabel
+            ) : hasDiscount ? (
+              <>
+                <span className="card-price-old">€{formatAmount(shownOriginal)}</span>{' '}
+                <span className="card-price-new">
+                  {fromLabel} €{formatAmount(discountedPrice!)}
+                </span>
+              </>
+            ) : (
+              <>
+                {fromLabel} €{formatAmount(price)}
+              </>
+            )}
+          </span>
           <Link href={`/${lang}/tour/${tourId}`} className="btn btn-primary btn-sm">
             {bookLabel}
           </Link>

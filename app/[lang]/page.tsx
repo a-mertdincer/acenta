@@ -5,6 +5,7 @@ import { HomeExperienceCard } from '../components/HomeExperienceCard';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
 import { getTourWithVariants } from '../actions/variants';
+import { getPromotionCardPrices } from '../actions/promotions';
 import { getAttractions } from '../actions/attractions';
 import { getActiveDestinations, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
 import { getTierFromPrice } from '@/lib/pricingTiers';
@@ -105,11 +106,7 @@ function pickTourCardImage(tour: TourWithOptions): { src: string; fallback: stri
   return { src: getTourImagePath(tour.type), fallback };
 }
 
-function buildTourRowsFromDb(
-  dbTours: TourWithOptions[],
-  lang: SiteLocale,
-  variantFromPriceMap: Map<string, number>
-): {
+type TourRow = {
   id: string;
   type: string;
   title: string;
@@ -122,7 +119,17 @@ function buildTourRowsFromDb(
   createdAt: string;
   imageSrc: string;
   imageFallback: string;
-}[] {
+  originalPrice: number;
+  discountedPrice: number | null;
+  percentLabel: number | null;
+  discountAmount: number;
+};
+
+function buildTourRowsFromDb(
+  dbTours: TourWithOptions[],
+  lang: SiteLocale,
+  variantFromPriceMap: Map<string, number>
+): TourRow[] {
   return dbTours.map((t) => {
     const byAirport = t.transferAirportTiers;
     const allTierPrices = byAirport
@@ -146,6 +153,10 @@ function buildTourRowsFromDb(
       createdAt: t.createdAt,
       imageSrc: img.src,
       imageFallback: img.fallback,
+      originalPrice: fromPrice,
+      discountedPrice: null,
+      percentLabel: null,
+      discountAmount: 0,
     };
   });
 }
@@ -155,7 +166,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   let homeDict: Record<string, string> = FALLBACK_HOME;
   let toursDict: Record<string, string> = FALLBACK_TOURS_DICT;
   let askForPriceButton = 'Ask for Price';
-  let tours: ReturnType<typeof buildTourRowsFromDb> = MOCK_CARDS.map((c) => ({
+  let tours: TourRow[] = MOCK_CARDS.map((c) => ({
     id: c.tourId,
     type: c.type,
     title: FALLBACK_TOURS_DICT[c.titleKey] ?? c.titleKey,
@@ -168,6 +179,10 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     createdAt: new Date().toISOString(),
     imageSrc: getTourImagePath(c.type),
     imageFallback: getTourImageFallback(c.type),
+    originalPrice: c.price,
+    discountedPrice: null,
+    percentLabel: null,
+    discountAmount: 0,
   }));
 
   try {
@@ -212,7 +227,29 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         createdAt: new Date().toISOString(),
         imageSrc: getTourImagePath(c.type),
         imageFallback: getTourImageFallback(c.type),
+        originalPrice: c.price,
+        discountedPrice: null,
+        percentLabel: null,
+        discountAmount: 0,
       }));
+    }
+
+    const promoEntries = tours
+      .filter((t) => !t.isAskForPrice && t.price > 0)
+      .map((t) => ({ tourId: t.id, rackPrice: t.price }));
+    if (promoEntries.length > 0) {
+      const promoMap = await getPromotionCardPrices(promoEntries, new Date());
+      tours = tours.map((t) => {
+        const p = promoMap.get(t.id);
+        if (!p || p.discount <= 0) return t;
+        return {
+          ...t,
+          originalPrice: t.price,
+          discountedPrice: p.final,
+          percentLabel: p.percentLabel,
+          discountAmount: p.discount,
+        };
+      });
     }
   } catch {
     // keep fallbacks
@@ -302,6 +339,10 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             categoryBadge={categoryBadge}
             isAskForPrice={tour.isAskForPrice}
             askForPriceLabel={askForPriceButton}
+            originalPrice={tour.originalPrice}
+            discountedPrice={tour.discountedPrice}
+            percentLabel={tour.percentLabel}
+            discountAmount={tour.discountAmount}
           />
         );
       })}

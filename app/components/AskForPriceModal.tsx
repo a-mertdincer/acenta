@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { submitPriceInquiry } from '@/app/actions/priceInquiry';
 import enDict from '@/app/dictionaries/en.json';
 import trDict from '@/app/dictionaries/tr.json';
@@ -75,6 +75,20 @@ export function AskForPriceModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -258,12 +272,14 @@ export function AskForPriceModal({
 export function AskForPriceBookingBlock({ tourId, lang }: { tourId: string; lang: Lang }) {
   const a = useMemo(() => getAskStrings(lang), [lang]);
   const [open, setOpen] = useState(false);
+  const handleOpen = useCallback(() => setOpen(true), []);
+  const handleClose = useCallback(() => setOpen(false), []);
   return (
     <>
-      <button type="button" className="btn btn-primary ask-for-price-open-btn" onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-primary ask-for-price-open-btn" onClick={handleOpen}>
         {a.button}
       </button>
-      <AskForPriceModal tourId={tourId} lang={lang} isOpen={open} onClose={() => setOpen(false)} />
+      <AskForPriceModal tourId={tourId} lang={lang} isOpen={open} onClose={handleClose} />
     </>
   );
 }

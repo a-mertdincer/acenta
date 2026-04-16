@@ -180,7 +180,14 @@ export function AdminPromotionsClient() {
 
       <h2 style={{ margin: 'var(--space-xl) 0 var(--space-md)' }}>Mevcut promosyonlar</h2>
       <ul className="admin-promotion-list">
-        {rows.map((r) => (
+        {rows.map((r) => {
+          const ids = r.applicableTourIds;
+          const selectedNames: string[] | null = Array.isArray(ids)
+            ? (ids as unknown[])
+                .filter((x): x is string => typeof x === 'string')
+                .map((id) => tours.find((t) => t.id === id)?.titleTr || tours.find((t) => t.id === id)?.titleEn || id)
+            : null;
+          return (
           <li key={r.id} className="admin-promotion-card">
             <strong>{r.name}</strong>
             <div>
@@ -191,6 +198,34 @@ export function AdminPromotionsClient() {
               Site: {new Date(r.validFrom).toLocaleString('tr-TR')} – {new Date(r.validUntil).toLocaleString('tr-TR')}
               <br />
               Aktivite: {new Date(r.bookableFrom).toLocaleString('tr-TR')} – {new Date(r.bookableUntil).toLocaleString('tr-TR')}
+            </div>
+            <div className="admin-promotion-scope" style={{ marginTop: 8, fontSize: '0.85rem' }}>
+              <strong>Geçerli ürünler: </strong>
+              {selectedNames === null ? (
+                <span>Tüm ürünler</span>
+              ) : selectedNames.length === 0 ? (
+                <span style={{ color: 'var(--color-error, #b91c1c)' }}>
+                  Hiçbir ürün seçili değil (promosyon etkisiz)
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                  {selectedNames.map((n, i) => (
+                    <span
+                      key={`${r.id}-${i}`}
+                      className="tour-chip"
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        background: 'var(--color-bg-alt)',
+                        borderRadius: 12,
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {n}
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
             <div style={{ marginTop: 8 }}>
               <button
@@ -223,7 +258,8 @@ export function AdminPromotionsClient() {
               </button>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

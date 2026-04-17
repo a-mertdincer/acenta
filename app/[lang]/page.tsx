@@ -13,6 +13,7 @@ import { normalizeLocale, type SiteLocale } from '@/lib/i18n';
 import { tourDescription, tourTitle } from '@/lib/tourLabels';
 import type { TourWithOptions } from '../actions/tours';
 import { HomeStatsBand } from '../components/HomeStatsBand';
+import { HomeTourTypePills } from '../components/HomeTourTypePills';
 import { HomeHowItWorks } from '../components/HomeHowItWorks';
 import { HomeWhyChooseUs } from '../components/HomeWhyChooseUs';
 import { HomeAttractionsCarousel } from '../components/HomeAttractionsCarousel';
@@ -41,17 +42,17 @@ const FALLBACK_HOME: Record<string, string> = {
   moreExperiencesTitle: 'More Experiences',
   attractionsCarouselTitle: 'Highlights',
   stats1Head: '30+',
-  stats1Sub: 'Tours',
-  stats2Head: 'Local',
-  stats2Sub: 'Team',
+  stats1Sub: 'Tours & Experiences',
+  stats2Head: 'Local Team',
+  stats2Sub: 'Cappadocia Based',
   stats3Head: 'Reliable',
-  stats3Sub: 'Partners',
+  stats3Sub: 'Local Partners',
   stats4Head: '24/7',
   stats4Sub: 'Support',
   stats5Head: 'Flexible',
-  stats5Sub: 'Cancellation',
-  stats6Head: '5 Gen.',
-  stats6Sub: 'Family',
+  stats5Sub: 'Easy Cancellation',
+  stats6Head: '5 Generations',
+  stats6Sub: 'Local Family Heritage',
   howItWorksTitle: 'How It Works',
   hiw1Title: 'Choose Your Experience',
   hiw1Desc: 'Explore our tours and activities, and pick the ones that fit your travel style.',
@@ -385,6 +386,8 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
           {renderTourRow(bestSelling, true)}
         </div>
       </section>
+
+      <HomeTourTypePills lang={lang} />
 
       {packageTours.length > 0 ? (
         <section className="home-experiences page-section">

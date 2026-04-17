@@ -111,18 +111,6 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
     <footer id="contact" className="site-footer site-footer-v2">
       <div className="container site-footer-inner">
         <div className="site-footer-v2-top">
-          <div className="site-footer-v2-brand">
-            <Link href={`/${lang}`} className="site-footer-logo-link">
-              <Image
-                src={FOOTER_LOGO_SRC}
-                alt={brand}
-                width={FOOTER_LOGO_WIDTH}
-                height={FOOTER_LOGO_HEIGHT}
-                className="site-footer-logo-img"
-                sizes="(max-width: 640px) 160px, 220px"
-              />
-            </Link>
-          </div>
           <div className="site-footer-v2-grid">
             <div>
               <h3 className="site-footer-title">{footer.colCompany ?? 'Company'}</h3>
@@ -175,52 +163,66 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
                 <br />
                 {footer.infoTursab ?? 'TÜRSAB No'}: {contactInfo.contact_tursab}
               </p>
-              {contactInfo.contact_maps_embed_url ? (
-                <div className="site-footer-map-wrap">
-                  <iframe
-                    title="Map"
-                    src={contactInfo.contact_maps_embed_url}
-                    className="site-footer-map"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+              <div className="site-footer-info-bottom">
+                <div className="site-footer-info-logos">
+                  <Link href={`/${lang}`} className="site-footer-logo-link site-footer-agency-logo-link" aria-label={brand}>
+                    <Image
+                      src={FOOTER_LOGO_SRC}
+                      alt={brand}
+                      width={FOOTER_LOGO_WIDTH}
+                      height={FOOTER_LOGO_HEIGHT}
+                      className="site-footer-agency-logo"
+                      sizes="(max-width: 640px) 180px, 220px"
+                    />
+                  </Link>
+                  <div className="site-footer-hotels-row" aria-label="Partner hotels">
+                    <a
+                      href="https://kismetcavemansion.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="site-footer-hotel-link"
+                      aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
+                    >
+                      <img
+                        src={HOTEL_LOGO_MANSION}
+                        alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
+                        className="site-footer-hotel-logo"
+                        loading="lazy"
+                      />
+                    </a>
+                    <a
+                      href="https://kismetcavehouse.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="site-footer-hotel-link"
+                      aria-label={footer.caveHouse ?? 'Kismet Cave House'}
+                    >
+                      <img
+                        src={HOTEL_LOGO_HOUSE}
+                        alt={footer.caveHouse ?? 'Kismet Cave House'}
+                        className="site-footer-hotel-logo"
+                        loading="lazy"
+                      />
+                    </a>
+                  </div>
                 </div>
-              ) : null}
+                {contactInfo.contact_maps_embed_url ? (
+                  <div className="site-footer-map-wrap">
+                    <iframe
+                      title="Map"
+                      src={contactInfo.contact_maps_embed_url}
+                      className="site-footer-map"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="site-footer-v2-bottom">
-          <div className="site-footer-cave-row" aria-label="Partner hotels">
-            <a
-              href="https://kismetcavemansion.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-cave-card"
-              aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
-            >
-              <img
-                src={HOTEL_LOGO_MANSION}
-                alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
-                className="footer-cave-logo footer-cave-logo--mansion"
-                loading="lazy"
-              />
-            </a>
-            <a
-              href="https://kismetcavehouse.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-cave-card"
-              aria-label={footer.caveHouse ?? 'Kismet Cave House'}
-            >
-              <img
-                src={HOTEL_LOGO_HOUSE}
-                alt={footer.caveHouse ?? 'Kismet Cave House'}
-                className="footer-cave-logo"
-                loading="lazy"
-              />
-            </a>
-          </div>
           <div className="site-footer-v2-social">
             {social.instagram_link ? (
               <a href={social.instagram_link} target="_blank" rel="noopener noreferrer" className="site-footer-social-link" aria-label="Instagram">

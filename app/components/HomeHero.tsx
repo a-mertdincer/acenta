@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 
 interface HomeHeroProps {
   title: string;
@@ -77,7 +78,9 @@ export function HomeHero({
               ))}
             </select>
           </label>
-          <button type="submit" className="home-hero-search-btn" aria-label={searchLabel}>🔍</button>
+          <button type="submit" className="home-hero-search-btn" aria-label={searchLabel}>
+            <Search size={18} aria-hidden />
+          </button>
         </form>
       </div>
     </section>

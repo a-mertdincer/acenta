@@ -7,6 +7,25 @@ import { useCartStore, type CartItem } from '../store/cartStore';
 import { SUPPORTED_LOCALES, type SiteLocale } from '@/lib/i18n';
 import { usePathname } from 'next/navigation';
 import { getCategoriesForDestination, getCategoryLabel } from '@/lib/destinations';
+import {
+  Flame,
+  Map as MapIcon,
+  Mountain,
+  Building2,
+  Bus,
+  Palette,
+  Package,
+  Sparkles,
+  Car,
+  LayoutGrid,
+  User,
+  FileText,
+  Ticket,
+  Calendar,
+  Phone,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
 
 type Lang = SiteLocale;
 
@@ -158,23 +177,23 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
   const currentPathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '';
   const categoryLabelLang = (lang === 'tr' || lang === 'zh' ? lang : 'en') as 'en' | 'tr' | 'zh';
   const toursCategories = getCategoriesForDestination('cappadocia');
-  const categoryEmoji: Record<string, string> = {
-    'balloon-flights': '🎈',
-    'daily-tours': '🗺',
-    'adventure-activities': '🏔',
-    'cultural-experiences': '🏛',
-    workshops: '🎨',
-    packages: '📦',
-    concierge: '🎩',
-    transfers: '🚐',
-    'rent-a-car-bike': '🚗',
+  const categoryIcons: Record<string, LucideIcon> = {
+    'balloon-flights': Flame,
+    'daily-tours': MapIcon,
+    'adventure-activities': Mountain,
+    'cultural-experiences': Building2,
+    workshops: Palette,
+    packages: Package,
+    concierge: Sparkles,
+    transfers: Bus,
+    'rent-a-car-bike': Car,
   };
   const toursMenuItems = toursCategories.map((category) => ({
     slug: category.slug,
-    label: `${categoryEmoji[category.slug] ?? '•'} ${categories[category.slug] ?? getCategoryLabel(category, categoryLabelLang)}`,
+    label: categories[category.slug] ?? getCategoryLabel(category, categoryLabelLang),
     href: `/${lang}/tours/cappadocia/${category.slug}`,
+    Icon: categoryIcons[category.slug] ?? MapIcon,
   }));
-  const soonLabel = categories.soon ?? (lang === 'tr' ? 'Yakında' : lang === 'zh' ? '即将推出' : 'Soon');
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -309,8 +328,8 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
                         setToursMenuOpen(false);
                       }}
                     >
+                      <item.Icon size={18} className="site-nav-tours-icon" aria-hidden />
                       <span>{item.label}</span>
-                      {item.slug === 'rent-a-car-bike' ? <small>{soonLabel}</small> : null}
                     </Link>
                   ))}
                   <div className="site-nav-tours-sep" />
@@ -322,7 +341,8 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
                       setToursMenuOpen(false);
                     }}
                   >
-                    {`📋 ${categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}`}
+                    <LayoutGrid size={18} className="site-nav-tours-icon" aria-hidden />
+                    <span>{categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}</span>
                   </Link>
                 </div>
                 <div className={`site-nav-tours-mobile ${mobileToursOpen ? 'open' : ''}`}>
@@ -336,8 +356,8 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
                         setMobileToursOpen(false);
                       }}
                     >
+                      <item.Icon size={18} className="site-nav-tours-icon" aria-hidden />
                       <span>{item.label}</span>
-                      {item.slug === 'rent-a-car-bike' ? <small>{soonLabel}</small> : null}
                     </Link>
                   ))}
                   <Link
@@ -348,7 +368,8 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
                       setMobileToursOpen(false);
                     }}
                   >
-                    {`📋 ${categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}`}
+                    <LayoutGrid size={18} className="site-nav-tours-icon" aria-hidden />
+                    <span>{categories.all ?? (lang === 'tr' ? 'Tüm Turlar' : lang === 'zh' ? '所有旅游' : 'All Tours')}</span>
                   </Link>
                 </div>
               </div>
@@ -385,26 +406,32 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
                   {isLoggedIn ? (
                     <>
                       <div className="site-nav-dropdown-item" style={{ fontWeight: 600, cursor: 'default' }}>
-                        👤 {menu.signedInAs}: {userName ?? nav.account}
+                        <User size={16} className="site-nav-dropdown-icon" aria-hidden />
+                        <span>{menu.signedInAs}: {userName ?? nav.account}</span>
                       </div>
                       <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
                       <Link href={`/${lang}/account`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        📋 {menu.profile}
+                        <FileText size={16} className="site-nav-dropdown-icon" aria-hidden />
+                        <span>{menu.profile}</span>
                       </Link>
                       <Link href={`/${lang}/account/coupons`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        🎟 {menu.myCoupons} {activeCouponCount > 0 ? `(${activeCouponCount})` : ''}
+                        <Ticket size={16} className="site-nav-dropdown-icon" aria-hidden />
+                        <span>{menu.myCoupons} {activeCouponCount > 0 ? `(${activeCouponCount})` : ''}</span>
                       </Link>
                       <Link href={`/${lang}/account/reservations`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        📅 {menu.myReservations}
+                        <Calendar size={16} className="site-nav-dropdown-icon" aria-hidden />
+                        <span>{menu.myReservations}</span>
                       </Link>
                       <Link href={`/${lang}/account/contact`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                        📞 {menu.contact}
+                        <Phone size={16} className="site-nav-dropdown-icon" aria-hidden />
+                        <span>{menu.contact}</span>
                       </Link>
                       {isAdmin && (
                         <>
                           <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
                           <Link href={`/${lang}/admin`} className="site-nav-dropdown-item" onClick={() => { setMobileOpen(false); setUserMenuOpen(false); }}>
-                            ⚙️ {menu.managementPanel}
+                            <Settings size={16} className="site-nav-dropdown-icon" aria-hidden />
+                            <span>{menu.managementPanel}</span>
                           </Link>
                         </>
                       )}

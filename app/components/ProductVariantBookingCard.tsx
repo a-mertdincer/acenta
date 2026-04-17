@@ -25,6 +25,7 @@ import { formatPriceByLang } from '@/lib/currency';
 import { AskForPriceBookingBlock } from './AskForPriceModal';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { TourBookingTrustExtras, type TourCancellationLabels, type WhyBookDict } from './TourBookingTrustExtras';
+import { Ban, Baby, PartyPopper, User as UserIcon, type LucideIcon } from 'lucide-react';
 
 type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
@@ -755,11 +756,21 @@ function ProductVariantBookingCardInner({
             {ageGroups
               .sort((a, b) => a.minAge - b.minAge)
               .map((g, idx) => {
-                const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
+                const IconCmp: LucideIcon =
+                  g.pricingType === 'not_allowed' ? Ban
+                  : g.pricingType === 'child' ? Baby
+                  : g.pricingType === 'free' ? PartyPopper
+                  : UserIcon;
                 const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
                 const label = getAgePricingLabel(lang, g.pricingType);
                 const extra = getAgePolicyDetail(g.description, label, g.pricingType);
-                return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` — ${extra}` : ''}<br /></span>;
+                return (
+                  <span key={`${range}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 6 }}>
+                    <IconCmp size={14} aria-hidden />
+                    {range}: {label}{extra ? ` — ${extra}` : ''}
+                    <br />
+                  </span>
+                );
               })}
           </>
         ) : (

@@ -28,12 +28,6 @@ export function ReservationTypeCards({
     }
     return v.pricingType === 'per_person' ? `${labels.perPerson} €${v.adultPrice}` : `${labels.perVehicle} €${v.adultPrice}`;
   };
-  const iconFor = (reservationType: string | null) => {
-    if (!showTypeMeta) return null;
-    if (reservationType === 'regular') return '🚐';
-    if (reservationType === 'private') return '🚗';
-    return null;
-  };
   const subtitleFor = (reservationType: string | null) => {
     if (!showTypeMeta) return null;
     if (reservationType === 'regular') return `(${labels.group})`;
@@ -57,7 +51,6 @@ export function ReservationTypeCards({
           onClick={() => onChange(variant.id)}
         >
           {variant.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
-          {iconFor(variant.reservationType) && <span className="reservation-card-icon" aria-hidden>{iconFor(variant.reservationType)}</span>}
           <strong className="reservation-card-title">{title(variant)}</strong>
           {subtitleFor(variant.reservationType) && <span className="reservation-card-subtitle">{subtitleFor(variant.reservationType)}</span>}
           <span className="reservation-card-price">{priceLabel(variant)}</span>

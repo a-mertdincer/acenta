@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Ticket } from 'lucide-react';
 import { getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 import { requestCancellationByGuest, requestUpdateByGuest } from '@/app/actions/reservations';
@@ -299,8 +300,9 @@ function ReservationCard({
               {labels.date}: {currentDateStr} · {labels.pax}: {reservation.pax} · {labels.total}: <strong>€{Number(reservation.totalPrice).toFixed(2)}</strong>
             </div>
             {reservation.couponCode && reservation.originalPrice != null && reservation.discountAmount != null && (
-              <div style={{ marginTop: 'var(--space-xs)', padding: 'var(--space-sm)', background: 'var(--color-bg-alt)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                🎟 {reservation.couponCode} {labels.couponApplied}
+              <div style={{ marginTop: 'var(--space-xs)', padding: 'var(--space-sm)', background: 'var(--color-bg-alt)', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Ticket size={14} aria-hidden />
+                {reservation.couponCode} {labels.couponApplied}
                 <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--space-xs)' }}>
                   {labels.original}: €{reservation.originalPrice.toFixed(2)} · {labels.discount}: -€{reservation.discountAmount.toFixed(2)}
                   {reservation.originalPrice > 0 && (

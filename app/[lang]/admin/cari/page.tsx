@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { Banknote, CreditCard, Landmark } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getCariRecords, createCariRecord, updateCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
@@ -473,10 +474,12 @@ export default function AdminCariPage() {
                   <td style={{ padding: 'var(--space-md)' }}>{r.saleCurrency} {r.salePrice.toFixed(2)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.costAmount != null ? `${r.costCurrency ?? 'EUR'} ${r.costAmount.toFixed(2)}` : '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>
-                    {r.paymentMethod === 'cash' ? '💵 Nakit'
-                      : r.paymentMethod === 'transfer' ? '🏦 Havale'
-                      : r.paymentMethod === 'card' ? '💳 Kart'
-                      : r.paymentMethod}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      {r.paymentMethod === 'cash' ? (<><Banknote size={14} aria-hidden /> Nakit</>)
+                        : r.paymentMethod === 'transfer' ? (<><Landmark size={14} aria-hidden /> Havale</>)
+                        : r.paymentMethod === 'card' ? (<><CreditCard size={14} aria-hidden /> Kart</>)
+                        : r.paymentMethod}
+                    </span>
                   </td>
                   <td style={{ padding: 'var(--space-md)' }}>
                     {r.paymentDestination === 'internal' ? (

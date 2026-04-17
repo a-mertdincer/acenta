@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { Users, Building, FileText, Mail, Calendar as CalendarIcon } from 'lucide-react';
 import { getReservations, updateReservationStatus, sendReservationConfirmationEmail } from '@/app/actions/reservations';
 import { getReservationStatusLabel, getReservationStatusStyle, RESERVATION_STATUS_OPTIONS } from '@/lib/reservationStatus';
 import { Button } from '@/app/components/Button';
@@ -200,7 +201,10 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
 
       {selectedDate && (
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
-          <h2 style={{ marginBottom: 'var(--space-lg)' }}>📅 {formatDateTr(selectedDate)} — {selectedItems.length} Rezervasyon</h2>
+          <h2 style={{ marginBottom: 'var(--space-lg)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <CalendarIcon size={20} aria-hidden />
+            {formatDateTr(selectedDate)} — {selectedItems.length} Rezervasyon
+          </h2>
           {selectedItems.length === 0 ? (
             <p style={{ color: 'var(--color-text-muted)' }}>Bu günde rezervasyon yok.</p>
           ) : (
@@ -235,18 +239,21 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                       </span>
                     ) : null}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>
-                    👥 {paxBreakdown || `${r.pax} ${lang === 'tr' ? 'kişi' : 'pax'}`}
-                    <span style={{ marginLeft: 8 }}>· €{r.totalPrice.toFixed(2)}</span>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Users size={14} aria-hidden />
+                    {paxBreakdown || `${r.pax} ${lang === 'tr' ? 'kişi' : 'pax'}`}
+                    <span>· €{r.totalPrice.toFixed(2)}</span>
                   </div>
                   {hotel ? (
-                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                      🏨 {hotel}
+                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Building size={14} aria-hidden />
+                      {hotel}
                     </div>
                   ) : null}
                   {r.notes ? (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 8, fontStyle: 'italic' }}>
-                      📝 {r.notes}
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 8, fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FileText size={14} aria-hidden />
+                      {r.notes}
                     </div>
                   ) : null}
                   <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 'bold', ...getReservationStatusStyle(r.status) }}>
@@ -262,8 +269,9 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => handleSendConfirmation(r.id)} disabled={sendingEmailId === r.id}>
-                      {sendingEmailId === r.id ? 'Gönderiliyor…' : '📧 Mail'}
+                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => handleSendConfirmation(r.id)} disabled={sendingEmailId === r.id}>
+                      <Mail size={14} aria-hidden />
+                      {sendingEmailId === r.id ? 'Gönderiliyor…' : 'Mail'}
                     </Button>
                     <Link href={`/${lang}/admin/reservations?view=table&expand=${r.id}&tourDate=${selectedDate}`}>
                       <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>👁 Detay</Button>

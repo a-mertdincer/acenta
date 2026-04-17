@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ShoppingCart, X } from 'lucide-react';
 import { useCartStore } from '@/app/store/cartStore';
 
 const SESSION_KEY = 'cart_reminder_dismissed_v1';
@@ -50,7 +51,8 @@ export function CartReminderBanner({ lang, labels }: CartReminderBannerProps) {
     <div className="cart-reminder-banner" role="status" aria-live="polite">
       <div className="container cart-reminder-inner">
         <p className="cart-reminder-text">
-          🛒 {labels.text} <strong>{items.length}</strong> {labels.items} ({totalGuests} {labels.guests}) {labels.suffix}.
+          <ShoppingCart size={16} aria-hidden style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />
+          {labels.text} <strong>{items.length}</strong> {labels.items} ({totalGuests} {labels.guests}) {labels.suffix}.
         </p>
         <div className="cart-reminder-actions">
           <Link href={`/${lang}/cart`} className="btn btn-primary btn-sm">
@@ -62,7 +64,7 @@ export function CartReminderBanner({ lang, labels }: CartReminderBannerProps) {
             onClick={handleDismiss}
             aria-label={labels.dismiss}
           >
-            ✕
+            <X size={14} aria-hidden />
           </button>
         </div>
       </div>

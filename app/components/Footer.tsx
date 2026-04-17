@@ -191,24 +191,34 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
         </div>
 
         <div className="site-footer-v2-bottom">
-          <div className="site-footer-cave-row">
-            <a href="https://kismetcavemansion.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+          <div className="site-footer-cave-row" aria-label="Partner hotels">
+            <a
+              href="https://kismetcavemansion.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-cave-card"
+              aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
+            >
               <img
                 src={HOTEL_LOGO_MANSION}
                 alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
                 className="footer-cave-logo footer-cave-logo--mansion"
                 loading="lazy"
               />
-              <span className="footer-cave-name">{footer.caveMansion ?? 'Kismet Cave Mansion'}</span>
             </a>
-            <a href="https://kismetcavehouse.com" target="_blank" rel="noopener noreferrer" className="footer-cave-card">
+            <a
+              href="https://kismetcavehouse.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-cave-card"
+              aria-label={footer.caveHouse ?? 'Kismet Cave House'}
+            >
               <img
                 src={HOTEL_LOGO_HOUSE}
                 alt={footer.caveHouse ?? 'Kismet Cave House'}
                 className="footer-cave-logo"
                 loading="lazy"
               />
-              <span className="footer-cave-name">{footer.caveHouse ?? 'Kismet Cave House'}</span>
             </a>
           </div>
           <div className="site-footer-v2-social">

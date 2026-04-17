@@ -6,6 +6,7 @@ import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 import { getCategoryQuerySlugs, normalizeCategorySlug } from '@/lib/destinations';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
+import { normalizeSalesTagsInput } from '@/lib/tourTags';
 
 function revalidateTours() {
   SUPPORTED_LOCALES.forEach((lang) => {
@@ -30,6 +31,7 @@ export interface TourWithOptions {
   id: string;
   type: string;
   slug?: string | null;
+  salesTags?: string[];
   titleTr: string;
   titleEn: string;
   titleZh: string;
@@ -148,11 +150,12 @@ export async function getTours(filters?: { destination?: string; category?: stri
       });
       imageMap.set(img.tourId, list);
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null }) => {
+    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; salesTags?: unknown }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
         type: t.type,
+        salesTags: normalizeSalesTagsInput(t.salesTags),
         titleTr: t.titleTr,
         titleEn: t.titleEn,
         titleZh: t.titleZh,
@@ -404,6 +407,7 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
       id: tour.id,
       type: tour.type,
       slug: (tour as { slug?: string | null }).slug ?? null,
+      salesTags: normalizeSalesTagsInput((tour as { salesTags?: unknown }).salesTags),
       titleTr: tour.titleTr,
       titleEn: tour.titleEn,
       titleZh: tour.titleZh,
@@ -723,6 +727,7 @@ function normalizeSlug(raw: string | null | undefined): string | null {
 export type CreateTourInput = {
   type: TourType;
   slug?: string | null;
+  salesTags?: string[];
   titleEn: string;
   titleTr: string;
   titleZh: string;
@@ -785,6 +790,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
       data: {
         type: data.type,
         slug: normalizeSlug(data.slug),
+        salesTags: normalizeSalesTagsInput(data.salesTags),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),
@@ -876,6 +882,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
       data: {
         type: data.type,
         ...(data.slug !== undefined && { slug: normalizeSlug(data.slug) }),
+        ...(data.salesTags !== undefined && { salesTags: normalizeSalesTagsInput(data.salesTags) }),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),

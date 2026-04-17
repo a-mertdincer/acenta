@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { TourTagBadges } from './TourTagBadges';
 
 interface HomeExperienceCardProps {
   lang: string;
@@ -20,6 +21,7 @@ interface HomeExperienceCardProps {
   discountedPrice?: number | null;
   percentLabel?: number | null;
   discountAmount?: number;
+  salesTags?: string[] | null;
 }
 
 function formatAmount(n: number): string {
@@ -43,6 +45,7 @@ export function HomeExperienceCard({
   discountedPrice = null,
   percentLabel = null,
   discountAmount = 0,
+  salesTags = null,
 }: HomeExperienceCardProps) {
   const [imgSrc, setImgSrc] = useState(imageSrc);
   const hasDiscount = !isAskForPrice && discountedPrice != null && discountAmount > 0;
@@ -69,6 +72,9 @@ export function HomeExperienceCard({
       </Link>
       <div className="card-body">
         {categoryBadge ? <span className="tour-type-badge">{categoryBadge}</span> : null}
+        {salesTags && salesTags.length > 0 ? (
+          <TourTagBadges tagSlugs={salesTags} lang={lang} variant="card" max={2} />
+        ) : null}
         <h3>{title}</h3>
         <p className="card-desc">{desc}</p>
         <div className="card-footer">

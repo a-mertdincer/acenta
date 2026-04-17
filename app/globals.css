@@ -1152,6 +1152,83 @@ main {
   color: var(--color-text, #1a2638);
 }
 
+/* Tour sales tags — admin picker pills */
+.admin-sales-tags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.admin-sales-tags-group h4 {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.admin-sales-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.admin-sales-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: #fff;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.05s ease;
+}
+.admin-sales-tag-pill:hover {
+  border-color: var(--color-primary);
+}
+.admin-sales-tag-pill.selected {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.admin-sales-tag-pill.selected:hover {
+  filter: brightness(1.05);
+}
+
+/* Tour sales tags — frontend badges */
+.tour-tag-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+.tour-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.tour-tag-badges-detail {
+  gap: 6px;
+  margin: var(--space-sm) 0 var(--space-md);
+}
+.tour-tag-badges-detail .tour-tag-badge {
+  padding: 5px 11px;
+  font-size: 0.8rem;
+}
+.tour-tag-badge-orange { background: #FFF3E8; color: #C2410C; }
+.tour-tag-badge-green  { background: #E8F5EE; color: #166534; }
+.tour-tag-badge-blue   { background: #E8F0FF; color: #1E40AF; }
+.tour-tag-badge-purple { background: #F3E8FF; color: #6B21A8; }
+.tour-tag-badge-gray   { background: #F1F2F4; color: #4B5563; }
+
 .related-tours-section {
   margin-top: var(--space-2xl, 3rem);
   padding-top: var(--space-xl);

@@ -14,6 +14,7 @@ import { RelatedToursSection } from '../../../components/RelatedToursSection';
 import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
 import { TourBookingTrustExtras } from '../../../components/TourBookingTrustExtras';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
+import { TourTagBadges } from '../../../components/TourTagBadges';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
@@ -708,6 +709,14 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <span className="tour-detail-type-badge">
                                 {tour.type}
                             </span>
+                            {Array.isArray((tour as { salesTags?: string[] }).salesTags) && (tour as { salesTags?: string[] }).salesTags!.length > 0 ? (
+                                <TourTagBadges
+                                    tagSlugs={(tour as { salesTags?: string[] }).salesTags ?? []}
+                                    lang={locale}
+                                    variant="detail"
+                                    max={6}
+                                />
+                            ) : null}
                             {isAskForPrice ? (
                                 <p className="tour-detail-price-ask">{askPriceLabel}</p>
                             ) : (

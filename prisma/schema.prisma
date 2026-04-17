@@ -68,6 +68,7 @@ model Tour {
   slug               String?         @unique // Optional URL slug e.g. green-tour
   isAskForPrice      Boolean         @default(false)
   isFeatured         Boolean         @default(false)
+  salesTags          Json?           // string[] e.g. ["best-seller","instant-confirmation"]
   cancellationNoteEn String?
   cancellationNoteTr String?
   cancellationNoteZh String?

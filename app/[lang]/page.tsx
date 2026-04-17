@@ -125,6 +125,7 @@ type TourRow = {
   discountedPrice: number | null;
   percentLabel: number | null;
   discountAmount: number;
+  salesTags: string[];
 };
 
 function buildTourRowsFromDb(
@@ -159,6 +160,9 @@ function buildTourRowsFromDb(
       discountedPrice: null,
       percentLabel: null,
       discountAmount: 0,
+      salesTags: Array.isArray((t as { salesTags?: unknown }).salesTags)
+        ? ((t as { salesTags: unknown[] }).salesTags.filter((x): x is string => typeof x === 'string'))
+        : [],
     };
   });
 }
@@ -185,6 +189,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     discountedPrice: null,
     percentLabel: null,
     discountAmount: 0,
+    salesTags: [],
   }));
 
   try {
@@ -233,6 +238,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         discountedPrice: null,
         percentLabel: null,
         discountAmount: 0,
+        salesTags: [],
       }));
     }
 
@@ -347,6 +353,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             discountedPrice={tour.discountedPrice}
             percentLabel={tour.percentLabel}
             discountAmount={tour.discountAmount}
+            salesTags={tour.salesTags}
           />
         );
       })}

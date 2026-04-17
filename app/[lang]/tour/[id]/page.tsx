@@ -648,15 +648,19 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
     const bookNavLabel = lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now';
     const faqNavLabel = 'FAQs';
+    const hasDesc = Boolean(desc?.trim());
     const anchorSections: { id: string; label: string }[] = [
       { id: 'book-now', label: bookNavLabel },
-      { id: 'description', label: t.description },
+      { id: 'gallery', label: t.gallery },
     ];
+    if (hasDesc) anchorSections.push({ id: 'description', label: t.description });
     if (itineraryItems.length > 0) anchorSections.push({ id: 'itinerary', label: t.itinerary });
     if (hasHighlights) anchorSections.push({ id: 'highlights', label: t.highlights });
+    if (knowBeforeItems.length > 0) anchorSections.push({ id: 'know-before', label: t.knowBefore });
+    if (notSuitableItems.length > 0) anchorSections.push({ id: 'not-suitable', label: t.notSuitable });
+    if (notAllowedItems.length > 0) anchorSections.push({ id: 'not-allowed', label: t.notAllowed });
     if (whatsIncludedItems.length > 0) anchorSections.push({ id: 'whats-included', label: t.whatsIncluded });
     if (faqs.length > 0) anchorSections.push({ id: 'faqs', label: faqNavLabel });
-    anchorSections.push({ id: 'gallery', label: t.gallery });
 
     const askPriceLabel = locale === 'tr' ? 'Fiyat Sorun' : locale === 'zh' ? '询价' : 'Ask for Price';
 

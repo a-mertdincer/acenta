@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { submitPriceInquiry } from '@/app/actions/priceInquiry';
 import enDict from '@/app/dictionaries/en.json';
 import trDict from '@/app/dictionaries/tr.json';
@@ -75,6 +76,11 @@ export function AskForPriceModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -90,7 +96,7 @@ export function AskForPriceModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,9 +137,19 @@ export function AskForPriceModal({
     onClose();
   };
 
-  return (
-    <div className="ask-for-price-backdrop" role="dialog" aria-modal="true" aria-labelledby="ask-for-price-title">
-      <div className="ask-for-price-dialog">
+  return createPortal(
+    <div
+      className="ask-for-price-overlay"
+      role="presentation"
+      onClick={handleClose}
+    >
+      <div
+        className="ask-for-price-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ask-for-price-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="ask-for-price-dialog-header">
           <h2 id="ask-for-price-title" className="ask-for-price-dialog-title">
             {a.title}
@@ -265,7 +281,8 @@ export function AskForPriceModal({
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -34,6 +34,15 @@ export function WriteReviewModal(props: {
     setMounted(true);
   }, []);
 
+  // Reset local form state every time the modal opens (new reservation or reopen).
+  useEffect(() => {
+    if (!props.open) return;
+    setRating(5);
+    setComment('');
+    setDone(false);
+    setErr(null);
+  }, [props.open, props.reservationId]);
+
   useEffect(() => {
     if (!props.open) return;
     const prev = document.body.style.overflow;
@@ -48,7 +57,7 @@ export function WriteReviewModal(props: {
     };
   }, [props.open, props.onClose]);
 
-  if (!props.open || !mounted) return null;
+  if (!props.open || !mounted || !props.reservationId) return null;
 
   const send = () => {
     setErr(null);

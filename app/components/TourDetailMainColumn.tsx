@@ -51,13 +51,24 @@ export function TourDetailMainColumn({
   onToggleFaq,
 }: TourDetailMainColumnProps) {
   const hasHighlights = highlightsItems.length > 0;
+  const hasDesc = Boolean(desc?.trim());
 
   return (
     <>
-      <div className="tour-detail-desc-block" id="description">
-        <h2>{descriptionSectionTitle}</h2>
-        <ProductDescription text={desc} />
-      </div>
+      <section className="tour-detail-gallery-section" id="gallery">
+        <TourDetailGallery
+          mainSrc={galleryMainSrc}
+          fallbackSrc={galleryFallback}
+          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
+        />
+      </section>
+
+      {hasDesc ? (
+        <div className="tour-detail-desc-block" id="description">
+          <h2>{descriptionSectionTitle}</h2>
+          <ProductDescription text={desc} />
+        </div>
+      ) : null}
 
       {itineraryItems.length > 0 ? (
         <section className="tour-structured-section" id="itinerary">
@@ -148,14 +159,6 @@ export function TourDetailMainColumn({
           </div>
         </section>
       ) : null}
-
-      <section className="tour-detail-gallery-section" id="gallery">
-        <TourDetailGallery
-          mainSrc={galleryMainSrc}
-          fallbackSrc={galleryFallback}
-          thumbs={thumbUrls.length > 0 ? thumbUrls : [galleryMainSrc]}
-        />
-      </section>
     </>
   );
 }

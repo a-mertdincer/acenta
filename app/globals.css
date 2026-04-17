@@ -1409,12 +1409,13 @@ main {
   background: transparent;
 }
 .tour-detail-gallery-section {
-  margin-top: var(--space-md);
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .tour-detail-gallery-section--lead {
   margin-top: 0;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 .tour-gallery-lightbox {
   position: fixed;
@@ -1485,11 +1486,11 @@ main {
 .ask-for-price-open-btn {
   width: 100%;
 }
-.ask-for-price-backdrop {
+.ask-for-price-overlay {
   position: fixed;
   inset: 0;
   z-index: 2100;
-  background: rgba(30, 42, 56, 0.45);
+  background: rgba(30, 42, 56, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1642,13 +1643,20 @@ main {
   background: var(--color-primary-soft);
 }
 .tour-structured-section {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
   padding-top: var(--space-sm);
   border-top: 1px solid var(--color-border);
 }
 .tour-structured-section h3 {
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
   font-size: 1.1rem;
+}
+.tour-detail-desc-block {
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.tour-detail-desc-block h2 {
+  margin-bottom: var(--space-xs);
 }
 .tour-structured-section ul {
   margin: 0;

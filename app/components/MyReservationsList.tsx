@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getReservationStatusStyle } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
@@ -87,11 +87,38 @@ export function MyReservationsList({
   labels,
   reviewLabels,
 }: MyReservationsListProps) {
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const openReview = useCallback((id: string) => setReviewingId(id), []);
+  const closeReview = useCallback(() => setReviewingId(null), []);
+  const reviewing = reviewingId ? reservations.find((r) => r.id === reviewingId) ?? null : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {reservations.map((res) => (
-        <ReservationCard key={res.id} reservation={res} lang={lang} labels={labels} reviewLabels={reviewLabels} />
+        <ReservationCard
+          key={res.id}
+          reservation={res}
+          lang={lang}
+          labels={labels}
+          reviewLabels={reviewLabels}
+          onWriteReview={openReview}
+        />
       ))}
+      <WriteReviewModal
+        open={reviewing !== null}
+        onClose={closeReview}
+        reservationId={reviewing?.id ?? ''}
+        tourTitle={reviewing?.tour?.titleEn ?? reviewing?.tourId ?? ''}
+        closeLabel={reviewLabels.close}
+        labels={{
+          title: reviewLabels.title,
+          yourReview: reviewLabels.yourReview,
+          submit: reviewLabels.submit,
+          thankYou: reviewLabels.thankYou,
+          alreadyReviewed: reviewLabels.alreadyReviewed,
+          rating: reviewLabels.rating,
+        }}
+      />
     </div>
   );
 }
@@ -101,11 +128,13 @@ function ReservationCard({
   lang,
   labels,
   reviewLabels,
+  onWriteReview,
 }: {
   reservation: ReservationItem;
   lang: string;
   labels: MyReservationsListProps['labels'];
   reviewLabels: ReviewLabels;
+  onWriteReview: (reservationId: string) => void;
 }) {
   const currentDateStr = typeof reservation.date === 'string'
     ? reservation.date.slice(0, 10)
@@ -152,7 +181,6 @@ function ReservationCard({
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateFetchState, setDateFetchState] = useState<DateFetchState>('idle');
-  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!editOpen || !reservation.tourId) {
@@ -309,7 +337,7 @@ function ReservationCard({
         {!isCancelled && (
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
             {reservation.canWriteReview && (
-              <button type="button" className="btn btn-primary" onClick={() => setReviewOpen(true)}>
+              <button type="button" className="btn btn-primary" onClick={() => onWriteReview(reservation.id)}>
                 {reviewLabels.writeReview}
               </button>
             )}
@@ -369,22 +397,6 @@ function ReservationCard({
           </div>
         </form>
       )}
-
-      <WriteReviewModal
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        reservationId={reservation.id}
-        tourTitle={reservation.tour?.titleEn ?? reservation.tourId}
-        closeLabel={reviewLabels.close}
-        labels={{
-          title: reviewLabels.title,
-          yourReview: reviewLabels.yourReview,
-          submit: reviewLabels.submit,
-          thankYou: reviewLabels.thankYou,
-          alreadyReviewed: reviewLabels.alreadyReviewed,
-          rating: reviewLabels.rating,
-        }}
-      />
 
       {cancelOpen && (
         <form onSubmit={handleCancel} style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border, #e5e7eb)' }}>

@@ -69,6 +69,7 @@ model Tour {
   isAskForPrice      Boolean         @default(false)
   isFeatured         Boolean         @default(false)
   salesTags          Json?           // string[] e.g. ["best-seller","instant-confirmation"]
+  startTimes         Json?           // string[] e.g. ["05:30","09:00","14:00"]
   cancellationNoteEn String?
   cancellationNoteTr String?
   cancellationNoteZh String?
@@ -103,8 +104,8 @@ model PriceInquiry {
 }
 
 model Attraction {
-  id            String           @id @default(uuid())
-  slug          String           @unique
+  id            String             @id @default(uuid())
+  slug          String             @unique
   nameEn        String
   nameTr        String
   nameZh        String?
@@ -112,10 +113,27 @@ model Attraction {
   descriptionTr String?
   descriptionZh String?
   imageUrl      String?
-  sortOrder     Int              @default(0)
+  sortOrder     Int                @default(0)
   tours         TourAttraction[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  images        AttractionImage[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model AttractionImage {
+  id           String     @id @default(uuid())
+  attractionId String
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  url          String
+  altEn        String?
+  altTr        String?
+  altZh        String?
+  isPrimary    Boolean    @default(false)
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([attractionId])
 }
 
 model TourAttraction {
@@ -225,6 +243,7 @@ model Reservation {
   transferFlightArrival   String?
   transferFlightDeparture String?
   transferHotelName  String?
+  startTime         String?        // "HH:MM" selected by guest (tour.startTimes)
   adultCount        Int?
   childCount        Int?          // 4-7 yaş çocuk sayısı
   infantCount       Int?          // 0-3 yaş bebek sayısı

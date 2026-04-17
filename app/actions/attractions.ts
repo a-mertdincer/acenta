@@ -113,6 +113,13 @@ export async function getAttractions(options?: { resolveImages?: boolean }): Pro
   }
 }
 
+export type AttractionImageRow = {
+  id: string;
+  url: string;
+  isPrimary: boolean;
+  sortOrder: number;
+};
+
 export async function getAttractionBySlug(slug: string): Promise<(AttractionRow & {
   tours: {
     id: string;
@@ -127,11 +134,15 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
     category: string | null;
     primaryImage: string | null;
   }[];
+  images: AttractionImageRow[];
 }) | null> {
   try {
     const row = await prisma.attraction.findUnique({
       where: { slug },
       include: {
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+        },
         tours: {
           include: {
             tour: {
@@ -161,6 +172,12 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
       imageUrl: row.imageUrl ?? null,
       sortOrder: row.sortOrder,
       tourCount: row.tours.length,
+      images: row.images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+      })),
       tours: row.tours.map((rel) => ({
         id: rel.tour.id,
         type: rel.tour.type,
@@ -177,6 +194,83 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
     };
   } catch {
     return null;
+  }
+}
+
+async function assertAdminAttraction(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
+  return { ok: true };
+}
+
+export async function listAttractionImages(attractionId: string): Promise<AttractionImageRow[]> {
+  try {
+    const rows = await prisma.attractionImage.findMany({
+      where: { attractionId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    return rows.map((r) => ({ id: r.id, url: r.url, isPrimary: r.isPrimary, sortOrder: r.sortOrder }));
+  } catch {
+    return [];
+  }
+}
+
+export async function addAttractionImage(attractionId: string, data: { url: string }): Promise<{ ok: boolean; error?: string }> {
+  const auth = await assertAdminAttraction();
+  if (!auth.ok) return auth;
+  try {
+    const url = (data.url ?? '').trim();
+    if (!url) return { ok: false, error: 'URL gerekli' };
+    const existing = await prisma.attractionImage.count({ where: { attractionId } });
+    await prisma.attractionImage.create({
+      data: {
+        attractionId,
+        url,
+        sortOrder: existing,
+        isPrimary: existing === 0,
+      },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
+  }
+}
+
+export async function deleteAttractionImage(imageId: string): Promise<{ ok: boolean; error?: string }> {
+  const auth = await assertAdminAttraction();
+  if (!auth.ok) return auth;
+  try {
+    const img = await prisma.attractionImage.findUnique({ where: { id: imageId } });
+    if (!img) return { ok: false, error: 'Not found' };
+    await prisma.attractionImage.delete({ where: { id: imageId } });
+    if (img.isPrimary) {
+      const next = await prisma.attractionImage.findFirst({
+        where: { attractionId: img.attractionId },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      });
+      if (next) {
+        await prisma.attractionImage.update({ where: { id: next.id }, data: { isPrimary: true } });
+      }
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
+  }
+}
+
+export async function setPrimaryAttractionImage(imageId: string): Promise<{ ok: boolean; error?: string }> {
+  const auth = await assertAdminAttraction();
+  if (!auth.ok) return auth;
+  try {
+    const img = await prisma.attractionImage.findUnique({ where: { id: imageId } });
+    if (!img) return { ok: false, error: 'Not found' };
+    await prisma.$transaction([
+      prisma.attractionImage.updateMany({ where: { attractionId: img.attractionId }, data: { isPrimary: false } }),
+      prisma.attractionImage.update({ where: { id: imageId }, data: { isPrimary: true } }),
+    ]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed' };
   }
 }
 

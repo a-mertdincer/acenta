@@ -55,6 +55,8 @@ export interface CartItem {
     transferFlightArrival?: string | null;
     transferFlightDeparture?: string | null;
     transferHotelName?: string | null;
+    /** Seçilen başlangıç saati (HH:MM), tour.startTimes'tan. */
+    startTime?: string | null;
     childCount?: number;
     adultCount?: number;
     infantCount?: number;

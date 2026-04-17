@@ -21,6 +21,7 @@ interface Res {
   variant?: { titleEn: string; titleTr: string } | null;
   notes?: string | null;
   transferHotelName?: string | null;
+  startTime?: string | null;
 }
 
 function formatTourTitle(tour: Res['tour'], lang: string): string {
@@ -239,10 +240,11 @@ export default function AdminReservationsCalendarView({ lang }: { lang: string }
                       </span>
                     ) : null}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Users size={14} aria-hidden />
                     {paxBreakdown || `${r.pax} ${lang === 'tr' ? 'kişi' : 'pax'}`}
                     <span>· €{r.totalPrice.toFixed(2)}</span>
+                    {r.startTime ? <span>· 🕐 {r.startTime}</span> : null}
                   </div>
                   {hotel ? (
                     <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -32,6 +32,7 @@ export interface TourWithOptions {
   type: string;
   slug?: string | null;
   salesTags?: string[];
+  startTimes?: string[];
   titleTr: string;
   titleEn: string;
   titleZh: string;
@@ -408,6 +409,7 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
       type: tour.type,
       slug: (tour as { slug?: string | null }).slug ?? null,
       salesTags: normalizeSalesTagsInput((tour as { salesTags?: unknown }).salesTags),
+      startTimes: normalizeStartTimes((tour as { startTimes?: unknown }).startTimes),
       titleTr: tour.titleTr,
       titleEn: tour.titleEn,
       titleZh: tour.titleZh,
@@ -714,6 +716,18 @@ export async function getAvailableTourDatesForGuest(
 }
 
 // --- Tour CRUD (admin only) ---
+function normalizeStartTimes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const t = item.trim();
+    if (!/^\d{2}:\d{2}$/.test(t)) continue;
+    if (!out.includes(t)) out.push(t);
+  }
+  return out.sort();
+}
+
 function normalizeSlug(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const v = raw
@@ -728,6 +742,7 @@ export type CreateTourInput = {
   type: TourType;
   slug?: string | null;
   salesTags?: string[];
+  startTimes?: string[];
   titleEn: string;
   titleTr: string;
   titleZh: string;
@@ -791,6 +806,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         type: data.type,
         slug: normalizeSlug(data.slug),
         salesTags: normalizeSalesTagsInput(data.salesTags),
+        startTimes: normalizeStartTimes(data.startTimes),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),
@@ -883,6 +899,7 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         type: data.type,
         ...(data.slug !== undefined && { slug: normalizeSlug(data.slug) }),
         ...(data.salesTags !== undefined && { salesTags: normalizeSalesTagsInput(data.salesTags) }),
+        ...(data.startTimes !== undefined && { startTimes: normalizeStartTimes(data.startTimes) }),
         titleEn: data.titleEn.trim(),
         titleTr: data.titleTr.trim(),
         titleZh: data.titleZh.trim(),

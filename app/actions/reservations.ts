@@ -56,6 +56,8 @@ export interface CreateReservationItem {
   transferFlightArrival?: string | null;
   transferFlightDeparture?: string | null;
   transferHotelName?: string | null;
+  /** Seçilen başlangıç saati (HH:MM), Tour.startTimes'tan. */
+  startTime?: string | null;
   childCount?: number | null;
   adultCount?: number | null;
   infantCount?: number | null;
@@ -243,6 +245,7 @@ export async function createReservations(input: CreateReservationInput): Promise
           transferFlightArrival: item.transferFlightArrival ?? null,
           transferFlightDeparture: item.transferFlightDeparture ?? null,
           transferHotelName: item.transferHotelName ?? null,
+          startTime: item.startTime ?? null,
           adultCount: item.adultCount ?? adults,
           childCount: item.childCount ?? null,
           infantCount: item.infantCount ?? infants,

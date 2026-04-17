@@ -12,6 +12,39 @@ import { toPaxPriceRows, type PaxPriceTier } from '@/lib/pricingTiers';
 import { TOUR_TAGS, TAG_CATEGORY_ORDER, TAG_CATEGORY_LABELS } from '@/lib/tourTags';
 import { Check } from 'lucide-react';
 
+function StartTimesEditor({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
+    const add = () => onChange([...value, '09:00']);
+    const update = (idx: number, v: string) => onChange(value.map((t, i) => (i === idx ? v : t)));
+    const remove = (idx: number) => onChange(value.filter((_, i) => i !== idx));
+    return (
+        <div className="admin-start-times">
+            {value.length === 0 ? (
+                <small style={{ color: 'var(--color-text-muted)', display: 'block', marginBottom: 6 }}>
+                    Saat eklenmediyse misafir saat seçmez (tüm gün geçerli).
+                </small>
+            ) : null}
+            <div className="admin-start-times-list">
+                {value.map((time, idx) => (
+                    <div key={idx} className="admin-start-time-row">
+                        <input
+                            type="time"
+                            value={time}
+                            onChange={(e) => update(idx, e.target.value)}
+                            style={{ padding: '4px 8px', border: '1px solid var(--color-border)', borderRadius: 4 }}
+                        />
+                        <Button type="button" variant="secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => remove(idx)}>
+                            Sil
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <Button type="button" variant="secondary" style={{ padding: '4px 10px', fontSize: '0.8rem', marginTop: 6 }} onClick={add}>
+                + Saat Ekle
+            </Button>
+        </div>
+    );
+}
+
 function SalesTagsPicker({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
     const toggle = (slug: string) => {
         onChange(value.includes(slug) ? value.filter((s) => s !== slug) : [...value, slug]);
@@ -98,6 +131,7 @@ export default function AdminToursPage() {
     const [newType, setNewType] = useState<TourType>('TOUR');
     const [newSlug, setNewSlug] = useState('');
     const [newSalesTags, setNewSalesTags] = useState<string[]>([]);
+    const [newStartTimes, setNewStartTimes] = useState<string[]>([]);
     const [newTitleEn, setNewTitleEn] = useState('');
     const [newTitleTr, setNewTitleTr] = useState('');
     const [newTitleZh, setNewTitleZh] = useState('');
@@ -151,6 +185,7 @@ export default function AdminToursPage() {
     const [tourEditType, setTourEditType] = useState<TourType>('TOUR');
     const [tourEditSlug, setTourEditSlug] = useState('');
     const [tourEditSalesTags, setTourEditSalesTags] = useState<string[]>([]);
+    const [tourEditStartTimes, setTourEditStartTimes] = useState<string[]>([]);
     const [tourEditTitleEn, setTourEditTitleEn] = useState('');
     const [tourEditTitleTr, setTourEditTitleTr] = useState('');
     const [tourEditTitleZh, setTourEditTitleZh] = useState('');
@@ -374,6 +409,8 @@ export default function AdminToursPage() {
             setTourEditSlug((t as { slug?: string | null }).slug ?? '');
             const incomingTags = (t as { salesTags?: unknown }).salesTags;
             setTourEditSalesTags(Array.isArray(incomingTags) ? (incomingTags.filter((x): x is string => typeof x === 'string')) : []);
+            const incomingStartTimes = (t as { startTimes?: unknown }).startTimes;
+            setTourEditStartTimes(Array.isArray(incomingStartTimes) ? incomingStartTimes.filter((x): x is string => typeof x === 'string') : []);
             setTourEditDestination(rec.destination ?? 'cappadocia');
             setTourEditCategory(rec.category ?? '');
             setTourEditTitleEn(t.titleEn);
@@ -610,6 +647,7 @@ export default function AdminToursPage() {
             type: newType,
             slug: newSlug.trim() || null,
             salesTags: newSalesTags,
+            startTimes: newStartTimes,
             titleEn: newTitleEn.trim(),
             titleTr: newTitleTr.trim() || newTitleEn.trim(),
             titleZh: newTitleZh.trim() || newTitleEn.trim(),
@@ -719,6 +757,7 @@ export default function AdminToursPage() {
             type: tourEditType,
             slug: tourEditSlug.trim() || null,
             salesTags: tourEditSalesTags,
+            startTimes: tourEditStartTimes,
             titleEn: tourEditTitleEn.trim(),
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
@@ -1139,6 +1178,13 @@ export default function AdminToursPage() {
                             </small>
                             <SalesTagsPicker value={newSalesTags} onChange={setNewSalesTags} />
                         </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Başlangıç Saatleri</label>
+                            <small style={{ display: 'block', color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                                Ürün birden fazla saatte çalışıyorsa tümünü ekleyin. Misafir rezervasyon ekranında seçim yapar.
+                            </small>
+                            <StartTimesEditor value={newStartTimes} onChange={setNewStartTimes} />
+                        </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>
                             <textarea value={newDescEn} onChange={(e) => setNewDescEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }} placeholder="Kısa açıklama" />
@@ -1363,6 +1409,13 @@ export default function AdminToursPage() {
                                 Ürün kartlarında ve tur detayında rozet olarak gösterilecek etiketleri seçin.
                             </small>
                             <SalesTagsPicker value={tourEditSalesTags} onChange={setTourEditSalesTags} />
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Başlangıç Saatleri</label>
+                            <small style={{ display: 'block', color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                                Ürün birden fazla saatte çalışıyorsa tümünü ekleyin. Misafir rezervasyon ekranında seçim yapar.
+                            </small>
+                            <StartTimesEditor value={tourEditStartTimes} onChange={setTourEditStartTimes} />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Açıklama (EN)</label>

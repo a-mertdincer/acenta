@@ -377,6 +377,8 @@ function mapDbTourToState(db: {
   ageGroups?: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; descriptionEn: string; descriptionTr: string; descriptionZh?: string | null }[];
   images?: { url: string; isPrimary: boolean }[];
   isAskForPrice?: boolean;
+  salesTags?: string[] | null;
+  startTimes?: string[] | null;
   cancellationNoteEn?: string | null;
   cancellationNoteTr?: string | null;
   cancellationNoteZh?: string | null;
@@ -409,6 +411,8 @@ function mapDbTourToState(db: {
       description: getLocalizedContent(_lang, group.descriptionEn, group.descriptionTr, group.descriptionZh) ?? '',
     })),
     images: (db.images ?? []).map((img) => img.url),
+    salesTags: Array.isArray(db.salesTags) ? db.salesTags.filter((x): x is string => typeof x === 'string') : [],
+    startTimes: Array.isArray(db.startTimes) ? db.startTimes.filter((x): x is string => typeof x === 'string') : [],
     options: db.options.map((o) => ({
       id: o.id,
       title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
@@ -783,6 +787,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                 options={tour.options ?? []}
                                 ageGroups={tour.ageGroups ?? []}
                                 minAgeLimit={tour.minAgeLimit ?? null}
+                                startTimes={Array.isArray((tour as { startTimes?: string[] }).startTimes) ? (tour as { startTimes?: string[] }).startTimes ?? [] : []}
                             />
                         </div>
                     </div>

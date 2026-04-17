@@ -112,6 +112,7 @@ type ProductVariantBookingCardProps = {
     description: string;
   }[];
   minAgeLimit?: number | null;
+  startTimes?: string[];
 };
 
 function AskPriceOnlyCard({
@@ -172,6 +173,7 @@ function ProductVariantBookingCardInner({
   options,
   ageGroups = [],
   minAgeLimit = null,
+  startTimes = [],
   whyBook,
   tourCancellationLabels,
   cancellationNote,
@@ -187,6 +189,7 @@ function ProductVariantBookingCardInner({
   );
 
   const [selection, setSelection] = useState<VariantSelection>(defaultSelection);
+  const [selectedStartTime, setSelectedStartTime] = useState<string>(() => (startTimes.length === 1 ? startTimes[0] : ''));
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -198,6 +201,7 @@ function ProductVariantBookingCardInner({
   const [selectedDirection, setSelectedDirection] = useState<TransferDirection>('arrival');
   const [flightArrival, setFlightArrival] = useState('');
   const [flightDeparture, setFlightDeparture] = useState('');
+  const [transferHotelName, setTransferHotelName] = useState('');
   const [flightsArrival, setFlightsArrival] = useState<{ id: string; code: string; airline: string }[]>([]);
   const [flightsDeparture, setFlightsDeparture] = useState<{ id: string; code: string; airline: string }[]>([]);
   const [cartToastOpen, setCartToastOpen] = useState(false);
@@ -217,7 +221,7 @@ function ProductVariantBookingCardInner({
   }, [ageGroups, minAgeLimit]);
 
   useEffect(() => {
-    if (!data.hasAirportSelect) return;
+    if (!data.hasAirportSelect && tourType !== 'TRANSFER') return;
     const airport = selection.airport ?? 'NAV';
     getFlights({ airport, direction: 'arrival' }).then((list) =>
       setFlightsArrival(list.map((f) => ({ id: f.id, code: f.code, airline: f.airline })))
@@ -225,7 +229,7 @@ function ProductVariantBookingCardInner({
     getFlights({ airport, direction: 'departure' }).then((list) =>
       setFlightsDeparture(list.map((f) => ({ id: f.id, code: f.code, airline: f.airline })))
     );
-  }, [data.hasAirportSelect, selection.airport]);
+  }, [data.hasAirportSelect, selection.airport, tourType]);
 
   useEffect(() => {
     if (!cartToastOpen) return;
@@ -429,6 +433,10 @@ function ProductVariantBookingCardInner({
       alert(t.maxGuestsInfo?.replace('{max}', String(maxGuests)) ?? `Maksimum ${maxGuests} kişi kabul edilmektedir.`);
       return;
     }
+    if (startTimes.length > 0 && !selectedStartTime) {
+      alert(lang === 'tr' ? 'Lütfen bir başlangıç saati seçin.' : lang === 'zh' ? '请选择开始时间。' : 'Please select a start time.');
+      return;
+    }
     addItem({
       tourId,
       tourType,
@@ -443,11 +451,13 @@ function ProductVariantBookingCardInner({
       listTotalPrice: total,
       totalPrice: payTotal,
       variantId: activeVariant.id,
-      ...(data.hasAirportSelect && {
+      startTime: selectedStartTime || null,
+      ...((data.hasAirportSelect || tourType === 'TRANSFER') && {
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
         transferDirection: selectedDirection,
         transferFlightArrival: selectedDirection === 'arrival' || selectedDirection === 'roundtrip' ? flightArrival || null : null,
         transferFlightDeparture: selectedDirection === 'departure' || selectedDirection === 'roundtrip' ? flightDeparture || null : null,
+        transferHotelName: transferHotelName.trim() || null,
       }),
       childCount: children,
       adultCount: adults,
@@ -474,6 +484,33 @@ function ProductVariantBookingCardInner({
           style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
         />
       </div>
+
+      {startTimes.length > 0 ? (
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <label className="form-label">
+            {(t as { startTime?: string }).startTime ?? (lang === 'tr' ? 'Başlangıç saati' : lang === 'zh' ? '开始时间' : 'Start time')}
+          </label>
+          {startTimes.length === 1 ? (
+            <div style={{ padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', background: 'var(--color-bg-alt)' }}>
+              {startTimes[0]}
+            </div>
+          ) : (
+            <select
+              value={selectedStartTime}
+              onChange={(e) => setSelectedStartTime(e.target.value)}
+              required
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+            >
+              <option value="">
+                {(t as { selectStartTime?: string }).selectStartTime ?? (lang === 'tr' ? 'Saat seçin' : lang === 'zh' ? '选择开始时间' : 'Select start time')}
+              </option>
+              {startTimes.map((time) => (
+                <option key={time} value={time}>{time}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      ) : null}
 
       {data.hasTourType && (
         <>
@@ -613,7 +650,7 @@ function ProductVariantBookingCardInner({
         </div>
       )}
 
-      {data.hasAirportSelect && (
+      {(data.hasAirportSelect || tourType === 'TRANSFER') && (
         <>
           <label className="form-label">{t.direction} *</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 'var(--space-md)' }}>
@@ -668,6 +705,18 @@ function ProductVariantBookingCardInner({
               </datalist>
             </div>
           )}
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label className="form-label">
+              {(t as { transferHotel?: string }).transferHotel ?? (lang === 'tr' ? 'Otel adı / adres' : lang === 'zh' ? '酒店名称/地址' : 'Hotel name / address')}
+            </label>
+            <input
+              type="text"
+              value={transferHotelName}
+              onChange={(e) => setTransferHotelName(e.target.value)}
+              placeholder={lang === 'tr' ? 'Kalacağınız otel' : lang === 'zh' ? '您入住的酒店' : 'Hotel name or address'}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+            />
+          </div>
         </>
       )}
 

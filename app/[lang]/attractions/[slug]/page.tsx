@@ -37,6 +37,25 @@ export default async function AttractionDetailPage(props: {
         ]}
       />
       <h1>{title}</h1>
+      {row.images && row.images.length > 0 ? (
+        <div className="attraction-gallery">
+          {row.images.map((img) => (
+            <a
+              key={img.id}
+              href={img.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="attraction-gallery-item"
+            >
+              <img src={img.url} alt={title} loading="lazy" />
+            </a>
+          ))}
+        </div>
+      ) : row.imageUrl ? (
+        <div className="attraction-gallery attraction-gallery--single">
+          <img src={row.imageUrl} alt={title} />
+        </div>
+      ) : null}
       {description ? <div className="tours-page-subtitle attraction-description">{description}</div> : null}
       <div className="tours-grid">
         {row.tours.map((tour) => {

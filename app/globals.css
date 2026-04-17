@@ -995,7 +995,38 @@ main {
 }
 @media (max-width: 480px) {
   .home-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+}
+@media (max-width: 360px) {
+  .home-cards {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .tour-card-desc,
+  .card-desc {
+    display: none;
+  }
+  .tour-card-title,
+  .card-body h3 {
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+  .tour-card-footer,
+  .card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .tour-card-footer .btn,
+  .card-footer .btn {
+    font-size: 0.78rem;
+    padding: 6px 10px;
+  }
+  .tour-tag-badges-card {
+    display: none;
   }
 }
 .card-image-link {
@@ -1229,6 +1260,44 @@ main {
 .tour-tag-badge-purple { background: #F3E8FF; color: #6B21A8; }
 .tour-tag-badge-gray   { background: #F1F2F4; color: #4B5563; }
 
+/* Attraction detail gallery */
+.attraction-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-lg);
+}
+.attraction-gallery--single {
+  grid-template-columns: 1fr;
+}
+.attraction-gallery-item,
+.attraction-gallery--single img,
+.attraction-gallery-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.attraction-gallery-item {
+  cursor: zoom-in;
+  transition: transform 0.15s ease;
+}
+.attraction-gallery-item:hover {
+  transform: translateY(-2px);
+}
+@media (max-width: 1024px) {
+  .attraction-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .attraction-gallery {
+    grid-template-columns: 1fr;
+  }
+}
+
 .related-tours-section {
   margin-top: var(--space-2xl, 3rem);
   padding-top: var(--space-xl);
@@ -1328,14 +1397,25 @@ main {
 .tours-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-lg);
+  gap: var(--space-md);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
+  .tours-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 1024px) {
   .tours-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (max-width: 640px) {
+  .tours-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+}
+@media (max-width: 360px) {
   .tours-grid {
     grid-template-columns: 1fr;
   }

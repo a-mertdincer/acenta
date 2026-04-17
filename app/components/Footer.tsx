@@ -163,61 +163,60 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
                 <br />
                 {footer.infoTursab ?? 'TÜRSAB No'}: {contactInfo.contact_tursab}
               </p>
-              <div className="site-footer-info-bottom">
-                <div className="site-footer-info-logos">
-                  <Link href={`/${lang}`} className="site-footer-logo-link site-footer-agency-logo-link" aria-label={brand}>
-                    <Image
-                      src={FOOTER_LOGO_SRC}
-                      alt={brand}
-                      width={FOOTER_LOGO_WIDTH}
-                      height={FOOTER_LOGO_HEIGHT}
-                      className="site-footer-agency-logo"
-                      sizes="(max-width: 640px) 180px, 220px"
-                    />
-                  </Link>
-                  <div className="site-footer-hotels-row" aria-label="Partner hotels">
-                    <a
-                      href="https://kismetcavemansion.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="site-footer-hotel-link"
-                      aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
-                    >
-                      <img
-                        src={HOTEL_LOGO_MANSION}
-                        alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
-                        className="site-footer-hotel-logo"
-                        loading="lazy"
-                      />
-                    </a>
-                    <a
-                      href="https://kismetcavehouse.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="site-footer-hotel-link"
-                      aria-label={footer.caveHouse ?? 'Kismet Cave House'}
-                    >
-                      <img
-                        src={HOTEL_LOGO_HOUSE}
-                        alt={footer.caveHouse ?? 'Kismet Cave House'}
-                        className="site-footer-hotel-logo"
-                        loading="lazy"
-                      />
-                    </a>
-                  </div>
+              {contactInfo.contact_maps_embed_url ? (
+                <div className="site-footer-map-wrap">
+                  <iframe
+                    title="Map"
+                    src={contactInfo.contact_maps_embed_url}
+                    className="site-footer-map"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
-                {contactInfo.contact_maps_embed_url ? (
-                  <div className="site-footer-map-wrap">
-                    <iframe
-                      title="Map"
-                      src={contactInfo.contact_maps_embed_url}
-                      className="site-footer-map"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  </div>
-                ) : null}
-              </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="site-footer-partners-band" aria-label="Partners">
+            <Link href={`/${lang}`} className="site-footer-agency-logo-link" aria-label={brand}>
+              <Image
+                src={FOOTER_LOGO_SRC}
+                alt={brand}
+                width={FOOTER_LOGO_WIDTH}
+                height={FOOTER_LOGO_HEIGHT}
+                className="site-footer-agency-logo"
+                sizes="(max-width: 640px) 220px, 360px"
+              />
+            </Link>
+            <div className="site-footer-hotels-row">
+              <a
+                href="https://kismetcavemansion.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-footer-hotel-link"
+                aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
+              >
+                <img
+                  src={HOTEL_LOGO_MANSION}
+                  alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
+                  className="site-footer-hotel-logo"
+                  loading="lazy"
+                />
+              </a>
+              <a
+                href="https://kismetcavehouse.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-footer-hotel-link"
+                aria-label={footer.caveHouse ?? 'Kismet Cave House'}
+              >
+                <img
+                  src={HOTEL_LOGO_HOUSE}
+                  alt={footer.caveHouse ?? 'Kismet Cave House'}
+                  className="site-footer-hotel-logo"
+                  loading="lazy"
+                />
+              </a>
             </div>
           </div>
         </div>

@@ -4589,48 +4589,48 @@ main {
   padding: var(--space-md) 0;
   border-top: 1px solid var(--color-border);
 }
-/* Footer info: agency logo + hotel logos stacked next to the map */
-.site-footer-info-bottom {
-  display: grid;
-  grid-template-columns: minmax(140px, auto) 1fr;
-  gap: var(--space-md);
-  align-items: start;
-  margin-top: var(--space-sm);
-}
-.site-footer-info-logos {
+/* Footer partners band — sits below the 4-col grid, full width */
+.site-footer-partners-band {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-xl);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 .site-footer-agency-logo-link {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 14px 22px;
   line-height: 0;
-  max-width: 100%;
+  flex: 0 0 auto;
 }
 .site-footer-agency-logo {
   width: auto;
   height: auto;
-  max-width: 220px;
-  max-height: 120px;
+  max-width: 360px;
+  max-height: 140px;
   object-fit: contain;
   display: block;
 }
 .site-footer-hotels-row {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex-wrap: wrap;
+  align-items: center;
 }
 .site-footer-hotel-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: #fff;
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 10px;
+  padding: 10px 16px;
   text-decoration: none;
   transition: transform 0.15s ease;
   flex: 0 0 auto;
@@ -4640,18 +4640,22 @@ main {
 }
 .site-footer-hotel-logo {
   width: auto;
-  height: 44px;
-  max-width: 120px;
+  height: 60px;
+  max-width: 180px;
   object-fit: contain;
   display: block;
 }
 @media (max-width: 768px) {
-  .site-footer-info-bottom {
-    grid-template-columns: 1fr;
+  .site-footer-partners-band {
+    gap: var(--space-md);
+    justify-content: center;
   }
   .site-footer-agency-logo {
-    max-width: 180px;
-    max-height: 96px;
+    max-width: 240px;
+    max-height: 100px;
+  }
+  .site-footer-hotel-logo {
+    height: 48px;
   }
 }
 .site-footer-v2-social {

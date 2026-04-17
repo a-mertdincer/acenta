@@ -12,7 +12,6 @@ import { getTierFromPrice } from '@/lib/pricingTiers';
 import { normalizeLocale, type SiteLocale } from '@/lib/i18n';
 import { tourDescription, tourTitle } from '@/lib/tourLabels';
 import type { TourWithOptions } from '../actions/tours';
-import { HomeStatsBand } from '../components/HomeStatsBand';
 import { HomeTourTypePills } from '../components/HomeTourTypePills';
 import { HomeHowItWorks } from '../components/HomeHowItWorks';
 import { HomeWhyChooseUs } from '../components/HomeWhyChooseUs';
@@ -304,15 +303,6 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     };
   });
 
-  const statsItems = [
-    { head: homeDict.stats1Head ?? FALLBACK_HOME.stats1Head, sub: homeDict.stats1Sub ?? FALLBACK_HOME.stats1Sub },
-    { head: homeDict.stats2Head ?? FALLBACK_HOME.stats2Head, sub: homeDict.stats2Sub ?? FALLBACK_HOME.stats2Sub },
-    { head: homeDict.stats3Head ?? FALLBACK_HOME.stats3Head, sub: homeDict.stats3Sub ?? FALLBACK_HOME.stats3Sub },
-    { head: homeDict.stats4Head ?? FALLBACK_HOME.stats4Head, sub: homeDict.stats4Sub ?? FALLBACK_HOME.stats4Sub },
-    { head: homeDict.stats5Head ?? FALLBACK_HOME.stats5Head, sub: homeDict.stats5Sub ?? FALLBACK_HOME.stats5Sub },
-    { head: homeDict.stats6Head ?? FALLBACK_HOME.stats6Head, sub: homeDict.stats6Sub ?? FALLBACK_HOME.stats6Sub },
-  ];
-
   const howSteps = Array.from({ length: 5 }, (_, i) => {
     const n = i + 1;
     return {
@@ -377,8 +367,6 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         searchLabel={homeDict.search ?? FALLBACK_HOME.search}
         activityOptions={activityOptions}
       />
-
-      <HomeStatsBand items={statsItems} />
 
       <section className="home-experiences page-section section-alt">
         <div className="container">

@@ -112,32 +112,76 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
       <div className="container site-footer-inner">
         <div className="site-footer-v2-top">
           <div className="site-footer-v2-grid">
-            <div>
-              <h3 className="site-footer-title">{footer.colCompany ?? 'Company'}</h3>
-              <nav className="site-footer-links" aria-label="Company">
-                <Link href={`/${lang}/about`}>{footer.linkAbout ?? navigation?.aboutUs ?? 'About'}</Link>
-                <Link href={`/${lang}/contact`}>{footer.linkContactFooter ?? navigation?.contact ?? 'Contact'}</Link>
-              </nav>
+            <div className="site-footer-col">
+              <div>
+                <h3 className="site-footer-title">{footer.colCompany ?? 'Company'}</h3>
+                <nav className="site-footer-links" aria-label="Company">
+                  <Link href={`/${lang}/about`}>{footer.linkAbout ?? navigation?.aboutUs ?? 'About'}</Link>
+                  <Link href={`/${lang}/contact`}>{footer.linkContactFooter ?? navigation?.contact ?? 'Contact'}</Link>
+                </nav>
+              </div>
+              <Link href={`/${lang}`} className="site-footer-logo-slot site-footer-logo-slot--agency" aria-label={brand}>
+                <Image
+                  src={FOOTER_LOGO_SRC}
+                  alt={brand}
+                  width={FOOTER_LOGO_WIDTH}
+                  height={FOOTER_LOGO_HEIGHT}
+                  className="site-footer-agency-logo"
+                  sizes="(max-width: 640px) 160px, 220px"
+                />
+              </Link>
             </div>
-            <div>
-              <h3 className="site-footer-title">{footer.colLegal ?? 'Legal'}</h3>
-              <nav className="site-footer-links" aria-label="Legal">
-                <Link href={`/${lang}/legal/terms`}>{footer.legalTerms ?? 'Terms'}</Link>
-                <Link href={`/${lang}/legal/cancellation`}>{footer.cancellation ?? 'Cancellation'}</Link>
-                <Link href={`/${lang}/legal/distance-sales`}>{footer.legalDistanceSales ?? 'Distance sales'}</Link>
-                <Link href={`/${lang}/legal/privacy`}>{footer.privacy ?? 'Privacy'}</Link>
-                <Link href={`/${lang}/legal/kvkk`}>{footer.legalKvkk ?? 'KVKK'}</Link>
-              </nav>
+            <div className="site-footer-col">
+              <div>
+                <h3 className="site-footer-title">{footer.colLegal ?? 'Legal'}</h3>
+                <nav className="site-footer-links" aria-label="Legal">
+                  <Link href={`/${lang}/legal/terms`}>{footer.legalTerms ?? 'Terms'}</Link>
+                  <Link href={`/${lang}/legal/cancellation`}>{footer.cancellation ?? 'Cancellation'}</Link>
+                  <Link href={`/${lang}/legal/distance-sales`}>{footer.legalDistanceSales ?? 'Distance sales'}</Link>
+                  <Link href={`/${lang}/legal/privacy`}>{footer.privacy ?? 'Privacy'}</Link>
+                  <Link href={`/${lang}/legal/kvkk`}>{footer.legalKvkk ?? 'KVKK'}</Link>
+                </nav>
+              </div>
+              <a
+                href="https://kismetcavemansion.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-footer-logo-slot site-footer-logo-slot--hotel"
+                aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
+              >
+                <img
+                  src={HOTEL_LOGO_MANSION}
+                  alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
+                  className="site-footer-hotel-logo"
+                  loading="lazy"
+                />
+              </a>
             </div>
-            <div>
-              <h3 className="site-footer-title">{footer.colExperience ?? 'Experience'}</h3>
-              <nav className="site-footer-links" aria-label="Experience">
-                <Link href={`/${lang}/tours?category=balloon-flights`}>{footer.expBalloon ?? 'Balloon'}</Link>
-                <Link href={`/${lang}/tours?category=daily-tours`}>{footer.expDaily ?? 'Daily tours'}</Link>
-                <Link href={`/${lang}/tours?category=adventure-activities`}>{footer.expAdventure ?? 'Adventure'}</Link>
-                <Link href={`/${lang}/tours?category=cultural-experiences`}>{footer.expCultural ?? 'Cultural'}</Link>
-                <Link href={`/${lang}/tours?category=workshops`}>{footer.expWorkshops ?? 'Workshops'}</Link>
-              </nav>
+            <div className="site-footer-col">
+              <div>
+                <h3 className="site-footer-title">{footer.colExperience ?? 'Experience'}</h3>
+                <nav className="site-footer-links" aria-label="Experience">
+                  <Link href={`/${lang}/tours?category=balloon-flights`}>{footer.expBalloon ?? 'Balloon'}</Link>
+                  <Link href={`/${lang}/tours?category=daily-tours`}>{footer.expDaily ?? 'Daily tours'}</Link>
+                  <Link href={`/${lang}/tours?category=adventure-activities`}>{footer.expAdventure ?? 'Adventure'}</Link>
+                  <Link href={`/${lang}/tours?category=cultural-experiences`}>{footer.expCultural ?? 'Cultural'}</Link>
+                  <Link href={`/${lang}/tours?category=workshops`}>{footer.expWorkshops ?? 'Workshops'}</Link>
+                </nav>
+              </div>
+              <a
+                href="https://kismetcavehouse.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-footer-logo-slot site-footer-logo-slot--hotel"
+                aria-label={footer.caveHouse ?? 'Kismet Cave House'}
+              >
+                <img
+                  src={HOTEL_LOGO_HOUSE}
+                  alt={footer.caveHouse ?? 'Kismet Cave House'}
+                  className="site-footer-hotel-logo"
+                  loading="lazy"
+                />
+              </a>
             </div>
             <div>
               <h3 className="site-footer-title">{footer.colInfo ?? 'Information'}</h3>
@@ -177,48 +221,6 @@ export async function Footer({ lang, footer: f, navigation }: FooterProps) {
             </div>
           </div>
 
-          <div className="site-footer-partners-band" aria-label="Partners">
-            <Link href={`/${lang}`} className="site-footer-agency-logo-link" aria-label={brand}>
-              <Image
-                src={FOOTER_LOGO_SRC}
-                alt={brand}
-                width={FOOTER_LOGO_WIDTH}
-                height={FOOTER_LOGO_HEIGHT}
-                className="site-footer-agency-logo"
-                sizes="(max-width: 640px) 220px, 360px"
-              />
-            </Link>
-            <div className="site-footer-hotels-row">
-              <a
-                href="https://kismetcavemansion.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="site-footer-hotel-link"
-                aria-label={footer.caveMansion ?? 'Kismet Cave Mansion'}
-              >
-                <img
-                  src={HOTEL_LOGO_MANSION}
-                  alt={footer.caveMansion ?? 'Kismet Cave Mansion'}
-                  className="site-footer-hotel-logo"
-                  loading="lazy"
-                />
-              </a>
-              <a
-                href="https://kismetcavehouse.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="site-footer-hotel-link"
-                aria-label={footer.caveHouse ?? 'Kismet Cave House'}
-              >
-                <img
-                  src={HOTEL_LOGO_HOUSE}
-                  alt={footer.caveHouse ?? 'Kismet Cave House'}
-                  className="site-footer-hotel-logo"
-                  loading="lazy"
-                />
-              </a>
-            </div>
-          </div>
         </div>
 
         <div className="site-footer-v2-bottom">

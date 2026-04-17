@@ -1,14 +1,23 @@
-'use client';
-
 import Link from 'next/link';
-import { useRef } from 'react';
+import {
+  Flame,
+  Map as MapIcon,
+  Mountain,
+  Building2,
+  Bus,
+  Palette,
+  Package,
+  Sparkles,
+  Car,
+  LayoutGrid,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   getActiveDestinations,
   getDestinationName,
   getCategoryLabel,
   type Lang,
 } from '@/lib/destinations';
-import { getActivityCategoryImage } from '@/lib/activityCategoryImages';
 
 interface ActivitiesDestinationSectionProps {
   lang: Lang;
@@ -21,6 +30,18 @@ interface ActivitiesDestinationSectionProps {
   viewAllLabel?: string;
 }
 
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'balloon-flights': Flame,
+  'daily-tours': MapIcon,
+  'adventure-activities': Mountain,
+  'cultural-experiences': Building2,
+  workshops: Palette,
+  packages: Package,
+  concierge: Sparkles,
+  transfers: Bus,
+  'rent-a-car-bike': Car,
+};
+
 export function ActivitiesDestinationSection({
   lang,
   title,
@@ -28,19 +49,11 @@ export function ActivitiesDestinationSection({
   currentCategory,
   viewAllLabel,
 }: ActivitiesDestinationSectionProps) {
-  const sliderRef = useRef<HTMLDivElement>(null);
   const destinations = getActiveDestinations();
   const selectedDest = currentDestination
     ? destinations.find((d) => d.slug === currentDestination) ?? destinations[0]
     : destinations[0];
   const categories = selectedDest?.categories ?? [];
-
-  const scroll = (dir: 'left' | 'right') => {
-    const el = sliderRef.current;
-    if (!el) return;
-    const step = 240;
-    el.scrollBy({ left: dir === 'left' ? -step : step, behavior: 'smooth' });
-  };
 
   return (
     <section className="home-activities page-section section-alt">
@@ -65,52 +78,25 @@ export function ActivitiesDestinationSection({
           </div>
         )}
 
-        <div className="tours-slider-container">
-          <button
-            type="button"
-            className="slider-arrow slider-arrow-left"
-            onClick={() => scroll('left')}
-            aria-label="Önceki"
-          >
-            ‹
-          </button>
-          <div className="tours-slider activities-slider" ref={sliderRef}>
-            {categories.map((cat) => {
-              const href = `/${lang}/tours/${selectedDest!.slug}/${cat.slug}`;
-              const isActive = currentCategory === cat.slug;
-              return (
+        <ul className="home-tour-types-pills">
+          {categories.map((cat) => {
+            const href = `/${lang}/tours/${selectedDest!.slug}/${cat.slug}`;
+            const isActive = currentCategory === cat.slug;
+            const Icon = CATEGORY_ICONS[cat.slug] ?? LayoutGrid;
+            return (
+              <li key={cat.id}>
                 <Link
-                  key={cat.id}
                   href={href}
-                  className="home-activity-card activity-card-slide"
-                  data-active={isActive ? 'true' : 'false'}
+                  className={`home-tour-types-pill${isActive ? ' is-active' : ''}`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <div className="activity-card-image-wrap">
-                    <img
-                      src={getActivityCategoryImage(cat.slug)}
-                      alt={`${getCategoryLabel(cat, lang)} in ${getDestinationName(selectedDest!, lang)}`}
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getActivityCategoryImage('daily-tours');
-                      }}
-                    />
-                  </div>
-                  <div className="activity-card-content">
-                    <span className="home-activity-label">{getCategoryLabel(cat, lang)}</span>
-                  </div>
+                  <Icon size={16} className="home-tour-types-pill-icon" aria-hidden />
+                  <span>{getCategoryLabel(cat, lang)}</span>
                 </Link>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            className="slider-arrow slider-arrow-right"
-            onClick={() => scroll('right')}
-            aria-label="Sonraki"
-          >
-            ›
-          </button>
-        </div>
+              </li>
+            );
+          })}
+        </ul>
 
         {viewAllLabel && (
           <div className="section-cta home-view-all">

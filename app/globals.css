@@ -1649,6 +1649,60 @@ main {
     display: none;
   }
 }
+
+/* Mobile tours-grid: compact two-card layout with gentle edge padding,
+   smaller image / type badge / title / price / CTA so both cards breathe. */
+@media (max-width: 640px) {
+  .tours-page {
+    padding: var(--space-lg) 0;
+  }
+  .tours-grid {
+    gap: 10px;
+    padding: 0 4px;
+  }
+  .tours-grid .tour-card .tour-card-image {
+    height: 120px;
+  }
+  .tours-grid .tour-card-body {
+    padding: 10px 10px 12px;
+  }
+  .tours-grid .tour-card-header {
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tours-grid .tour-card-title {
+    font-size: 0.88rem;
+    line-height: 1.25;
+  }
+  .tours-grid .tour-type-badge {
+    font-size: 0.62rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .tours-grid .tour-card-desc {
+    display: none;
+  }
+  .tours-grid .tour-card-footer {
+    padding-top: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .tours-grid .tour-card-price {
+    font-size: 0.9rem;
+  }
+  .tours-grid .tour-card-price-secondary {
+    font-size: 0.7rem;
+  }
+  .tours-grid .tour-card-cta {
+    min-width: 0;
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    text-align: center;
+  }
+}
 .tour-detail-booking-card--ask {
   padding: var(--space-xl);
 }

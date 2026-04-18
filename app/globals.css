@@ -4696,7 +4696,7 @@ main {
   max-height: none;
   object-fit: contain;
   display: block;
-  transform: scale(1.5);
+  transform: scale(2);
   transform-origin: center;
 }
 .site-footer-hotel-logo {
@@ -4733,7 +4733,7 @@ main {
     height: 60px;
   }
   .site-footer-agency-logo {
-    transform: scale(1.4);
+    transform: scale(1.85);
   }
   .site-footer-hotel-logo--mansion {
     transform: scale(1.85);

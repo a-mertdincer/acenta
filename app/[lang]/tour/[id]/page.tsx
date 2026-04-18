@@ -704,12 +704,12 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
             )}
             <Breadcrumbs items={breadcrumbItems} />
+            <h1 className="tour-detail-title tour-detail-title--lead">{title}</h1>
             <StickyAnchorBar sections={anchorSections} />
             {useVariantBooking ? (
                 <>
                     <div className="tour-detail-hero-grid tour-detail-hero-grid--variant">
                         <div>
-                            <h1 className="tour-detail-title">{title}</h1>
                             <span className="tour-detail-type-badge">
                                 {tour.type}
                             </span>
@@ -795,7 +795,6 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             ) : (
                 <>
             <div>
-                <h1 className="tour-detail-title">{title}</h1>
                 <span className="tour-detail-type-badge">
                     {tour.type}
                 </span>

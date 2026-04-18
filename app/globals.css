@@ -1637,6 +1637,10 @@ main {
 .tour-detail-title {
   margin-bottom: var(--space-md);
 }
+.tour-detail-title--lead {
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
 .tour-detail-booking-card--ask {
   padding: var(--space-xl);
 }

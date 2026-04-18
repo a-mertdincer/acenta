@@ -4642,7 +4642,7 @@ main {
   display: block;
 }
 .site-footer-hotel-logo--mansion {
-  transform: scale(1.6);
+  transform: scale(2);
   transform-origin: center;
 }
 .site-footer-v2-bottom {
@@ -4670,7 +4670,7 @@ main {
     transform: scale(1.4);
   }
   .site-footer-hotel-logo--mansion {
-    transform: scale(1.5);
+    transform: scale(1.85);
   }
 }
 .site-footer-v2-social {

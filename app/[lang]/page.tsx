@@ -387,7 +387,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
       ) : null}
 
       {moreTours.length > 0 ? (
-        <section className="home-experiences page-section section-alt">
+        <section className="home-experiences page-section section-alt home-experiences--more">
           <div className="container">
             <h2 className="home-section-title">{homeDict.moreExperiencesTitle ?? FALLBACK_HOME.moreExperiencesTitle}</h2>
             {renderTourRow(moreTours, false)}

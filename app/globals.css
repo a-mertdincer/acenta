@@ -1641,6 +1641,14 @@ main {
   margin-top: var(--space-xs);
   margin-bottom: var(--space-sm);
 }
+
+/* Hide the "More Experiences" strip on phones so the page jumps from
+   Best Selling + tour pills straight to How It Works. Desktop untouched. */
+@media (max-width: 768px) {
+  .home-experiences--more {
+    display: none;
+  }
+}
 .tour-detail-booking-card--ask {
   padding: var(--space-xl);
 }

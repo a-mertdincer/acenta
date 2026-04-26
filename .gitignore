@@ -46,3 +46,9 @@ next-env.d.ts
 /app/generated/prisma
 playwright-report/
 test-results/
+
+# Local DB dumps from pg_dump — contain customer data, never commit
+/backups/
+*.sql
+*.sql.gz
+*.dump

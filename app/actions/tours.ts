@@ -1,12 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Tour } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { getSession } from './auth';
 import { getCategoryQuerySlugs, normalizeCategorySlug } from '@/lib/destinations';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
 import { normalizeSalesTagsInput } from '@/lib/tourTags';
+import { translateTourToAllLangs, translateFaqsToAllLangs } from '@/lib/autoTranslate';
+import { TARGET_LANGS } from '@/lib/deeplTranslate';
 
 function revalidateTours() {
   SUPPORTED_LOCALES.forEach((lang) => {
@@ -828,11 +830,149 @@ export type CreateTourInput = {
   }[];
 };
 
+const TOUR_I18N_TEXT_BASES = [
+  'title',
+  'desc',
+  'highlights',
+  'itinerary',
+  'knowBefore',
+  'notSuitable',
+  'notAllowed',
+  'whatsIncluded',
+  'notIncluded',
+  'cancellationNote',
+  'ageRestriction',
+] as const;
+
+function extendedTourLocaleTextKeys(): string[] {
+  return TOUR_I18N_TEXT_BASES.flatMap((base) => TARGET_LANGS.map(({ suffix }) => `${base}${suffix}`));
+}
+
+function extendedTourFaqKeys(): string[] {
+  return TARGET_LANGS.map(({ suffix }) => `faqs${suffix}`);
+}
+
+function pickTourTranslationData(raw: Record<string, unknown>): Partial<Prisma.TourUncheckedCreateInput> {
+  const allowed = new Set<string>([...extendedTourLocaleTextKeys(), ...extendedTourFaqKeys()]);
+  const d: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!allowed.has(k) || v === undefined) continue;
+    if (k.startsWith('faqs')) {
+      if (Array.isArray(v)) d[k] = v as Prisma.InputJsonValue;
+      continue;
+    }
+    if (v === null || typeof v === 'string') d[k] = v;
+  }
+  return d as Partial<Prisma.TourUncheckedCreateInput>;
+}
+
+function clearExtendedTourFaqsJson(): Record<string, typeof Prisma.JsonNull> {
+  const o: Record<string, typeof Prisma.JsonNull> = {};
+  for (const { suffix } of TARGET_LANGS) {
+    o[`faqs${suffix}`] = Prisma.JsonNull;
+  }
+  return o;
+}
+
+function tourFormToEnSnapshot(form: CreateTourInput): Parameters<typeof translateTourToAllLangs>[0] {
+  return {
+    titleEn: form.titleEn,
+    descEn: form.descEn,
+    highlightsEn: form.highlightsEn,
+    itineraryEn: form.itineraryEn,
+    knowBeforeEn: form.knowBeforeEn,
+    notSuitableEn: form.notSuitableEn,
+    notAllowedEn: form.notAllowedEn,
+    whatsIncludedEn: form.whatsIncludedEn,
+    notIncludedEn: form.notIncludedEn,
+    cancellationNoteEn: form.cancellationNoteEn,
+    ageRestrictionEn: form.ageRestrictionEn,
+  };
+}
+
+function tourTranslatibleEnChanged(current: Tour, form: CreateTourInput): boolean {
+  const keys = [
+    'titleEn',
+    'descEn',
+    'highlightsEn',
+    'itineraryEn',
+    'knowBeforeEn',
+    'notSuitableEn',
+    'notAllowedEn',
+    'whatsIncludedEn',
+    'notIncludedEn',
+    'cancellationNoteEn',
+    'ageRestrictionEn',
+  ] as const;
+  const norm = (s: string | null | undefined) => (s ?? '').trim();
+  return keys.some((k) => norm(form[k]) !== norm(current[k]));
+}
+
+function faqsFormSignature(faqs: CreateTourInput['faqsEn']): string {
+  const rows =
+    faqs
+      ?.filter((f) => f.question.trim() && f.answer.trim())
+      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() })) ?? [];
+  return JSON.stringify(rows);
+}
+
+function faqsDbSignature(dbVal: unknown): string {
+  const p = parseFaqArray(dbVal);
+  return JSON.stringify(p ?? []);
+}
+
+async function tryTourAutoLocalesForCreate(form: CreateTourInput): Promise<Partial<Prisma.TourUncheckedCreateInput>> {
+  try {
+    const merged: Record<string, unknown> = {};
+    Object.assign(merged, await translateTourToAllLangs(tourFormToEnSnapshot(form)));
+    const faqFiltered = form.faqsEn?.filter((f) => f.question.trim() && f.answer.trim()) ?? [];
+    if (faqFiltered.length > 0) {
+      Object.assign(merged, await translateFaqsToAllLangs(faqFiltered));
+    }
+    return pickTourTranslationData(merged);
+  } catch (e) {
+    console.error('[createTour] auto-translate failed:', e);
+    return {};
+  }
+}
+
+async function tryTourAutoLocalesForUpdate(
+  current: Tour,
+  form: CreateTourInput,
+  opts: { forceRetranslate: boolean }
+): Promise<Partial<Prisma.TourUncheckedCreateInput>> {
+  try {
+    const merged: Record<string, unknown> = {};
+    const enChanged = opts.forceRetranslate || tourTranslatibleEnChanged(current, form);
+    const faqsChanged = opts.forceRetranslate || faqsFormSignature(form.faqsEn) !== faqsDbSignature(current.faqsEn);
+
+    if (enChanged) {
+      Object.assign(merged, await translateTourToAllLangs(tourFormToEnSnapshot(form)));
+    }
+    if (faqsChanged) {
+      const faqFiltered = form.faqsEn?.filter((f) => f.question.trim() && f.answer.trim()) ?? [];
+      if (faqFiltered.length === 0) {
+        Object.assign(merged, clearExtendedTourFaqsJson());
+      } else {
+        Object.assign(merged, await translateFaqsToAllLangs(faqFiltered));
+      }
+    }
+
+    if (Object.keys(merged).length === 0) return {};
+
+    return pickTourTranslationData(merged);
+  } catch (e) {
+    console.error('[updateTour] auto-translate failed:', e);
+    return {};
+  }
+}
+
 export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
     const reservationTypeMode: ReservationTypeMode = data.reservationTypeMode ?? (data.hasReservationType === false ? 'none' : 'private_regular');
+    const autoLocales = await tryTourAutoLocalesForCreate(data);
     const createdTour = await prisma.tour.create({
       data: {
         type: data.type,
@@ -901,6 +1041,7 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
             sortOrder: g.sortOrder ?? index,
           })),
         },
+        ...autoLocales,
       },
     });
     if (Array.isArray(data.attractionIds)) {
@@ -919,76 +1060,84 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
   }
 }
 
-export type UpdateTourInput = CreateTourInput;
+export type UpdateTourInput = CreateTourInput & { forceRetranslate?: boolean };
 
 export async function updateTour(tourId: string, data: UpdateTourInput): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
   try {
+    const { forceRetranslate, ...tourForm } = data;
+    const currentTour = await prisma.tour.findUnique({ where: { id: tourId } });
+    if (!currentTour) return { ok: false, error: 'Tur bulunamadı' };
+    const autoLocales = await tryTourAutoLocalesForUpdate(currentTour, tourForm, {
+      forceRetranslate: forceRetranslate === true,
+    });
+
     const reservationTypeMode: ReservationTypeMode | undefined =
-      data.reservationTypeMode !== undefined
-        ? data.reservationTypeMode
-        : data.hasReservationType !== undefined
-          ? (data.hasReservationType ? 'private_regular' : 'none')
+      tourForm.reservationTypeMode !== undefined
+        ? tourForm.reservationTypeMode
+        : tourForm.hasReservationType !== undefined
+          ? (tourForm.hasReservationType ? 'private_regular' : 'none')
           : undefined;
     await prisma.tour.update({
       where: { id: tourId },
       data: {
-        type: data.type,
-        ...(data.slug !== undefined && { slug: normalizeSlug(data.slug) }),
-        ...(data.salesTags !== undefined && { salesTags: normalizeSalesTagsInput(data.salesTags) }),
-        ...(data.startTimes !== undefined && { startTimes: normalizeStartTimes(data.startTimes) }),
-        titleEn: data.titleEn.trim(),
-        titleTr: data.titleTr.trim(),
-        titleZh: data.titleZh.trim(),
-        descEn: data.descEn.trim(),
-        descTr: data.descTr.trim(),
-        descZh: data.descZh.trim(),
-        highlightsEn: data.highlightsEn?.trim() || null,
-        highlightsTr: data.highlightsTr?.trim() || null,
-        highlightsZh: data.highlightsZh?.trim() || null,
-        itineraryEn: data.itineraryEn?.trim() || null,
-        itineraryTr: data.itineraryTr?.trim() || null,
-        itineraryZh: data.itineraryZh?.trim() || null,
-        knowBeforeEn: data.knowBeforeEn?.trim() || null,
-        knowBeforeTr: data.knowBeforeTr?.trim() || null,
-        knowBeforeZh: data.knowBeforeZh?.trim() || null,
-        notSuitableEn: data.notSuitableEn?.trim() || null,
-        notSuitableTr: data.notSuitableTr?.trim() || null,
-        notSuitableZh: data.notSuitableZh?.trim() || null,
-        notAllowedEn: data.notAllowedEn?.trim() || null,
-        notAllowedTr: data.notAllowedTr?.trim() || null,
-        notAllowedZh: data.notAllowedZh?.trim() || null,
-        whatsIncludedEn: data.whatsIncludedEn?.trim() || null,
-        whatsIncludedTr: data.whatsIncludedTr?.trim() || null,
-        whatsIncludedZh: data.whatsIncludedZh?.trim() || null,
-        notIncludedEn: data.notIncludedEn?.trim() || null,
-        notIncludedTr: data.notIncludedTr?.trim() || null,
-        notIncludedZh: data.notIncludedZh?.trim() || null,
-        faqsEn: jsonInputOrNull(data.faqsEn),
-        faqsTr: jsonInputOrNull(data.faqsTr),
-        faqsZh: jsonInputOrNull(data.faqsZh),
-        ...(data.isAskForPrice !== undefined && { isAskForPrice: data.isAskForPrice }),
-        ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
-        ...(data.cancellationNoteEn !== undefined && { cancellationNoteEn: data.cancellationNoteEn?.trim() || null }),
-        ...(data.cancellationNoteTr !== undefined && { cancellationNoteTr: data.cancellationNoteTr?.trim() || null }),
-        ...(data.cancellationNoteZh !== undefined && { cancellationNoteZh: data.cancellationNoteZh?.trim() || null }),
-        basePrice: Number(data.basePrice) || 0,
-        capacity: Number(data.capacity) || 0,
-        destination: data.destination?.trim() || 'cappadocia',
-        category: data.category?.trim() || null,
-        ...(data.hasTourType !== undefined && { hasTourType: data.hasTourType }),
-        ...(data.hasAirportSelect !== undefined && { hasAirportSelect: data.hasAirportSelect }),
+        type: tourForm.type,
+        ...(tourForm.slug !== undefined && { slug: normalizeSlug(tourForm.slug) }),
+        ...(tourForm.salesTags !== undefined && { salesTags: normalizeSalesTagsInput(tourForm.salesTags) }),
+        ...(tourForm.startTimes !== undefined && { startTimes: normalizeStartTimes(tourForm.startTimes) }),
+        titleEn: tourForm.titleEn.trim(),
+        titleTr: tourForm.titleTr.trim(),
+        titleZh: tourForm.titleZh.trim(),
+        descEn: tourForm.descEn.trim(),
+        descTr: tourForm.descTr.trim(),
+        descZh: tourForm.descZh.trim(),
+        highlightsEn: tourForm.highlightsEn?.trim() || null,
+        highlightsTr: tourForm.highlightsTr?.trim() || null,
+        highlightsZh: tourForm.highlightsZh?.trim() || null,
+        itineraryEn: tourForm.itineraryEn?.trim() || null,
+        itineraryTr: tourForm.itineraryTr?.trim() || null,
+        itineraryZh: tourForm.itineraryZh?.trim() || null,
+        knowBeforeEn: tourForm.knowBeforeEn?.trim() || null,
+        knowBeforeTr: tourForm.knowBeforeTr?.trim() || null,
+        knowBeforeZh: tourForm.knowBeforeZh?.trim() || null,
+        notSuitableEn: tourForm.notSuitableEn?.trim() || null,
+        notSuitableTr: tourForm.notSuitableTr?.trim() || null,
+        notSuitableZh: tourForm.notSuitableZh?.trim() || null,
+        notAllowedEn: tourForm.notAllowedEn?.trim() || null,
+        notAllowedTr: tourForm.notAllowedTr?.trim() || null,
+        notAllowedZh: tourForm.notAllowedZh?.trim() || null,
+        whatsIncludedEn: tourForm.whatsIncludedEn?.trim() || null,
+        whatsIncludedTr: tourForm.whatsIncludedTr?.trim() || null,
+        whatsIncludedZh: tourForm.whatsIncludedZh?.trim() || null,
+        notIncludedEn: tourForm.notIncludedEn?.trim() || null,
+        notIncludedTr: tourForm.notIncludedTr?.trim() || null,
+        notIncludedZh: tourForm.notIncludedZh?.trim() || null,
+        faqsEn: jsonInputOrNull(tourForm.faqsEn),
+        faqsTr: jsonInputOrNull(tourForm.faqsTr),
+        faqsZh: jsonInputOrNull(tourForm.faqsZh),
+        ...(tourForm.isAskForPrice !== undefined && { isAskForPrice: tourForm.isAskForPrice }),
+        ...(tourForm.isFeatured !== undefined && { isFeatured: tourForm.isFeatured }),
+        ...(tourForm.cancellationNoteEn !== undefined && { cancellationNoteEn: tourForm.cancellationNoteEn?.trim() || null }),
+        ...(tourForm.cancellationNoteTr !== undefined && { cancellationNoteTr: tourForm.cancellationNoteTr?.trim() || null }),
+        ...(tourForm.cancellationNoteZh !== undefined && { cancellationNoteZh: tourForm.cancellationNoteZh?.trim() || null }),
+        basePrice: Number(tourForm.basePrice) || 0,
+        capacity: Number(tourForm.capacity) || 0,
+        destination: tourForm.destination?.trim() || 'cappadocia',
+        category: tourForm.category?.trim() || null,
+        ...(tourForm.hasTourType !== undefined && { hasTourType: tourForm.hasTourType }),
+        ...(tourForm.hasAirportSelect !== undefined && { hasAirportSelect: tourForm.hasAirportSelect }),
         ...(reservationTypeMode !== undefined && { reservationTypeMode }),
         ...(reservationTypeMode !== undefined && { hasReservationType: reservationTypeMode !== 'none' }),
-        ...(data.minAgeLimit !== undefined && { minAgeLimit: data.minAgeLimit }),
-        ...(data.ageRestrictionEn !== undefined && { ageRestrictionEn: data.ageRestrictionEn?.trim() || null }),
-        ...(data.ageRestrictionTr !== undefined && { ageRestrictionTr: data.ageRestrictionTr?.trim() || null }),
-        ...(data.ageRestrictionZh !== undefined && { ageRestrictionZh: data.ageRestrictionZh?.trim() || null }),
+        ...(tourForm.minAgeLimit !== undefined && { minAgeLimit: tourForm.minAgeLimit }),
+        ...(tourForm.ageRestrictionEn !== undefined && { ageRestrictionEn: tourForm.ageRestrictionEn?.trim() || null }),
+        ...(tourForm.ageRestrictionTr !== undefined && { ageRestrictionTr: tourForm.ageRestrictionTr?.trim() || null }),
+        ...(tourForm.ageRestrictionZh !== undefined && { ageRestrictionZh: tourForm.ageRestrictionZh?.trim() || null }),
+        ...autoLocales,
       },
     });
-    if (Array.isArray(data.attractionIds)) {
-      const attractionIds = Array.from(new Set(data.attractionIds.map((id) => id.trim()).filter(Boolean)));
+    if (Array.isArray(tourForm.attractionIds)) {
+      const attractionIds = Array.from(new Set(tourForm.attractionIds.map((id) => id.trim()).filter(Boolean)));
       await prisma.tourAttraction.deleteMany({ where: { tourId } });
       if (attractionIds.length > 0) {
         await prisma.tourAttraction.createMany({
@@ -997,11 +1146,11 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         });
       }
     }
-    if (data.ageGroups !== undefined) {
+    if (tourForm.ageGroups !== undefined) {
       await prisma.productAgeGroup.deleteMany({ where: { tourId } });
-      if (data.ageGroups.length > 0) {
+      if (tourForm.ageGroups.length > 0) {
         await prisma.productAgeGroup.createMany({
-          data: data.ageGroups.map((g, index) => ({
+          data: tourForm.ageGroups.map((g, index) => ({
             tourId,
             minAge: g.minAge,
             maxAge: g.maxAge,
@@ -1024,6 +1173,55 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Tur güncellenemedi' };
+  }
+}
+
+export async function retranslateTour(tourId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Yetkisiz' };
+  try {
+    const current = await prisma.tour.findUnique({ where: { id: tourId } });
+    if (!current) return { ok: false, error: 'Tur bulunamadı' };
+
+    let payload: Partial<Prisma.TourUncheckedCreateInput> = {};
+    try {
+      const merged: Record<string, unknown> = {};
+      Object.assign(
+        merged,
+        await translateTourToAllLangs({
+          titleEn: current.titleEn,
+          descEn: current.descEn,
+          highlightsEn: current.highlightsEn,
+          itineraryEn: current.itineraryEn,
+          knowBeforeEn: current.knowBeforeEn,
+          notSuitableEn: current.notSuitableEn,
+          notAllowedEn: current.notAllowedEn,
+          whatsIncludedEn: current.whatsIncludedEn,
+          notIncludedEn: current.notIncludedEn,
+          cancellationNoteEn: current.cancellationNoteEn,
+          ageRestrictionEn: current.ageRestrictionEn,
+        })
+      );
+      const faqs = parseFaqArray(current.faqsEn);
+      if (faqs && faqs.length > 0) {
+        Object.assign(merged, await translateFaqsToAllLangs(faqs));
+      } else {
+        Object.assign(merged, clearExtendedTourFaqsJson());
+      }
+      payload = pickTourTranslationData(merged);
+    } catch (e) {
+      console.error('[retranslateTour] DeepL failed:', e);
+      return { ok: false, error: e instanceof Error ? e.message : 'Çeviri başarısız' };
+    }
+
+    await prisma.tour.update({
+      where: { id: tourId },
+      data: payload,
+    });
+    revalidateTours();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Güncellenemedi' };
   }
 }
 

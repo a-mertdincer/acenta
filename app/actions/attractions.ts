@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getSession } from './auth';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
+import { translateAttractionToAllLangs } from '@/lib/autoTranslate';
+import { TARGET_LANGS } from '@/lib/deeplTranslate';
 
 function revalidateAttractions() {
   SUPPORTED_LOCALES.forEach((lang) => {
@@ -37,6 +40,22 @@ export type AttractionRow = {
   sortOrder: number;
   tourCount: number;
 };
+
+function attractionExtendedLocaleKeys(): string[] {
+  return TARGET_LANGS.flatMap(({ suffix }) => [`name${suffix}`, `description${suffix}`]);
+}
+
+function pickAttractionTranslationData(
+  raw: Record<string, string | null>
+): Partial<Prisma.AttractionUncheckedCreateInput> {
+  const allowed = new Set(attractionExtendedLocaleKeys());
+  const d: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!allowed.has(k) || v === undefined) continue;
+    if (v === null || typeof v === 'string') d[k] = v;
+  }
+  return d as Partial<Prisma.AttractionUncheckedCreateInput>;
+}
 
 /**
  * @param options.resolveImages When true (public home / attractions list), `imageUrl` is
@@ -290,6 +309,18 @@ export async function createAttraction(input: {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
+    let localeExtras: Partial<Prisma.AttractionUncheckedCreateInput> = {};
+    try {
+      localeExtras = pickAttractionTranslationData(
+        await translateAttractionToAllLangs({
+          nameEn: input.nameEn.trim(),
+          descriptionEn: input.descriptionEn?.trim() || null,
+        })
+      );
+    } catch (e) {
+      console.error('[createAttraction] auto-translate failed:', e);
+    }
+
     await prisma.attraction.create({
       data: {
         slug: input.slug.trim(),
@@ -301,6 +332,7 @@ export async function createAttraction(input: {
         descriptionZh: input.descriptionZh?.trim() || null,
         imageUrl: input.imageUrl?.trim() || null,
         sortOrder: Number.isFinite(input.sortOrder) ? Number(input.sortOrder) : 0,
+        ...localeExtras,
       },
     });
     revalidateAttractions();
@@ -327,6 +359,27 @@ export async function updateAttraction(
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
   try {
+    const current = await prisma.attraction.findUnique({ where: { id } });
+    if (!current) return { ok: false, error: 'Not found' };
+
+    const norm = (s: string | null | undefined) => (s ?? '').trim();
+    const nameChanged = norm(input.nameEn) !== norm(current.nameEn);
+    const descChanged = norm(input.descriptionEn) !== norm(current.descriptionEn);
+
+    let localeExtras: Partial<Prisma.AttractionUncheckedUpdateInput> = {};
+    if (nameChanged || descChanged) {
+      try {
+        localeExtras = pickAttractionTranslationData(
+          await translateAttractionToAllLangs({
+            nameEn: input.nameEn.trim(),
+            descriptionEn: input.descriptionEn?.trim() || null,
+          })
+        );
+      } catch (e) {
+        console.error('[updateAttraction] auto-translate failed:', e);
+      }
+    }
+
     await prisma.attraction.update({
       where: { id },
       data: {
@@ -339,6 +392,7 @@ export async function updateAttraction(
         descriptionZh: input.descriptionZh?.trim() || null,
         imageUrl: input.imageUrl?.trim() || null,
         sortOrder: Number.isFinite(input.sortOrder) ? Number(input.sortOrder) : 0,
+        ...localeExtras,
       },
     });
     revalidateAttractions();

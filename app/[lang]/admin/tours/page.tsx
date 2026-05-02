@@ -11,6 +11,7 @@ import type { TourVariantDisplay } from '@/lib/types/variant';
 import { toPaxPriceRows, type PaxPriceTier } from '@/lib/pricingTiers';
 import { TOUR_TAGS, TAG_CATEGORY_ORDER, TAG_CATEGORY_LABELS } from '@/lib/tourTags';
 import { Check } from 'lucide-react';
+import { TourRetranslateButton } from '../../../components/admin/TourRetranslateButton';
 
 function StartTimesEditor({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
     const add = () => onChange([...value, '09:00']);
@@ -1423,6 +1424,7 @@ export default function AdminToursPage() {
             {editTourId && (
                 <form onSubmit={handleUpdateTour} className="card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-2xl)' }}>
                     <h2 style={{ marginBottom: 'var(--space-lg)' }}>Ürünü düzenle</h2>
+                    <TourRetranslateButton tourId={editTourId} />
                     <div style={{ display: 'grid', gap: 'var(--space-md)', maxWidth: 560 }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>Tip</label>

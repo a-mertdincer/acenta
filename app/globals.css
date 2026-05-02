@@ -1288,6 +1288,16 @@ main {
   color: var(--color-text, #1a2638);
 }
 
+/* Admin — DeepL retranslate control */
+.admin-retranslate-block {
+  margin-bottom: var(--space-md);
+}
+.admin-retranslate-msg {
+  margin-top: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 /* Tour sales tags — admin picker pills */
 .admin-sales-tags {
   display: flex;

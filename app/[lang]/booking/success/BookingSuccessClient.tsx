@@ -16,7 +16,7 @@ type ResItem = {
   displayNotes: string;
   transferAirport: string | null;
   createdAt: string;
-  optionsParsed: { title: string; price: number }[];
+  optionsParsed: { title: string; price: number; quantity: number; pricingMode: 'per_person' | 'flat' | 'per_unit' }[];
   couponCode?: string | null;
   originalPrice?: number | null;
   discountAmount?: number | null;
@@ -85,10 +85,22 @@ export function BookingSuccessClient({
                 <div><strong>Transfer havalimanı:</strong> {r.transferAirport === 'ASR' ? 'Kayseri (ASR)' : r.transferAirport === 'NAV' ? 'Nevşehir (NAV)' : r.transferAirport}</div>
               )}
               {r.optionsParsed.length > 0 && (
-                <div><strong>Seçilen opsiyonlar:</strong>{' '}
-                  {r.optionsParsed.map((o, i) => (
-                    <span key={i}>{o.title}{o.price ? ` (+€${o.price})` : ''}{i < r.optionsParsed.length - 1 ? ', ' : ''}</span>
-                  ))}
+                <div>
+                  <strong>Seçilen opsiyonlar:</strong>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                    {r.optionsParsed.map((o, i) => {
+                      const showQty = o.pricingMode !== 'flat';
+                      const lineTotal = o.price * o.quantity;
+                      return (
+                        <li key={i}>
+                          {o.title}
+                          {o.price ? ` (+€${o.price})` : ''}
+                          {showQty ? ` × ${o.quantity}` : ''}
+                          {o.price && (showQty || o.quantity > 1) ? ` = €${lineTotal}` : ''}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               )}
             </div>

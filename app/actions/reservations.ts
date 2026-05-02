@@ -672,15 +672,21 @@ async function recalculateReservationPrice(
   }
 
   try {
-    const opts = JSON.parse(res.options || '[]') as { id?: string | number; price?: number; pricingMode?: 'per_person' | 'flat' }[];
+    const opts = JSON.parse(res.options || '[]') as { id?: string | number; price?: number; pricingMode?: 'per_person' | 'flat' | 'per_unit'; quantity?: number }[];
     if (Array.isArray(opts)) {
       for (const o of opts) {
+        const qty = typeof o?.quantity === 'number' && o.quantity > 0 ? o.quantity : 1;
         if (typeof o?.price === 'number') {
-          subtotal += o.pricingMode === 'flat' ? o.price : o.price * newPax;
-        }
-        else {
+          if (o.pricingMode === 'flat') subtotal += o.price;
+          else if (o.pricingMode === 'per_unit') subtotal += o.price * qty;
+          else subtotal += o.price * newPax;
+        } else {
           const tourOpt = options.find((to) => String(to.id) === String(o?.id));
-          if (tourOpt) subtotal += (tourOpt.pricingMode === 'flat' ? tourOpt.priceAdd : tourOpt.priceAdd * newPax);
+          if (tourOpt) {
+            if (tourOpt.pricingMode === 'flat') subtotal += tourOpt.priceAdd;
+            else if (tourOpt.pricingMode === 'per_unit') subtotal += tourOpt.priceAdd * qty;
+            else subtotal += tourOpt.priceAdd * newPax;
+          }
         }
       }
     }

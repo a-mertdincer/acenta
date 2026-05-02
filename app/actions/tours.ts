@@ -111,7 +111,7 @@ export interface TourWithOptions {
   attractionIds?: string[];
   transferTiers: TransferTier[] | null;
   transferAirportTiers: TransferAirportTiers | null;
-  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' }[];
+  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' | 'per_unit' }[];
 }
 
 export interface TourDatePriceResult {
@@ -509,7 +509,12 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
         titleEn: o.titleEn,
         titleZh: o.titleZh,
         priceAdd: o.priceAdd,
-        pricingMode: ((o as { pricingMode?: string }).pricingMode === 'flat' ? 'flat' : 'per_person'),
+        pricingMode: (() => {
+          const m = (o as { pricingMode?: string }).pricingMode;
+          if (m === 'flat') return 'flat';
+          if (m === 'per_unit') return 'per_unit';
+          return 'per_person';
+        })(),
       })),
     };
   } catch {
@@ -1185,11 +1190,17 @@ export async function deleteTour(tourId: string): Promise<{ ok: boolean; error?:
 }
 
 // --- Tour options CRUD (admin only) ---
-export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' };
+export type TourOptionRow = { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode: 'per_person' | 'flat' | 'per_unit' };
+
+function normalizeOptionPricingMode(value: string | undefined | null): 'per_person' | 'flat' | 'per_unit' {
+  if (value === 'flat') return 'flat';
+  if (value === 'per_unit') return 'per_unit';
+  return 'per_person';
+}
 
 export async function createTourOption(
   tourId: string,
-  data: { titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }
+  data: { titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
@@ -1201,7 +1212,7 @@ export async function createTourOption(
         titleEn: data.titleEn.trim(),
         titleZh: data.titleZh.trim(),
         priceAdd: data.priceAdd,
-        pricingMode: data.pricingMode === 'flat' ? 'flat' : 'per_person',
+        pricingMode: normalizeOptionPricingMode(data.pricingMode),
       },
     });
     revalidateTours();
@@ -1213,7 +1224,7 @@ export async function createTourOption(
 
 export async function updateTourOption(
   id: string,
-  data: { titleTr?: string; titleEn?: string; titleZh?: string; priceAdd?: number; pricingMode?: 'per_person' | 'flat' }
+  data: { titleTr?: string; titleEn?: string; titleZh?: string; priceAdd?: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' }
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session || session.role !== 'ADMIN') return { ok: false, error: 'Unauthorized' };
@@ -1225,7 +1236,7 @@ export async function updateTourOption(
         ...(data.titleEn != null && { titleEn: data.titleEn.trim() }),
         ...(data.titleZh != null && { titleZh: data.titleZh.trim() }),
         ...(data.priceAdd != null && { priceAdd: data.priceAdd }),
-        ...(data.pricingMode != null && { pricingMode: data.pricingMode }),
+        ...(data.pricingMode != null && { pricingMode: normalizeOptionPricingMode(data.pricingMode) }),
       },
     });
     revalidateTours();

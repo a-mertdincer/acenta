@@ -41,7 +41,9 @@ export interface CartItem {
         id: string | number;
         title: string;
         price: number;
-        pricingMode?: 'per_person' | 'flat';
+        pricingMode?: 'per_person' | 'flat' | 'per_unit';
+        /** Misafirin seçtiği veya hesaplanan adet (per_unit için kullanıcı seçer; per_person için pax; flat için 1) */
+        quantity?: number;
     }[];
     totalPrice: number;
     /** Promosyon öncesi toplam (varsa doğrulama) */

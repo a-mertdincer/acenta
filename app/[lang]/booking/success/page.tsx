@@ -7,15 +7,24 @@ import { getDictionary } from '@/app/dictionaries/getDictionary';
 import { normalizeLocale } from '@/lib/i18n';
 import { BookingSuccessClient } from './BookingSuccessClient';
 
-function parseOptions(optionsStr: string | null): { title: string; price: number }[] {
+function parseOptions(
+  optionsStr: string | null
+): { title: string; price: number; quantity: number; pricingMode: 'per_person' | 'flat' | 'per_unit' }[] {
   if (!optionsStr?.trim()) return [];
   try {
     const arr = JSON.parse(optionsStr);
     if (!Array.isArray(arr)) return [];
-    return arr.map((o: { title?: string; price?: number }) => ({
-      title: o?.title ?? '',
-      price: typeof o?.price === 'number' ? o.price : 0,
-    }));
+    return arr.map((o: { title?: string; price?: number; quantity?: number; pricingMode?: string }) => {
+      const mode: 'per_person' | 'flat' | 'per_unit' =
+        o?.pricingMode === 'flat' ? 'flat' : o?.pricingMode === 'per_unit' ? 'per_unit' : 'per_person';
+      const qty = typeof o?.quantity === 'number' && o.quantity > 0 ? o.quantity : 1;
+      return {
+        title: o?.title ?? '',
+        price: typeof o?.price === 'number' ? o.price : 0,
+        quantity: qty,
+        pricingMode: mode,
+      };
+    });
   } catch {
     return [];
   }

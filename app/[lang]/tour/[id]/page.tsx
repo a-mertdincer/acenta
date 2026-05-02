@@ -379,7 +379,7 @@ function mapDbTourToState(db: {
   faqsZh?: { question: string; answer: string }[] | null;
   transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
   transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
-  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' }[];
+  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' }[];
   minAgeLimit?: number | null;
   ageRestrictionEn?: string | null;
   ageRestrictionTr?: string | null;
@@ -429,7 +429,7 @@ function mapDbTourToState(db: {
       id: o.id,
       title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
       price: o.priceAdd,
-      pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person',
+      pricingMode: o.pricingMode === 'flat' ? 'flat' : o.pricingMode === 'per_unit' ? 'per_unit' : 'per_person',
     })),
     isAskForPrice: Boolean(db.isAskForPrice),
     cancellationNote: getLocalizedContent(_lang, db.cancellationNoteEn, db.cancellationNoteTr, db.cancellationNoteZh),
@@ -481,6 +481,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [infants, setInfants] = useState(0);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+    const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
     const [selectedAirport, setSelectedAirport] = useState<TransferAirport>('ASR');
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
     const [cartToastOpen, setCartToastOpen] = useState(false);
@@ -624,7 +625,11 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     let total = isTransferWithTiers ? unitPrice : (adultUnitPrice * adults + childUnitPrice * children);
     selectedOptions.forEach(optId => {
         const opt = tour.options?.find((o: any) => o.id === optId);
-        if (opt) total += opt.pricingMode === 'flat' ? opt.price : (opt.price * pax);
+        if (!opt) return;
+        const qty = Math.max(1, optionQuantities[optId] ?? 1);
+        if (opt.pricingMode === 'flat') total += opt.price;
+        else if (opt.pricingMode === 'per_unit') total += opt.price * qty;
+        else total += opt.price * pax;
     });
 
     const toggleOption = (optId: string) => {
@@ -950,14 +955,31 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <h4 style={{ marginBottom: 'var(--space-sm)' }}>{t.optionalAddons}</h4>
                             <div className="addons-list">
                                 {tour.options.map((opt: any) => {
-                                    const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * pax;
-                                    const qtyLabel = opt.pricingMode === 'flat' ? '1x' : `${pax}x`;
+                                    const isSelected = selectedOptions.includes(opt.id);
+                                    const qty = Math.max(1, optionQuantities[opt.id] ?? 1);
+                                    const isFlat = opt.pricingMode === 'flat';
+                                    const isPerUnit = opt.pricingMode === 'per_unit';
+                                    const multiplier = isFlat ? 1 : isPerUnit ? qty : pax;
+                                    const displayPrice = opt.price * multiplier;
+                                    const qtyLabel = isFlat ? '1x' : isPerUnit ? `×${multiplier}` : `×${pax}`;
                                     return (
-                                        <label key={opt.id} className={`addon-row ${selectedOptions.includes(opt.id) ? 'is-selected' : ''}`}>
+                                        <label key={opt.id} className={`addon-row ${isSelected ? 'is-selected' : ''}`}>
                                             <span className="addon-left">
-                                                <input type="checkbox" className="addon-checkbox" checked={selectedOptions.includes(opt.id)} onChange={() => toggleOption(opt.id)} />
+                                                <input type="checkbox" className="addon-checkbox" checked={isSelected} onChange={() => {
+                                                    toggleOption(opt.id);
+                                                    if (isPerUnit && !isSelected) {
+                                                        setOptionQuantities((prev) => ({ ...prev, [opt.id]: prev[opt.id] && prev[opt.id] > 0 ? prev[opt.id] : 1 }));
+                                                    }
+                                                }} />
                                                 <span className="addon-title">{opt.title}</span>
                                             </span>
+                                            {isSelected && isPerUnit && (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
+                                                    <button type="button" className="stepper-btn" disabled={qty <= 1} onClick={(e) => { e.preventDefault(); setOptionQuantities((prev) => ({ ...prev, [opt.id]: Math.max(1, (prev[opt.id] ?? 1) - 1) })); }}>−</button>
+                                                    <span style={{ minWidth: 20, textAlign: 'center' }}>{qty}</span>
+                                                    <button type="button" className="stepper-btn" onClick={(e) => { e.preventDefault(); setOptionQuantities((prev) => ({ ...prev, [opt.id]: (prev[opt.id] ?? 1) + 1 })); }}>+</button>
+                                                </span>
+                                            )}
                                             <span className="addon-price">
                                                 {opt.price === 0 ? t.free : `+${formatShown(displayPrice).primary}`} <span className="addon-multiplier">({qtyLabel})</span>
                                             </span>
@@ -1012,10 +1034,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         {selectedOptions.map(optId => {
                             const opt = tour.options.find((o: any) => o.id === optId);
                             if (!opt) return null;
-                            const optTotal = opt.pricingMode === 'flat' ? opt.price : opt.price * pax;
+                            const qty = Math.max(1, optionQuantities[optId] ?? 1);
+                            const isFlat = opt.pricingMode === 'flat';
+                            const isPerUnit = opt.pricingMode === 'per_unit';
+                            const multiplier = isFlat ? 1 : isPerUnit ? qty : pax;
+                            const optTotal = opt.price * multiplier;
+                            const multiplierLabel = isFlat ? '(sabit)' : `(×${multiplier})`;
                             return (
                                 <div key={optId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                                    <span>{opt.title} {opt.pricingMode === 'flat' ? '(sabit)' : `(×${pax})`}</span>
+                                    <span>{opt.title} {multiplierLabel}</span>
                                     <span>{opt.price === 0 ? t.free : `+${formatShown(optTotal).primary}`}</span>
                                 </div>
                             );
@@ -1047,7 +1074,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             basePrice: isTransferWithTiers ? unitPrice : basePrice,
                             options: selectedOptions.map(optId => {
                                 const o = tour.options.find((opt: any) => opt.id === optId);
-                                return { id: o.id, title: o.title, price: o.price, pricingMode: o.pricingMode };
+                                const userQty = Math.max(1, optionQuantities[optId] ?? 1);
+                                const mode: 'per_person' | 'flat' | 'per_unit' = o.pricingMode === 'flat' ? 'flat' : o.pricingMode === 'per_unit' ? 'per_unit' : 'per_person';
+                                const quantity = mode === 'flat' ? 1 : mode === 'per_unit' ? userQty : pax;
+                                return { id: o.id, title: o.title, price: o.price, pricingMode: mode, quantity };
                             }),
                             totalPrice: total,
                             ...(tour.type === 'TRANSFER' && { transferAirport: selectedAirport }),

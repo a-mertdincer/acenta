@@ -104,7 +104,7 @@ type ProductVariantBookingCardProps = {
   whyBook: WhyBookDict;
   tourCancellationLabels: TourCancellationLabels;
   cancellationNote?: string | null;
-  options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' }[];
+  options: { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' }[];
   ageGroups?: {
     minAge: number;
     maxAge: number;
@@ -206,7 +206,11 @@ function ProductVariantBookingCardInner({
   const [flightsDeparture, setFlightsDeparture] = useState<{ id: string; code: string; airline: string }[]>([]);
   const [cartToastOpen, setCartToastOpen] = useState(false);
   const [cartToastTitle, setCartToastTitle] = useState('');
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
+  const selectedOptions = useMemo(
+    () => Object.entries(optionQuantities).filter(([, q]) => q > 0).map(([id]) => id),
+    [optionQuantities]
+  );
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const isOptionMode = data.reservationTypeMode === 'option2' || data.reservationTypeMode === 'option3' || data.reservationTypeMode === 'option4';
   const showChildren = useMemo(() => {
@@ -360,32 +364,42 @@ function ProductVariantBookingCardInner({
     const extrasTotal = selectedOptions.reduce((sum, optId) => {
       const opt = options.find((o) => o.id === optId);
       if (!opt) return sum;
-      return sum + (opt.pricingMode === 'flat' ? opt.price : opt.price * totalPax);
+      const qty = Math.max(1, optionQuantities[optId] ?? 1);
+      if (opt.pricingMode === 'flat') return sum + opt.price;
+      if (opt.pricingMode === 'per_unit') return sum + opt.price * qty;
+      return sum + opt.price * totalPax;
     }, 0);
     return baseTotal + extrasTotal;
-  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, transferAirportTiers, selection.airport, selectedOptions, options]);
+  }, [activeVariant, adults, children, infants, data.hasAirportSelect, selectedDirection, transferAirportTiers, selection.airport, selectedOptions, options, optionQuantities]);
   const baseTotal = useMemo(() => {
     if (!activeVariant) return 0;
+    const totalPax = Math.max(1, adults + children + infants);
     return total - selectedOptions.reduce((sum, optId) => {
       const opt = options.find((o) => o.id === optId);
       if (!opt) return sum;
-      return sum + (opt.pricingMode === 'flat' ? opt.price : opt.price * Math.max(1, adults + children + infants));
+      const qty = Math.max(1, optionQuantities[optId] ?? 1);
+      if (opt.pricingMode === 'flat') return sum + opt.price;
+      if (opt.pricingMode === 'per_unit') return sum + opt.price * qty;
+      return sum + opt.price * totalPax;
     }, 0);
-  }, [activeVariant, total, selectedOptions, options, adults, children, infants]);
+  }, [activeVariant, total, selectedOptions, options, adults, children, infants, optionQuantities]);
   const selectedOptionRows = useMemo(() => {
     const pax = Math.max(1, adults + children + infants);
     return selectedOptions
       .map((optId) => options.find((o) => o.id === optId))
-      .filter((opt): opt is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' } => Boolean(opt))
+      .filter((opt): opt is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' } => Boolean(opt))
       .map((opt) => {
+        const qty = Math.max(1, optionQuantities[opt.id] ?? 1);
         const isFlat = opt.pricingMode === 'flat';
+        const isPerUnit = opt.pricingMode === 'per_unit';
+        const multiplier = isFlat ? 1 : isPerUnit ? qty : pax;
         return {
           id: opt.id,
-          label: `+ ${opt.title} ${isFlat ? '(1x)' : `(×${pax})`}`,
-          total: isFlat ? opt.price : opt.price * pax,
+          label: `+ ${opt.title} (×${multiplier})`,
+          total: opt.price * multiplier,
         };
       });
-  }, [selectedOptions, options, adults, children, infants]);
+  }, [selectedOptions, options, adults, children, infants, optionQuantities]);
 
   const variantTitle = activeVariant
     ? lang === 'tr'
@@ -437,6 +451,25 @@ function ProductVariantBookingCardInner({
       alert(lang === 'tr' ? 'Lütfen bir başlangıç saati seçin.' : lang === 'zh' ? '请选择开始时间。' : 'Please select a start time.');
       return;
     }
+    const isTransferLike = data.hasAirportSelect || tourType === 'TRANSFER';
+    if (isTransferLike) {
+      const arrivalRequired = selectedDirection === 'arrival' || selectedDirection === 'roundtrip';
+      const departureRequired = selectedDirection === 'departure' || selectedDirection === 'roundtrip';
+      const arrivalValue = flightArrival === '__manual__' ? '' : flightArrival.trim();
+      const departureValue = flightDeparture === '__manual__' ? '' : flightDeparture.trim();
+      if (arrivalRequired && !arrivalValue) {
+        alert(lang === 'tr' ? 'Lütfen geliş uçuş bilgisini girin.' : lang === 'zh' ? '请输入抵达航班信息。' : 'Please enter arrival flight info.');
+        return;
+      }
+      if (departureRequired && !departureValue) {
+        alert(lang === 'tr' ? 'Lütfen dönüş uçuş bilgisini girin.' : lang === 'zh' ? '请输入出发航班信息。' : 'Please enter departure flight info.');
+        return;
+      }
+      if (!transferHotelName.trim()) {
+        alert(lang === 'tr' ? 'Lütfen otel adı / adres bilgisini girin.' : lang === 'zh' ? '请输入酒店名称/地址。' : 'Please enter hotel name / address.');
+        return;
+      }
+    }
     addItem({
       tourId,
       tourType,
@@ -446,8 +479,15 @@ function ProductVariantBookingCardInner({
       basePrice: activeVariant.pricingType === 'per_person' ? activeVariant.adultPrice : activeVariant.adultPrice / Math.max(1, pax),
       options: selectedOptions
         .map((id) => options.find((o) => o.id === id))
-        .filter((o): o is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' } => Boolean(o))
-        .map((o) => ({ id: o.id, title: o.title, price: o.price, pricingMode: o.pricingMode === 'flat' ? 'flat' : 'per_person' })),
+        .filter((o): o is { id: string; title: string; price: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' } => Boolean(o))
+        .map((o) => {
+          const userQty = Math.max(1, optionQuantities[o.id] ?? 1);
+          const guestPax = Math.max(1, adults + children + infants);
+          const mode: 'per_person' | 'flat' | 'per_unit' =
+            o.pricingMode === 'flat' ? 'flat' : o.pricingMode === 'per_unit' ? 'per_unit' : 'per_person';
+          const quantity = mode === 'flat' ? 1 : mode === 'per_unit' ? userQty : guestPax;
+          return { id: o.id, title: o.title, price: o.price, pricingMode: mode, quantity };
+        }),
       listTotalPrice: total,
       totalPrice: payTotal,
       variantId: activeVariant.id,
@@ -455,8 +495,14 @@ function ProductVariantBookingCardInner({
       ...((data.hasAirportSelect || tourType === 'TRANSFER') && {
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
         transferDirection: selectedDirection,
-        transferFlightArrival: selectedDirection === 'arrival' || selectedDirection === 'roundtrip' ? flightArrival || null : null,
-        transferFlightDeparture: selectedDirection === 'departure' || selectedDirection === 'roundtrip' ? flightDeparture || null : null,
+        transferFlightArrival:
+          (selectedDirection === 'arrival' || selectedDirection === 'roundtrip') && flightArrival && flightArrival !== '__manual__'
+            ? flightArrival
+            : null,
+        transferFlightDeparture:
+          (selectedDirection === 'departure' || selectedDirection === 'roundtrip') && flightDeparture && flightDeparture !== '__manual__'
+            ? flightDeparture
+            : null,
         transferHotelName: transferHotelName.trim() || null,
       }),
       childCount: children,
@@ -596,9 +642,14 @@ function ProductVariantBookingCardInner({
           <label className="form-label">{t.optionalAddons ?? 'Optional add-ons'}</label>
           <div className="addons-list">
             {options.map((opt) => {
-              const selected = selectedOptions.includes(opt.id);
-              const displayPrice = opt.pricingMode === 'flat' ? opt.price : opt.price * Math.max(1, adults + children + infants);
-              const qtyLabel = opt.pricingMode === 'flat' ? '1x' : `${Math.max(1, adults + children + infants)}x`;
+              const currentQty = optionQuantities[opt.id] ?? 0;
+              const selected = currentQty > 0;
+              const pax = Math.max(1, adults + children + infants);
+              const isFlat = opt.pricingMode === 'flat';
+              const isPerUnit = opt.pricingMode === 'per_unit';
+              const effectiveMultiplier = isFlat ? 1 : isPerUnit ? Math.max(1, currentQty) : pax;
+              const displayPrice = opt.price * effectiveMultiplier;
+              const qtyLabel = isFlat ? '1x' : isPerUnit ? `×${effectiveMultiplier}` : `×${pax}`;
               return (
                 <label key={opt.id} className={`addon-row ${selected ? 'is-selected' : ''}`}>
                   <span className="addon-left">
@@ -606,12 +657,39 @@ function ProductVariantBookingCardInner({
                       type="checkbox"
                       className="addon-checkbox"
                       checked={selected}
-                      onChange={() => {
-                        setSelectedOptions((prev) => (prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]));
+                      onChange={(e) => {
+                        const next = e.target.checked ? 1 : 0;
+                        setOptionQuantities((prev) => ({ ...prev, [opt.id]: next }));
                       }}
                     />
                     <span className="addon-title">{opt.title}</span>
                   </span>
+                  {selected && isPerUnit && (
+                    <span className="addon-qty-controls" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
+                      <button
+                        type="button"
+                        className="stepper-btn"
+                        disabled={currentQty <= 1}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setOptionQuantities((prev) => ({ ...prev, [opt.id]: Math.max(1, (prev[opt.id] ?? 1) - 1) }));
+                        }}
+                      >
+                        −
+                      </button>
+                      <span style={{ minWidth: 20, textAlign: 'center' }}>{currentQty}</span>
+                      <button
+                        type="button"
+                        className="stepper-btn"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setOptionQuantities((prev) => ({ ...prev, [opt.id]: (prev[opt.id] ?? 1) + 1 }));
+                        }}
+                      >
+                        +
+                      </button>
+                    </span>
+                  )}
                   <strong className="addon-price">+{formatShown(displayPrice).primary} <span className="addon-multiplier">({qtyLabel})</span></strong>
                 </label>
               );
@@ -671,38 +749,64 @@ function ProductVariantBookingCardInner({
           </div>
           {(selectedDirection === 'arrival' || selectedDirection === 'roundtrip') && (
             <div style={{ marginBottom: 'var(--space-md)' }}>
-              <label className="form-label">{t.flightArrival}</label>
-              <input
-                type="text"
-                list="flights-arrival"
-                value={flightArrival}
-                onChange={(e) => setFlightArrival(e.target.value)}
-                placeholder="e.g. TK 2000"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
-              />
-              <datalist id="flights-arrival">
-                {flightsArrival.map((f) => (
-                  <option key={f.id} value={f.code}>{f.airline}</option>
-                ))}
-              </datalist>
+              <label className="form-label">{t.flightArrival} *</label>
+              {flightsArrival.length > 0 ? (
+                <select
+                  value={flightArrival}
+                  onChange={(e) => setFlightArrival(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                >
+                  <option value="">
+                    {lang === 'tr' ? 'Uçuş seçin' : lang === 'zh' ? '选择航班' : 'Select flight'}
+                  </option>
+                  {flightsArrival.map((f) => (
+                    <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
+                  ))}
+                  <option value="__manual__">
+                    {lang === 'tr' ? 'Manuel uçuş kodu gir' : lang === 'zh' ? '手动输入航班号' : 'Enter flight code manually'}
+                  </option>
+                </select>
+              ) : null}
+              {(flightsArrival.length === 0 || flightArrival === '__manual__') && (
+                <input
+                  type="text"
+                  value={flightArrival === '__manual__' ? '' : flightArrival}
+                  onChange={(e) => setFlightArrival(e.target.value)}
+                  placeholder={lang === 'tr' ? 'örn. TK 2000' : 'e.g. TK 2000'}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsArrival.length > 0 ? 8 : 0 }}
+                />
+              )}
             </div>
           )}
           {(selectedDirection === 'departure' || selectedDirection === 'roundtrip') && (
             <div style={{ marginBottom: 'var(--space-md)' }}>
-              <label className="form-label">{t.flightDeparture}</label>
-              <input
-                type="text"
-                list="flights-departure"
-                value={flightDeparture}
-                onChange={(e) => setFlightDeparture(e.target.value)}
-                placeholder="e.g. TK 2001"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
-              />
-              <datalist id="flights-departure">
-                {flightsDeparture.map((f) => (
-                  <option key={f.id} value={f.code}>{f.airline}</option>
-                ))}
-              </datalist>
+              <label className="form-label">{t.flightDeparture} *</label>
+              {flightsDeparture.length > 0 ? (
+                <select
+                  value={flightDeparture}
+                  onChange={(e) => setFlightDeparture(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                >
+                  <option value="">
+                    {lang === 'tr' ? 'Uçuş seçin' : lang === 'zh' ? '选择航班' : 'Select flight'}
+                  </option>
+                  {flightsDeparture.map((f) => (
+                    <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
+                  ))}
+                  <option value="__manual__">
+                    {lang === 'tr' ? 'Manuel uçuş kodu gir' : lang === 'zh' ? '手动输入航班号' : 'Enter flight code manually'}
+                  </option>
+                </select>
+              ) : null}
+              {(flightsDeparture.length === 0 || flightDeparture === '__manual__') && (
+                <input
+                  type="text"
+                  value={flightDeparture === '__manual__' ? '' : flightDeparture}
+                  onChange={(e) => setFlightDeparture(e.target.value)}
+                  placeholder={lang === 'tr' ? 'örn. TK 2001' : 'e.g. TK 2001'}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsDeparture.length > 0 ? 8 : 0 }}
+                />
+              )}
             </div>
           )}
           <div style={{ marginBottom: 'var(--space-md)' }}>

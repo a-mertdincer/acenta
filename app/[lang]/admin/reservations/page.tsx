@@ -33,15 +33,24 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function parseOptionsJson(optionsStr: string | null): { title: string; price: number }[] {
+function parseOptionsJson(
+  optionsStr: string | null
+): { title: string; price: number; quantity: number; pricingMode: 'per_person' | 'flat' | 'per_unit' }[] {
   if (!optionsStr?.trim()) return [];
   try {
     const arr = JSON.parse(optionsStr);
     if (!Array.isArray(arr)) return [];
-    return arr.map((o: { title?: string; price?: number }) => ({
-      title: o?.title ?? '',
-      price: typeof o?.price === 'number' ? o.price : 0,
-    }));
+    return arr.map((o: { title?: string; price?: number; quantity?: number; pricingMode?: string }) => {
+      const mode: 'per_person' | 'flat' | 'per_unit' =
+        o?.pricingMode === 'flat' ? 'flat' : o?.pricingMode === 'per_unit' ? 'per_unit' : 'per_person';
+      const qty = typeof o?.quantity === 'number' && o.quantity > 0 ? o.quantity : 1;
+      return {
+        title: o?.title ?? '',
+        price: typeof o?.price === 'number' ? o.price : 0,
+        quantity: qty,
+        pricingMode: mode,
+      };
+    });
   } catch {
     return [];
   }
@@ -943,17 +952,24 @@ export default function AdminReservationsPage() {
                             )}
                             <div className="admin-expand-section" style={{ gridColumn: optionsList.length ? '1 / -1' : undefined }}>
                               <h4>Seçilen opsiyonlar</h4>
-                              <p>
-                                {optionsList.length
-                                  ? optionsList.map((o, i) => (
-                                      <span key={i}>
+                              {optionsList.length === 0 ? (
+                                <p>—</p>
+                              ) : (
+                                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                  {optionsList.map((o, i) => {
+                                    const lineTotal = o.price * o.quantity;
+                                    const showQty = o.pricingMode !== 'flat';
+                                    return (
+                                      <li key={i}>
                                         {o.title}
                                         {o.price ? ` (+€${o.price})` : ''}
-                                        {i < optionsList.length - 1 ? ', ' : ''}
-                                      </span>
-                                    ))
-                                  : '—'}
-                              </p>
+                                        {showQty ? ` × ${o.quantity}` : ''}
+                                        {o.price && (showQty || o.quantity > 1) ? ` = €${lineTotal}` : ''}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
                             {(res.cancellationRequestedAt || res.updateRequestedAt) && (
                               <div className="admin-expand-section" style={{ gridColumn: '1 / -1', border: '1px solid var(--color-border)', borderRadius: 10, padding: 'var(--space-md)', background: '#fff7ed' }}>

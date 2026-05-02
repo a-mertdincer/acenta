@@ -435,7 +435,8 @@ function ProductVariantBookingCardInner({
   }, [tourId, selectedDate, total]);
 
   const payTotal = promoPreview && promoPreview.discount > 0 ? promoPreview.final : total;
-  const promoDict = (DICTS[lang] as { promotion?: { off?: string } }).promotion;
+  const dictForPromo = lang === 'tr' ? DICTS.tr : lang === 'zh' ? DICTS.zh : DICTS.en;
+  const promoDict = (dictForPromo as { promotion?: { off?: string } }).promotion;
 
   const handleAddToCart = () => {
     if (!activeVariant) {

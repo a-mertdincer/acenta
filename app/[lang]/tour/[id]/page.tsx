@@ -782,7 +782,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <ProductVariantBookingCard
                                 tourId={tour.id}
                                 tourType={tour.type}
-                                lang={lang as Lang}
+                                lang={locale}
                                 isAskForPrice={isAskForPrice}
                                 whyBook={whyBook}
                                 tourCancellationLabels={tourCancellation}

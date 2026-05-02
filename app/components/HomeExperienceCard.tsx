@@ -52,7 +52,7 @@ export function HomeExperienceCard({
   const shownOriginal = originalPrice ?? price;
 
   return (
-    <div className="card card-hover">
+    <div className="card card-hover home-experience-card">
       <Link href={`/${lang}/tour/${tourId}`} className="card-image-link">
         <div className="card-image-wrap">
           <img
@@ -71,12 +71,16 @@ export function HomeExperienceCard({
         </div>
       </Link>
       <div className="card-body">
-        {categoryBadge ? <span className="tour-type-badge">{categoryBadge}</span> : null}
-        {salesTags && salesTags.length > 0 ? (
-          <TourTagBadges tagSlugs={salesTags} lang={lang} variant="card" max={2} />
-        ) : null}
-        <h3>{title}</h3>
-        <p className="card-desc">{desc}</p>
+        <div className="home-experience-card-category-row">
+          {categoryBadge ? <span className="tour-type-badge">{categoryBadge}</span> : null}
+        </div>
+        <div className="home-experience-card-tags-row">
+          {salesTags && salesTags.length > 0 ? (
+            <TourTagBadges tagSlugs={salesTags} lang={lang} variant="card" max={2} />
+          ) : null}
+        </div>
+        <h3 className="home-experience-card-title">{title}</h3>
+        <p className="card-desc home-experience-card-desc">{desc}</p>
         <div className="card-footer">
           <span className="card-price">
             {isAskForPrice ? (

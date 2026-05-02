@@ -976,6 +976,111 @@ main {
   50% { transform: rotate(45deg) translateY(8px); }
 }
 
+/* Home featured / packages — carousel (arrow paging, slide transition) */
+.home-tour-carousel {
+  margin-top: var(--space-lg);
+}
+.home-tour-carousel__chrome {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+  width: 100%;
+}
+.home-tour-carousel__arrow-placeholder {
+  flex: 0 0 48px;
+  width: 48px;
+  flex-shrink: 0;
+}
+.home-tour-carousel__arrow {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-light, #fff);
+  color: var(--color-text-main);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+.home-tour-carousel__arrow:hover {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.home-tour-carousel__viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.home-tour-carousel__pages {
+  display: flex;
+  flex-direction: row;
+  transition: transform 0.4s ease;
+}
+.home-tour-carousel__page {
+  box-sizing: border-box;
+}
+.home-tour-carousel__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+  align-items: stretch;
+  width: 100%;
+}
+.home-tour-carousel__grid > .card {
+  min-width: 0;
+}
+.home-tour-carousel__dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--space-md);
+}
+.home-tour-carousel__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-border);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    width var(--transition-fast),
+    border-radius var(--transition-fast);
+}
+.home-tour-carousel__dot.is-active {
+  background: var(--color-primary);
+  width: 22px;
+  border-radius: 4px;
+}
+@media (max-width: 768px) {
+  .home-tour-carousel__arrow,
+  .home-tour-carousel__arrow-placeholder {
+    flex-basis: 40px;
+    width: 40px;
+  }
+  .home-tour-carousel__arrow {
+    height: 40px;
+  }
+  .home-tour-carousel__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+}
+
 /* Home experience cards — depth, hover lift, image zoom */
 .home-cards {
   display: grid;
@@ -1361,6 +1466,63 @@ main {
   padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
 }
+.home-experience-card.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.home-experience-card .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--space-xs);
+  min-height: 0;
+}
+.home-experience-card .card-image-wrap {
+  aspect-ratio: 4 / 3;
+}
+.home-experience-card-category-row {
+  min-height: 22px;
+}
+.home-experience-card-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  min-height: 26px;
+}
+.home-experience-card-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: calc(1.3em * 2);
+  flex-shrink: 0;
+}
+.home-experience-card .home-experience-card-desc.card-desc {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 0;
+}
+.home-experience-card .card-footer {
+  margin-top: auto;
+}
+@media (max-width: 768px) {
+  .home-experience-card-tags-row {
+    display: none;
+  }
+  .home-experience-card .home-experience-card-desc {
+    display: none;
+  }
+}
 .card-price {
   font-weight: 600;
   color: var(--color-primary);
@@ -1427,6 +1589,8 @@ main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
   transition: box-shadow var(--transition-normal);
 }
 .tour-card-clickable .tour-card-link-area {
@@ -1434,19 +1598,24 @@ main {
   text-decoration: none;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100%;
 }
 .tour-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card-hover);
 }
 .tour-card-image-wrap {
   position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 .tour-card .tour-card-image {
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  height: 220px;
-  flex-shrink: 0;
+  height: auto;
 }
 .tour-card-image-img {
   position: absolute;
@@ -1460,7 +1629,22 @@ main {
   display: flex;
   flex-direction: column;
   flex: 1;
+  gap: var(--space-xs);
+  min-height: 0;
 }
+.tour-card-category-row {
+  min-height: 26px;
+  margin-bottom: 2px;
+}
+.tour-card-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  min-height: 26px;
+  margin-bottom: var(--space-xs);
+}
+/* Attractions listing still uses legacy header layout */
 .tour-card-header {
   display: flex;
   justify-content: space-between;
@@ -1474,6 +1658,13 @@ main {
   font-weight: 700;
   color: var(--color-text-main);
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: calc(1.3em * 2);
+  flex-shrink: 0;
 }
 .tour-type-badge {
   background-color: var(--color-primary);
@@ -1488,10 +1679,12 @@ main {
   color: var(--color-text-muted);
   font-size: 0.95rem;
   line-height: 1.45;
-  margin: 0 0 var(--space-md);
-  flex: 1;
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1655,6 +1848,11 @@ main {
 
 /* Mobile tours-grid: compact two-card layout with gentle edge padding,
    smaller image / type badge / title / price / CTA so both cards breathe. */
+@media (max-width: 768px) {
+  .tour-card-tags-row {
+    display: none;
+  }
+}
 @media (max-width: 640px) {
   .tours-page {
     padding: var(--space-lg) 0;
@@ -1663,21 +1861,16 @@ main {
     gap: 10px;
     padding: 0 4px;
   }
-  .tours-grid .tour-card .tour-card-image {
-    height: 120px;
-  }
   .tours-grid .tour-card-body {
     padding: 10px 10px 12px;
   }
-  .tours-grid .tour-card-header {
-    gap: 6px;
-    margin-bottom: 6px;
-    flex-direction: column;
-    align-items: flex-start;
+  .tours-grid .tour-card-category-row {
+    margin-bottom: 4px;
   }
   .tours-grid .tour-card-title {
     font-size: 0.88rem;
     line-height: 1.25;
+    height: calc(1.25em * 2);
   }
   .tours-grid .tour-type-badge {
     font-size: 0.62rem;

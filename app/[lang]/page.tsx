@@ -1,6 +1,7 @@
 import { getDictionary } from '../dictionaries/getDictionary';
 import { getHeroPath, getHeroFallback, getTourImagePath, getTourImageFallback } from '../../lib/imagePaths';
 import { HomeHero } from '../components/HomeHero';
+import { HomeTourCarousel, type HomeCarouselTourItem } from '../components/HomeTourCarousel';
 import { HomeExperienceCard } from '../components/HomeExperienceCard';
 import { HomeCta } from '../components/HomeCta';
 import { getTours } from '../actions/tours';
@@ -40,6 +41,8 @@ const FALLBACK_HOME: Record<string, string> = {
   packagesTitle: 'Packages & Combos',
   moreExperiencesTitle: 'More Experiences',
   attractionsCarouselTitle: 'Highlights',
+  carouselPrev: 'Previous tours',
+  carouselNext: 'Next tours',
   stats1Head: '30+',
   stats1Sub: 'Tours & Experiences',
   stats2Head: 'Local Team',
@@ -281,10 +284,10 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   );
   const featuredPool = sortedByNewest.filter((t) => t.isFeatured);
   const bestSelling =
-    featuredPool.length > 0 ? featuredPool.slice(0, 4) : sortedByNewest.slice(0, 4);
+    featuredPool.length > 0 ? featuredPool.slice(0, 8) : sortedByNewest.slice(0, 8);
   const bestIds = new Set(bestSelling.map((t) => t.id));
 
-  const packageTours = sortedByNewest.filter((t) => t.category === 'packages').filter((t) => !bestIds.has(t.id)).slice(0, 4);
+  const packageTours = sortedByNewest.filter((t) => t.category === 'packages').filter((t) => !bestIds.has(t.id)).slice(0, 8);
   const packageIds = new Set(packageTours.map((t) => t.id));
   const stripIds = new Set([...bestIds, ...packageIds]);
   const moreTours = sortedByNewest.filter((t) => !stripIds.has(t.id));
@@ -323,8 +326,31 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     };
   });
 
-  const renderTourRow = (tourList: typeof tours, scrollClass: boolean) => (
-    <div className={scrollClass ? 'home-cards home-cards--scroll' : 'home-cards'}>
+  const mapToursToCarouselItems = (tourList: typeof tours): HomeCarouselTourItem[] =>
+    tourList.map((tour) => {
+      const categorySlug = tour.category ?? 'daily-tours';
+      const category = defaultDestination?.categories.find((c) => c.slug === categorySlug || c.id === categorySlug);
+      const categoryBadge = category ? getCategoryLabel(category, lang as Lang) : '';
+      return {
+        id: tour.id,
+        slug: tour.slug,
+        title: tour.title,
+        desc: tour.desc,
+        categoryBadge,
+        imageSrc: tour.imageSrc,
+        imageFallback: tour.imageFallback,
+        price: tour.price,
+        isAskForPrice: tour.isAskForPrice,
+        originalPrice: tour.originalPrice,
+        discountedPrice: tour.discountedPrice,
+        percentLabel: tour.percentLabel,
+        discountAmount: tour.discountAmount,
+        salesTags: tour.salesTags,
+      };
+    });
+
+  const renderTourRow = (tourList: typeof tours) => (
+    <div className="home-cards">
       {tourList.map((tour) => {
         const categorySlug = tour.category ?? 'daily-tours';
         const category = defaultDestination?.categories.find((c) => c.slug === categorySlug || c.id === categorySlug);
@@ -375,7 +401,15 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
       <section className="home-experiences page-section section-alt">
         <div className="container">
           <h2 className="home-section-title">{homeDict.bestSellingTours ?? FALLBACK_HOME.bestSellingTours}</h2>
-          {renderTourRow(bestSelling, true)}
+          <HomeTourCarousel
+            lang={lang}
+            items={mapToursToCarouselItems(bestSelling)}
+            fromLabel={homeDict.from ?? FALLBACK_HOME.from}
+            bookLabel={bookNowLabel}
+            askForPriceLabel={askForPriceButton}
+            prevAriaLabel={homeDict.carouselPrev ?? FALLBACK_HOME.carouselPrev}
+            nextAriaLabel={homeDict.carouselNext ?? FALLBACK_HOME.carouselNext}
+          />
         </div>
       </section>
 
@@ -385,7 +419,15 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         <section className="home-experiences page-section">
           <div className="container">
             <h2 className="home-section-title">{homeDict.packagesTitle ?? FALLBACK_HOME.packagesTitle}</h2>
-            {renderTourRow(packageTours, true)}
+            <HomeTourCarousel
+              lang={lang}
+              items={mapToursToCarouselItems(packageTours)}
+              fromLabel={homeDict.from ?? FALLBACK_HOME.from}
+              bookLabel={bookNowLabel}
+              askForPriceLabel={askForPriceButton}
+              prevAriaLabel={homeDict.carouselPrev ?? FALLBACK_HOME.carouselPrev}
+              nextAriaLabel={homeDict.carouselNext ?? FALLBACK_HOME.carouselNext}
+            />
           </div>
         </section>
       ) : null}
@@ -394,7 +436,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         <section className="home-experiences page-section section-alt home-experiences--more">
           <div className="container">
             <h2 className="home-section-title">{homeDict.moreExperiencesTitle ?? FALLBACK_HOME.moreExperiencesTitle}</h2>
-            {renderTourRow(moreTours, false)}
+            {renderTourRow(moreTours)}
           </div>
         </section>
       ) : null}

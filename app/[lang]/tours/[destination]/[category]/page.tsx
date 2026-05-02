@@ -153,13 +153,15 @@ export default async function ToursCategoryPage(props: {
                     ) : null}
                   </div>
                   <div className="tour-card-body">
-                    <div className="tour-card-header">
-                      <h2 className="tour-card-title">{title}</h2>
+                    <div className="tour-card-category-row">
                       <span className="tour-type-badge">{badgeCategory ? getCategoryLabel(badgeCategory, lang) : tour.type}</span>
                     </div>
-                    {tour.salesTags && tour.salesTags.length > 0 ? (
-                      <TourTagBadges tagSlugs={tour.salesTags} lang={lang} variant="card" max={2} />
-                    ) : null}
+                    <div className="tour-card-tags-row">
+                      {tour.salesTags && tour.salesTags.length > 0 ? (
+                        <TourTagBadges tagSlugs={tour.salesTags} lang={lang} variant="card" max={2} />
+                      ) : null}
+                    </div>
+                    <h2 className="tour-card-title">{title}</h2>
                     <p className="tour-card-desc">{desc}</p>
                     <div className="tour-card-footer">
                       {(() => {

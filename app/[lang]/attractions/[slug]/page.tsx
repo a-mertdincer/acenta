@@ -65,13 +65,15 @@ export default async function AttractionDetailPage(props: {
           return (
             <article key={tour.id} className="tour-card tour-card-clickable">
               <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={tourTitle}>
-                <div className="tour-card-image">
-                  <TourCardImageWithFallback
-                    primaryUrl={tour.primaryImage}
-                    tourType={tour.type}
-                    alt={tourTitle}
-                    className="tour-card-image-img"
-                  />
+                <div className="tour-card-image-wrap">
+                  <div className="tour-card-image">
+                    <TourCardImageWithFallback
+                      primaryUrl={tour.primaryImage}
+                      tourType={tour.type}
+                      alt={tourTitle}
+                      className="tour-card-image-img"
+                    />
+                  </div>
                 </div>
                 <div className="tour-card-body">
                   <div className="tour-card-header">

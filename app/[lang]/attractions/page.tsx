@@ -28,12 +28,14 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
           return (
             <article key={row.id} className="tour-card tour-card-clickable">
               <Link href={`/${lang}/attractions/${row.slug}`} className="tour-card-link-area" aria-label={name}>
-                <div className="tour-card-image">
-                  <img
-                    src={row.imageUrl ?? DEFAULT_ACTIVITY_CARD_IMAGE}
-                    alt={name}
-                    className="tour-card-image-img"
-                  />
+                <div className="tour-card-image-wrap">
+                  <div className="tour-card-image">
+                    <img
+                      src={row.imageUrl ?? DEFAULT_ACTIVITY_CARD_IMAGE}
+                      alt={name}
+                      className="tour-card-image-img"
+                    />
+                  </div>
                 </div>
                 <div className="tour-card-body">
                   <div className="tour-card-header">

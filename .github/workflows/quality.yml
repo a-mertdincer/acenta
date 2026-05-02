@@ -1,1 +1,119 @@
+name: Quality Check
 
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+# Aynı branch'e arka arkaya push gelirse eski koşuları iptal et — gereksiz CI yükü ve mail spam'i azaltır
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+# Notifications:
+# - Pull request fail → otomatik PR'da görünür, ayrıca mail gelmez (default GitHub davranışı)
+# - main/develop fail → admin maili
+# Mail spam'ini azaltmak için: Settings → Notifications → "Send notifications for failed workflows only" zaten default
+
+jobs:
+  # 1. TypeScript + ESLint hızlı check (build'e geçmeden hatalı kod yakalansın)
+  static-checks:
+    name: TypeScript & ESLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # postinstall hook package.json'da → otomatik prisma generate
+        # Eğer postinstall yoksa veya dotenv/db hatası alıyorsa fallback olarak aşağıda elle çağırıyoruz
+        run: npm ci
+        env:
+          # prisma.config.ts DATABASE_URL bekliyor — generate'e gerek olmayan dummy bir URL yeter
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+
+      - name: Verify Prisma Client generated
+        # postinstall çalışmadıysa explicit generate. İdempotent — zaten generate edilmişse hızlı geçer.
+        run: npx prisma generate
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+
+      - name: TypeScript check
+        run: |
+          rm -f tsconfig.tsbuildinfo
+          npx tsc --noEmit
+
+      - name: ESLint
+        run: npx eslint . --max-warnings 0
+
+  # 2. Build — yukarıdaki check'ler geçtiyse devam eder
+  build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    needs: static-checks
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+
+      - name: Build
+        # next build için gerçek DATABASE_URL gerekli olabilir (build sırasında DB query yapıyorsa)
+        # Eğer build DB'ye dokunmuyorsa dummy URL yeter
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-fake-secret-not-used' }}
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '' }}
+          NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '' }}
+
+  # 3. E2E — sadece main branch'e push olduğunda çalışır (PR'lara gerek yok)
+  # Vercel preview deployment'ı zaten preview link veriyor, bunu kullanıyoruz
+  e2e:
+    name: Playwright E2E (production smoke)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          BASE_URL: https://acenta-iota.vercel.app
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

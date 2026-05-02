@@ -31,14 +31,20 @@ type HomeTourCarouselProps = {
   nextAriaLabel: string;
 };
 
+function itemsPerPageForWidth(w: number): number {
+  if (w < 480) return 1;
+  if (w < 768) return 2;
+  if (w < 1024) return 3;
+  return 4;
+}
+
 function useItemsPerPage(): number {
   const [n, setN] = useState(4);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
-    const sync = () => setN(mq.matches ? 2 : 4);
+    const sync = () => setN(itemsPerPageForWidth(window.innerWidth));
     sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
   }, []);
   return n;
 }

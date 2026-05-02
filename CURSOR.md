@@ -201,6 +201,20 @@ Cevap belirsizse sor.
 
 Eğer ürün kartında, tur detayda, sepette, checkout'ta fiyat farklı görünüyorsa — bu fonksiyonların biri çağrılmamış demektir.
 
+## I.b Mobil breakpoint referansı (`globals.css`)
+
+Responsive düzen eklerken tek kaynak `app/globals.css` içindeki `@media` bloklarıdır. Özet karar noktaları:
+
+| Üst sınır | Ne anlama geliyor |
+|-----------|-------------------|
+| **1024px** | Tablet / dar masaüstü; bazı grid’ler 2–3 sütuna iner. |
+| **768px** | Büyük telefon / küçük tablet; nav drawer, hero stack, How It Works tek sütun vb. |
+| **640px** | “Gerçek mobil” başlangıcı; tours grid kompakt kart, footer v2 tek sütun (`.site-footer-v2-grid`). |
+| **480px** | Dar mobil; anasayfa carousel **1 kart/slide**, tour-type pill sıkılığı, stats band sıkılığı. |
+| **360px** | Çok dar ekran; gerektiğinde tours grid **tek sütun**. |
+
+Anasayfa carousel için JS tarafında `itemsPerPage`: `<480` → 1, `<768` → 2, `<1024` → 3, aksi → 4 (`HomeTourCarousel.tsx`). Carousel kartları ile liste grid kartları farklı stillenir: liste `.tours-grid` içinde sade, carousel `.home-tour-carousel` içinde geniş kartta daha zengin.
+
 ## J. Test ve Doğrulama
 
 Her promptun sonunda kontrol listesi var. Cursor:
@@ -209,6 +223,34 @@ Her promptun sonunda kontrol listesi var. Cursor:
 - Doğrulanmamış adım varsa söyle
 - Eksik gördüğün şey varsa "şunu test edemedim" de
 - "Tamam" dememeli, "şu test edildi, şu edilmedi" demelisin
+
+## K. E2E Test Yazımı
+
+Playwright testlerinde **content-based locator** (`text=...`) kullanma — pazarlama
+metinleri her revize'de değişiyor.
+
+**Onun yerine semantic locator kullan:**
+- `getByRole('heading', { level: 1 })` — h1
+- `getByRole('banner')` — header
+- `getByRole('navigation')` — nav
+- `getByRole('contentinfo')` — footer
+- `getByRole('button', { name: 'X' })` — button (link değil!)
+- `getByRole('link', { name: 'X' })` — link
+
+**Tour/attraction card'larında click etmek yerine href oku:**
+```typescript
+const href = await link.getAttribute('href');
+await page.goto(href!);
+```
+Çünkü tour-card-clickable yapısında img overlay click'i intercept ediyor.
+
+**Header'daki "Tours" buttondur, link değil** (dropdown trigger). Direkt
+`/en/tours`'a navigate ederek test et.
+
+**Vercel rewrite davranışı:** `/.env`, `/package.json` gibi yollar 200 dönebilir
+(anasayfaya rewrite). Status code yerine **içerik kontrolü** yap.
+
+**Bu yaklaşım test'lerin uzun ömürlü olmasını sağlar.**
 
 ---
 

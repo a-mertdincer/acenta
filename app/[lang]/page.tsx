@@ -42,6 +42,7 @@ const FALLBACK_HOME: Record<string, string> = {
   packagesTitle: 'Packages & Combos',
   moreExperiencesTitle: 'More Experiences',
   attractionsCarouselTitle: 'Highlights',
+  scrollHint: 'Swipe',
   carouselPrev: 'Previous tours',
   carouselNext: 'Next tours',
   stats1Head: '30+',
@@ -445,6 +446,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
         items={attractionSlides}
         imageFallback={getTourImagePath('TOUR')}
         lang={lang}
+        scrollHintLabel={homeDict.scrollHint ?? FALLBACK_HOME.scrollHint}
       />
 
       <HomeWhyChooseUs sectionTitle={homeDict.whyChooseTitle ?? FALLBACK_HOME.whyChooseTitle} items={whyItems} />

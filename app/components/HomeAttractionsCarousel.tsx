@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ChevronDown } from 'lucide-react';
 import { useMemo, useSyncExternalStore } from 'react';
 import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
 import { useScrollDrivenCarousel } from '@/lib/useScrollDrivenCarousel';
@@ -18,6 +19,8 @@ interface HomeAttractionsCarouselProps {
   items: AttractionSlide[];
   imageFallback: string;
   lang: string;
+  /** Mobile reels scroll hint (i18n) */
+  scrollHintLabel?: string;
 }
 
 const ATTR_NAV_MQ = '(max-width: 768px)';
@@ -37,7 +40,13 @@ function getAttrNavServerSnapshot() {
   return false;
 }
 
-export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: HomeAttractionsCarouselProps) {
+export function HomeAttractionsCarousel({
+  title,
+  items,
+  imageFallback,
+  lang,
+  scrollHintLabel = 'Swipe',
+}: HomeAttractionsCarouselProps) {
   const isNarrowViewport = useSyncExternalStore(
     subscribeAttrNav,
     getAttrNavSnapshot,
@@ -69,6 +78,7 @@ export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: H
         >
           <div className="home-attr-track">
             {loopItems.map((item, idx) => {
+              const showScrollHint = isNarrowViewport && idx === 0 && loopItems.length > 1;
               const body = (
                 <>
                   <div className="home-attr-img-wrap">
@@ -97,6 +107,12 @@ export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: H
                     <h3 className="home-attr-card-title">{item.name}</h3>
                     {item.description ? <p className="home-attr-card-desc">{item.description}</p> : null}
                   </div>
+                  {showScrollHint ? (
+                    <div className="home-attr-scroll-hint" aria-hidden>
+                      <ChevronDown className="home-attr-scroll-hint-icon" strokeWidth={2} />
+                      <span>{scrollHintLabel}</span>
+                    </div>
+                  ) : null}
                 </>
               );
               return item.slug ? (

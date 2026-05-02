@@ -356,7 +356,9 @@ function variantNeedsLangSlice(v: TourVariant, suffix: string): boolean {
 async function translateAllVariants(): Promise<void> {
   console.log('\n=== TOUR VARIANTS ===');
 
-  const variants = await prisma.tourVariant.findMany();
+  const variants = await prisma.tourVariant.findMany({
+    where: SPECIFIC_TOUR_ID ? { tourId: SPECIFIC_TOUR_ID } : {},
+  });
   console.log(`Found ${variants.length} variant(s)`);
 
   for (let i = 0; i < variants.length; i += 1) {
@@ -420,7 +422,9 @@ function optionNeedsLangSlice(opt: TourOption, suffix: string): boolean {
 async function translateAllOptions(): Promise<void> {
   console.log('\n=== TOUR OPTIONS ===');
 
-  const options = await prisma.tourOption.findMany();
+  const options = await prisma.tourOption.findMany({
+    where: SPECIFIC_TOUR_ID ? { tourId: SPECIFIC_TOUR_ID } : {},
+  });
   console.log(`Found ${options.length} option(s)`);
 
   let optIdx = 0;
@@ -465,6 +469,12 @@ async function translateAllOptions(): Promise<void> {
 async function main(): Promise<void> {
   if (DRY_RUN) {
     console.log('DRY RUN — no DeepL translate calls, no DB writes\n');
+  }
+
+  if (SPECIFIC_TOUR_ID) {
+    console.log(
+      `Tour scope: id=${SPECIFIC_TOUR_ID} (tours + variants/options for this tour; attractions still global)\n`
+    );
   }
 
   let usageStart: Awaited<ReturnType<typeof getDeepLUsage>> = [];

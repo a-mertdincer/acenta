@@ -54,6 +54,12 @@ export interface TourWithOptions {
   notAllowedEn?: string | null;
   notAllowedTr?: string | null;
   notAllowedZh?: string | null;
+  whatsIncludedEn?: string | null;
+  whatsIncludedTr?: string | null;
+  whatsIncludedZh?: string | null;
+  notIncludedEn?: string | null;
+  notIncludedTr?: string | null;
+  notIncludedZh?: string | null;
   faqsEn?: { question: string; answer: string }[] | null;
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
@@ -151,7 +157,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
       });
       imageMap.set(img.tourId, list);
     });
-    return tours.map((t: { id: string; type: string; slug?: string | null; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; salesTags?: unknown }) => {
+    return tours.map((t: { id: string; type: string; slug?: string | null; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; whatsIncludedEn?: string | null; whatsIncludedTr?: string | null; whatsIncludedZh?: string | null; notIncludedEn?: string | null; notIncludedTr?: string | null; notIncludedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; salesTags?: unknown }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
@@ -179,6 +185,12 @@ export async function getTours(filters?: { destination?: string; category?: stri
         notAllowedEn: t.notAllowedEn ?? null,
         notAllowedTr: t.notAllowedTr ?? null,
         notAllowedZh: t.notAllowedZh ?? null,
+        whatsIncludedEn: t.whatsIncludedEn ?? null,
+        whatsIncludedTr: t.whatsIncludedTr ?? null,
+        whatsIncludedZh: t.whatsIncludedZh ?? null,
+        notIncludedEn: t.notIncludedEn ?? null,
+        notIncludedTr: t.notIncludedTr ?? null,
+        notIncludedZh: t.notIncludedZh ?? null,
         faqsEn: Array.isArray(t.faqsEn) ? (t.faqsEn as { question: string; answer: string }[]) : null,
         faqsTr: Array.isArray(t.faqsTr) ? (t.faqsTr as { question: string; answer: string }[]) : null,
         faqsZh: Array.isArray(t.faqsZh) ? (t.faqsZh as { question: string; answer: string }[]) : null,
@@ -434,6 +446,12 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
       notAllowedEn: (tour as { notAllowedEn?: string | null }).notAllowedEn ?? null,
       notAllowedTr: (tour as { notAllowedTr?: string | null }).notAllowedTr ?? null,
       notAllowedZh: (tour as { notAllowedZh?: string | null }).notAllowedZh ?? null,
+      whatsIncludedEn: (tour as { whatsIncludedEn?: string | null }).whatsIncludedEn ?? null,
+      whatsIncludedTr: (tour as { whatsIncludedTr?: string | null }).whatsIncludedTr ?? null,
+      whatsIncludedZh: (tour as { whatsIncludedZh?: string | null }).whatsIncludedZh ?? null,
+      notIncludedEn: (tour as { notIncludedEn?: string | null }).notIncludedEn ?? null,
+      notIncludedTr: (tour as { notIncludedTr?: string | null }).notIncludedTr ?? null,
+      notIncludedZh: (tour as { notIncludedZh?: string | null }).notIncludedZh ?? null,
       faqsEn: parseFaqArray((tour as { faqsEn?: unknown }).faqsEn),
       faqsTr: parseFaqArray((tour as { faqsTr?: unknown }).faqsTr),
       faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
@@ -767,6 +785,12 @@ export type CreateTourInput = {
   notAllowedEn?: string | null;
   notAllowedTr?: string | null;
   notAllowedZh?: string | null;
+  whatsIncludedEn?: string | null;
+  whatsIncludedTr?: string | null;
+  whatsIncludedZh?: string | null;
+  notIncludedEn?: string | null;
+  notIncludedTr?: string | null;
+  notIncludedZh?: string | null;
   faqsEn?: { question: string; answer: string }[] | null;
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
@@ -831,6 +855,12 @@ export async function createTour(data: CreateTourInput): Promise<{ ok: boolean; 
         notAllowedEn: data.notAllowedEn?.trim() || null,
         notAllowedTr: data.notAllowedTr?.trim() || null,
         notAllowedZh: data.notAllowedZh?.trim() || null,
+        whatsIncludedEn: data.whatsIncludedEn?.trim() || null,
+        whatsIncludedTr: data.whatsIncludedTr?.trim() || null,
+        whatsIncludedZh: data.whatsIncludedZh?.trim() || null,
+        notIncludedEn: data.notIncludedEn?.trim() || null,
+        notIncludedTr: data.notIncludedTr?.trim() || null,
+        notIncludedZh: data.notIncludedZh?.trim() || null,
         faqsEn: jsonInputOrNull(data.faqsEn),
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),
@@ -924,6 +954,12 @@ export async function updateTour(tourId: string, data: UpdateTourInput): Promise
         notAllowedEn: data.notAllowedEn?.trim() || null,
         notAllowedTr: data.notAllowedTr?.trim() || null,
         notAllowedZh: data.notAllowedZh?.trim() || null,
+        whatsIncludedEn: data.whatsIncludedEn?.trim() || null,
+        whatsIncludedTr: data.whatsIncludedTr?.trim() || null,
+        whatsIncludedZh: data.whatsIncludedZh?.trim() || null,
+        notIncludedEn: data.notIncludedEn?.trim() || null,
+        notIncludedTr: data.notIncludedTr?.trim() || null,
+        notIncludedZh: data.notIncludedZh?.trim() || null,
         faqsEn: jsonInputOrNull(data.faqsEn),
         faqsTr: jsonInputOrNull(data.faqsTr),
         faqsZh: jsonInputOrNull(data.faqsZh),

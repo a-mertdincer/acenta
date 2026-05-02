@@ -153,6 +153,12 @@ export default function AdminToursPage() {
     const [newNotAllowedEn, setNewNotAllowedEn] = useState('');
     const [newNotAllowedTr, setNewNotAllowedTr] = useState('');
     const [newNotAllowedZh, setNewNotAllowedZh] = useState('');
+    const [newWhatsIncludedEn, setNewWhatsIncludedEn] = useState('');
+    const [newWhatsIncludedTr, setNewWhatsIncludedTr] = useState('');
+    const [newWhatsIncludedZh, setNewWhatsIncludedZh] = useState('');
+    const [newNotIncludedEn, setNewNotIncludedEn] = useState('');
+    const [newNotIncludedTr, setNewNotIncludedTr] = useState('');
+    const [newNotIncludedZh, setNewNotIncludedZh] = useState('');
     const [newFaqsEn, setNewFaqsEn] = useState<FaqItemDraft[]>([]);
     const [newFaqsTr, setNewFaqsTr] = useState<FaqItemDraft[]>([]);
     const [newFaqsZh, setNewFaqsZh] = useState<FaqItemDraft[]>([]);
@@ -207,6 +213,12 @@ export default function AdminToursPage() {
     const [tourEditNotAllowedEn, setTourEditNotAllowedEn] = useState('');
     const [tourEditNotAllowedTr, setTourEditNotAllowedTr] = useState('');
     const [tourEditNotAllowedZh, setTourEditNotAllowedZh] = useState('');
+    const [tourEditWhatsIncludedEn, setTourEditWhatsIncludedEn] = useState('');
+    const [tourEditWhatsIncludedTr, setTourEditWhatsIncludedTr] = useState('');
+    const [tourEditWhatsIncludedZh, setTourEditWhatsIncludedZh] = useState('');
+    const [tourEditNotIncludedEn, setTourEditNotIncludedEn] = useState('');
+    const [tourEditNotIncludedTr, setTourEditNotIncludedTr] = useState('');
+    const [tourEditNotIncludedZh, setTourEditNotIncludedZh] = useState('');
     const [tourEditFaqsEn, setTourEditFaqsEn] = useState<FaqItemDraft[]>([]);
     const [tourEditFaqsTr, setTourEditFaqsTr] = useState<FaqItemDraft[]>([]);
     const [tourEditFaqsZh, setTourEditFaqsZh] = useState<FaqItemDraft[]>([]);
@@ -391,6 +403,12 @@ export default function AdminToursPage() {
                 notAllowedEn?: string | null;
                 notAllowedTr?: string | null;
                 notAllowedZh?: string | null;
+                whatsIncludedEn?: string | null;
+                whatsIncludedTr?: string | null;
+                whatsIncludedZh?: string | null;
+                notIncludedEn?: string | null;
+                notIncludedTr?: string | null;
+                notIncludedZh?: string | null;
                 faqsEn?: { question: string; answer: string }[] | null;
                 faqsTr?: { question: string; answer: string }[] | null;
                 faqsZh?: { question: string; answer: string }[] | null;
@@ -434,6 +452,12 @@ export default function AdminToursPage() {
             setTourEditNotAllowedEn(rec.notAllowedEn ?? '');
             setTourEditNotAllowedTr(rec.notAllowedTr ?? '');
             setTourEditNotAllowedZh(rec.notAllowedZh ?? '');
+            setTourEditWhatsIncludedEn(rec.whatsIncludedEn ?? '');
+            setTourEditWhatsIncludedTr(rec.whatsIncludedTr ?? '');
+            setTourEditWhatsIncludedZh(rec.whatsIncludedZh ?? '');
+            setTourEditNotIncludedEn(rec.notIncludedEn ?? '');
+            setTourEditNotIncludedTr(rec.notIncludedTr ?? '');
+            setTourEditNotIncludedZh(rec.notIncludedZh ?? '');
             setTourEditFaqsEn(Array.isArray(rec.faqsEn) ? rec.faqsEn : []);
             setTourEditFaqsTr(Array.isArray(rec.faqsTr) ? rec.faqsTr : []);
             setTourEditFaqsZh(Array.isArray(rec.faqsZh) ? rec.faqsZh : []);
@@ -669,6 +693,12 @@ export default function AdminToursPage() {
             notAllowedEn: newNotAllowedEn.trim() || null,
             notAllowedTr: newNotAllowedTr.trim() || null,
             notAllowedZh: newNotAllowedZh.trim() || null,
+            whatsIncludedEn: newWhatsIncludedEn.trim() || null,
+            whatsIncludedTr: newWhatsIncludedTr.trim() || null,
+            whatsIncludedZh: newWhatsIncludedZh.trim() || null,
+            notIncludedEn: newNotIncludedEn.trim() || null,
+            notIncludedTr: newNotIncludedTr.trim() || null,
+            notIncludedZh: newNotIncludedZh.trim() || null,
             faqsEn: newFaqsEn.filter((f) => f.question.trim() && f.answer.trim()),
             faqsTr: newFaqsTr.filter((f) => f.question.trim() && f.answer.trim()),
             faqsZh: newFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
@@ -719,6 +749,12 @@ export default function AdminToursPage() {
             setNewNotAllowedEn('');
             setNewNotAllowedTr('');
             setNewNotAllowedZh('');
+            setNewWhatsIncludedEn('');
+            setNewWhatsIncludedTr('');
+            setNewWhatsIncludedZh('');
+            setNewNotIncludedEn('');
+            setNewNotIncludedTr('');
+            setNewNotIncludedZh('');
             setNewFaqsEn([]);
             setNewFaqsTr([]);
             setNewFaqsZh([]);
@@ -762,6 +798,8 @@ export default function AdminToursPage() {
             titleTr: tourEditTitleTr.trim() || tourEditTitleEn.trim(),
             titleZh: tourEditTitleZh.trim() || tourEditTitleEn.trim(),
             descEn: tourEditDescEn.trim() || '-',
+            descTr: tourEditDescTr.trim() || '-',
+            descZh: tourEditDescZh.trim() || '-',
             highlightsEn: tourEditHighlightsEn.trim() || null,
             highlightsTr: tourEditHighlightsTr.trim() || null,
             highlightsZh: tourEditHighlightsZh.trim() || null,
@@ -777,14 +815,18 @@ export default function AdminToursPage() {
             notAllowedEn: tourEditNotAllowedEn.trim() || null,
             notAllowedTr: tourEditNotAllowedTr.trim() || null,
             notAllowedZh: tourEditNotAllowedZh.trim() || null,
+            whatsIncludedEn: tourEditWhatsIncludedEn.trim() || null,
+            whatsIncludedTr: tourEditWhatsIncludedTr.trim() || null,
+            whatsIncludedZh: tourEditWhatsIncludedZh.trim() || null,
+            notIncludedEn: tourEditNotIncludedEn.trim() || null,
+            notIncludedTr: tourEditNotIncludedTr.trim() || null,
+            notIncludedZh: tourEditNotIncludedZh.trim() || null,
             faqsEn: tourEditFaqsEn.filter((f) => f.question.trim() && f.answer.trim()),
             faqsTr: tourEditFaqsTr.filter((f) => f.question.trim() && f.answer.trim()),
             faqsZh: tourEditFaqsZh.filter((f) => f.question.trim() && f.answer.trim()),
             destination: tourEditDestination,
             category: tourEditCategory || null,
             attractionIds: tourEditAttractionIds,
-            descTr: tourEditDescTr.trim() || '-',
-            descZh: tourEditDescZh.trim() || '-',
             basePrice: parseFloat(tourEditBasePrice) || 0,
             isAskForPrice: tourEditAskForPrice,
             isFeatured: tourEditFeatured,
@@ -1229,6 +1271,18 @@ export default function AdminToursPage() {
                             <textarea value={newNotAllowedTr} onChange={(e) => setNewNotAllowedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (ZH)</label>
                             <textarea value={newNotAllowedZh} onChange={(e) => setNewNotAllowedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (EN)</label>
+                            <textarea value={newWhatsIncludedEn} onChange={(e) => setNewWhatsIncludedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (TR)</label>
+                            <textarea value={newWhatsIncludedTr} onChange={(e) => setNewWhatsIncludedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (ZH)</label>
+                            <textarea value={newWhatsIncludedZh} onChange={(e) => setNewWhatsIncludedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (EN)</label>
+                            <textarea value={newNotIncludedEn} onChange={(e) => setNewNotIncludedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (TR)</label>
+                            <textarea value={newNotIncludedTr} onChange={(e) => setNewNotIncludedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (ZH)</label>
+                            <textarea value={newNotIncludedZh} onChange={(e) => setNewNotIncludedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satıra bir madde" />
                             <div style={{ marginBottom: 10 }}>
                                 <strong>FAQs (EN)</strong>
                                 <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('newEn')}>+ FAQ</Button>
@@ -1237,6 +1291,28 @@ export default function AdminToursPage() {
                                         <Input label="Question" value={faq.question} onChange={(e) => updateFaqItem('newEn', idx, 'question', e.target.value)} />
                                         <Input label="Answer" value={faq.answer} onChange={(e) => updateFaqItem('newEn', idx, 'answer', e.target.value)} />
                                         <Button type="button" variant="secondary" onClick={() => removeFaqItem('newEn', idx)}>Sil</Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginBottom: 10 }}>
+                                <strong>FAQs (TR)</strong>
+                                <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('newTr')}>+ FAQ</Button>
+                                {newFaqsTr.map((faq, idx) => (
+                                    <div key={`new-tr-${idx}`} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                                        <Input label="Soru" value={faq.question} onChange={(e) => updateFaqItem('newTr', idx, 'question', e.target.value)} />
+                                        <Input label="Cevap" value={faq.answer} onChange={(e) => updateFaqItem('newTr', idx, 'answer', e.target.value)} />
+                                        <Button type="button" variant="secondary" onClick={() => removeFaqItem('newTr', idx)}>Sil</Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginBottom: 10 }}>
+                                <strong>FAQs (ZH)</strong>
+                                <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('newZh')}>+ FAQ</Button>
+                                {newFaqsZh.map((faq, idx) => (
+                                    <div key={`new-zh-${idx}`} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                                        <Input label="问题" value={faq.question} onChange={(e) => updateFaqItem('newZh', idx, 'question', e.target.value)} />
+                                        <Input label="答案" value={faq.answer} onChange={(e) => updateFaqItem('newZh', idx, 'answer', e.target.value)} />
+                                        <Button type="button" variant="secondary" onClick={() => removeFaqItem('newZh', idx)}>Sil</Button>
                                     </div>
                                 ))}
                             </div>
@@ -1461,6 +1537,18 @@ export default function AdminToursPage() {
                             <textarea value={tourEditNotAllowedTr} onChange={(e) => setTourEditNotAllowedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} />
                             <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Allowed (ZH)</label>
                             <textarea value={tourEditNotAllowedZh} onChange={(e) => setTourEditNotAllowedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (EN)</label>
+                            <textarea value={tourEditWhatsIncludedEn} onChange={(e) => setTourEditWhatsIncludedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (TR)</label>
+                            <textarea value={tourEditWhatsIncludedTr} onChange={(e) => setTourEditWhatsIncludedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>What&apos;s Included (ZH)</label>
+                            <textarea value={tourEditWhatsIncludedZh} onChange={(e) => setTourEditWhatsIncludedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (EN)</label>
+                            <textarea value={tourEditNotIncludedEn} onChange={(e) => setTourEditNotIncludedEn(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (TR)</label>
+                            <textarea value={tourEditNotIncludedTr} onChange={(e) => setTourEditNotIncludedTr(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 8 }} placeholder="Her satıra bir madde" />
+                            <label style={{ display: 'block', marginBottom: 6, fontWeight: 'bold' }}>Not Included (ZH)</label>
+                            <textarea value={tourEditNotIncludedZh} onChange={(e) => setTourEditNotIncludedZh(e.target.value)} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', marginBottom: 12 }} placeholder="Her satıra bir madde" />
                             <div style={{ marginBottom: 10 }}>
                                 <strong>FAQs (EN)</strong>
                                 <Button type="button" variant="secondary" style={{ marginLeft: 8 }} onClick={() => addFaqItem('editEn')}>+ FAQ</Button>

@@ -14,12 +14,14 @@ type TourDetailMainColumnProps = {
   notSuitableTitle: string;
   notAllowedTitle: string;
   whatsIncludedTitle: string;
+  notIncludedTitle: string;
   itineraryItems: string[];
   highlightsItems: string[];
   knowBeforeItems: string[];
   notSuitableItems: string[];
   notAllowedItems: string[];
   whatsIncludedItems: string[];
+  notIncludedItems: string[];
   faqs: FaqItem[];
   galleryMainSrc: string;
   galleryFallback: string;
@@ -37,12 +39,14 @@ export function TourDetailMainColumn({
   notSuitableTitle,
   notAllowedTitle,
   whatsIncludedTitle,
+  notIncludedTitle,
   itineraryItems,
   highlightsItems,
   knowBeforeItems,
   notSuitableItems,
   notAllowedItems,
   whatsIncludedItems,
+  notIncludedItems,
   faqs,
   galleryMainSrc,
   galleryFallback,
@@ -136,6 +140,17 @@ export function TourDetailMainColumn({
           <ul>
             {whatsIncludedItems.map((item, idx) => (
               <li key={`wi-${idx}`}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {notIncludedItems.length > 0 ? (
+        <section className="tour-structured-section" id="not-included">
+          <h3>{notIncludedTitle}</h3>
+          <ul>
+            {notIncludedItems.map((item, idx) => (
+              <li key={`ni-${idx}`}>{item}</li>
             ))}
           </ul>
         </section>

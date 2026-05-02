@@ -1,8 +1,10 @@
 import { getDictionary } from '../../dictionaries/getDictionary';
 import Link from 'next/link';
 import { TourCardImage } from '../../components/TourCardImage';
+import { TourTagBadges } from '../../components/TourTagBadges';
 import { getTourImagePath, getTourImageFallback } from '../../../lib/imagePaths';
 import { getTours } from '../../actions/tours';
+import { getPromotionCardPrices } from '../../actions/promotions';
 import { ActivitiesDestinationSection } from '../../components/ActivitiesDestinationSection';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { getEurTryRate } from '@/lib/exchangeRate';
@@ -44,7 +46,7 @@ export default async function ToursPage(props: {
         variantFromPriceMap.set(id, minPrice);
     });
     const rateData = lang === 'tr' ? await getEurTryRate() : null;
-    const tours = dbTours.length > 0
+    const baseTours = dbTours.length > 0
         ? dbTours.map((t) => {
             const byAirport = t.transferAirportTiers;
             const allTierPrices = byAirport
@@ -58,7 +60,7 @@ export default async function ToursPage(props: {
                 type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'PACKAGE' | 'CONCIERGE',
                 titleEn: t.titleEn,
                 titleTr: t.titleTr,
-                                titleZh: t.titleZh,
+                titleZh: t.titleZh,
                 descEn: t.descEn,
                 descTr: t.descTr,
                 descZh: t.descZh,
@@ -69,9 +71,37 @@ export default async function ToursPage(props: {
                 imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
                 isAskForPrice: t.isAskForPrice ?? false,
                 slug: t.slug ?? null,
+                salesTags: Array.isArray(t.salesTags) ? t.salesTags.filter((x): x is string => typeof x === 'string') : [],
+                discountedPrice: null as number | null,
+                percentLabel: null as number | null,
+                discountAmount: 0,
             };
         })
-        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null, destination: 'cappadocia', category: t.type === 'BALLOON' ? 'balloon-flights' : t.type === 'TRANSFER' ? 'transfers' : 'daily-tours', isAskForPrice: false, slug: null }));
+        : MOCK_TOURS.map((t) => ({
+            ...t,
+            fromPrice: t.basePrice,
+            imageUrl: null,
+            destination: 'cappadocia',
+            category: t.type === 'BALLOON' ? 'balloon-flights' : t.type === 'TRANSFER' ? 'transfers' : 'daily-tours',
+            isAskForPrice: false,
+            slug: null,
+            salesTags: [] as string[],
+            discountedPrice: null as number | null,
+            percentLabel: null as number | null,
+            discountAmount: 0,
+        }));
+
+    const promoEntries = baseTours
+        .filter((t) => !t.isAskForPrice && t.fromPrice > 0)
+        .map((t) => ({ tourId: t.id, rackPrice: t.fromPrice }));
+    const promoMap = promoEntries.length > 0 ? await getPromotionCardPrices(promoEntries, new Date()) : null;
+    const tours = promoMap
+        ? baseTours.map((t) => {
+            const p = promoMap.get(t.id);
+            if (!p || p.discount <= 0) return t;
+            return { ...t, discountedPrice: p.final, percentLabel: p.percentLabel, discountAmount: p.discount };
+        })
+        : baseTours;
 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
     const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
@@ -113,36 +143,60 @@ export default async function ToursPage(props: {
                     const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
                     const category = tour.category ? getCategoryBySlug(tour.destination ?? 'cappadocia', tour.category) : null;
                     const categoryBadge = category ? getCategoryLabel(category, lang) : tour.type;
+                    const isAsk = Boolean(tour.isAskForPrice);
+                    const fromP = Number(tour.fromPrice ?? tour.basePrice);
+                    const hasDiscount = !isAsk && tour.discountedPrice != null && tour.discountAmount > 0;
+                    const shownOriginal = formatPriceByLang(fromP, lang, rateData?.rate ?? null);
+                    const shownDiscounted = hasDiscount
+                      ? formatPriceByLang(Number(tour.discountedPrice), lang, rateData?.rate ?? null)
+                      : null;
                     return (
                         <article key={tour.id} className="tour-card tour-card-clickable">
                             <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={title}>
-                            <TourCardImage
-                                src={tour.imageUrl ?? getTourImagePath(tour.type)}
-                                fallback={getTourImageFallback(tour.type)}
-                                alt={title}
-                            />
+                            <div className="tour-card-image-wrap">
+                                <TourCardImage
+                                    src={tour.imageUrl ?? getTourImagePath(tour.type)}
+                                    fallback={getTourImageFallback(tour.type)}
+                                    alt={title}
+                                />
+                                {isAsk ? (
+                                  <span className="card-price-badge">{askForPriceLabel}</span>
+                                ) : hasDiscount ? (
+                                  <span className="card-promo-badge">
+                                    {tour.percentLabel != null ? `-${tour.percentLabel}%` : `Save €${tour.discountAmount}`}
+                                  </span>
+                                ) : null}
+                            </div>
                             <div className="tour-card-body">
                                 <div className="tour-card-header">
                                     <h2 className="tour-card-title">{title}</h2>
                                     <span className="tour-type-badge">{categoryBadge}</span>
                                 </div>
+                                {tour.salesTags && tour.salesTags.length > 0 ? (
+                                  <TourTagBadges tagSlugs={tour.salesTags} lang={lang} variant="card" max={2} />
+                                ) : null}
                                 <p className="tour-card-desc">{desc}</p>
                                 <div className="tour-card-footer">
-                                    {(() => {
-                                      const isAsk = Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice);
-                                      const fromP = Number((tour as { fromPrice?: number }).fromPrice ?? tour.basePrice);
-                                      const shown = formatPriceByLang(fromP, lang, rateData?.rate ?? null);
-                                      return (
-                                        <span className="tour-card-price">
-                                          {isAsk
-                                            ? askForPriceLabel
-                                            : fromP > 0
-                                              ? `${dict.home.from} ${shown.primary}`
-                                              : contactForPriceLabel}
-                                          {!isAsk && shown.secondary ? <small className="tour-card-price-secondary">{shown.secondary}</small> : null}
-                                        </span>
-                                      );
-                                    })()}
+                                    <span className="tour-card-price">
+                                      {isAsk ? (
+                                        askForPriceLabel
+                                      ) : fromP > 0 ? (
+                                        hasDiscount && shownDiscounted ? (
+                                          <>
+                                            <span className="card-price-old">{shownOriginal.primary}</span>{' '}
+                                            <span className="card-price-new">{dict.home.from} {shownDiscounted.primary}</span>
+                                            {shownDiscounted.secondary ? <small className="tour-card-price-secondary">{shownDiscounted.secondary}</small> : null}
+                                          </>
+                                        ) : (
+                                          <>
+                                            {dict.home.from} {shownOriginal.primary}
+                                            {shownOriginal.secondary ? <small className="tour-card-price-secondary">{shownOriginal.secondary}</small> : null}
+                                          </>
+                                        )
+                                      ) : (
+                                        contactForPriceLabel
+                                      )}
+                                    </span>
                                     <span className="btn btn-primary tour-card-cta">{bookNowLabel}</span>
                                 </div>
                             </div>

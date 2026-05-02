@@ -300,6 +300,7 @@ export async function deletePromotionAdmin(id: string): Promise<{ ok: boolean; e
 
 function revalidatePromotionPaths() {
   for (const lang of SUPPORTED_LOCALES) {
+    revalidatePath(`/${lang}`, 'page');
     revalidatePath(`/${lang}/tours`, 'layout');
     revalidatePath(`/${lang}/tour`, 'layout');
     revalidatePath(`/${lang}/checkout`, 'page');

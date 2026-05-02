@@ -18,6 +18,7 @@ import { formatPriceByLang } from '@/lib/currency';
 import { getTourWithVariants } from '@/app/actions/variants';
 import { getTierFromPrice } from '@/lib/pricingTiers';
 import { getPromotionCardPrices } from '@/app/actions/promotions';
+import { TourTagBadges } from '@/app/components/TourTagBadges';
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string; destination: string; category: string }>;
@@ -90,6 +91,7 @@ export default async function ToursCategoryPage(props: {
       imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
       destination: t.destination ?? destination,
       category: t.category ?? category,
+      salesTags: Array.isArray(t.salesTags) ? t.salesTags.filter((x): x is string => typeof x === 'string') : [],
     };
   });
 
@@ -130,19 +132,34 @@ export default async function ToursCategoryPage(props: {
               const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
               const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
               const badgeCategory = tour.category ? getCategoryBySlug(tour.destination ?? destination, tour.category) : null;
+              const isAskTopBadge = tour.isAskForPrice ?? false;
+              const promoTopBadge = promoMap.get(tour.id);
+              const hasPromoTopBadge = !isAskTopBadge && promoTopBadge && promoTopBadge.discount > 0;
               return (
                 <article key={tour.id} className="tour-card tour-card-clickable">
                   <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={title}>
-                  <TourCardImage
-                    src={tour.imageUrl ?? getTourImagePath(tour.type)}
-                    fallback={getTourImageFallback(tour.type)}
-                    alt={title}
-                  />
+                  <div className="tour-card-image-wrap">
+                    <TourCardImage
+                      src={tour.imageUrl ?? getTourImagePath(tour.type)}
+                      fallback={getTourImageFallback(tour.type)}
+                      alt={title}
+                    />
+                    {isAskTopBadge ? (
+                      <span className="card-price-badge">{askForPriceLabel}</span>
+                    ) : hasPromoTopBadge ? (
+                      <span className="card-promo-badge">
+                        {promoTopBadge.percentLabel != null ? `-${promoTopBadge.percentLabel}%` : `Save €${promoTopBadge.discount}`}
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="tour-card-body">
                     <div className="tour-card-header">
                       <h2 className="tour-card-title">{title}</h2>
                       <span className="tour-type-badge">{badgeCategory ? getCategoryLabel(badgeCategory, lang) : tour.type}</span>
                     </div>
+                    {tour.salesTags && tour.salesTags.length > 0 ? (
+                      <TourTagBadges tagSlugs={tour.salesTags} lang={lang} variant="card" max={2} />
+                    ) : null}
                     <p className="tour-card-desc">{desc}</p>
                     <div className="tour-card-footer">
                       {(() => {

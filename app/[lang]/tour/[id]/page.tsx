@@ -142,6 +142,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
   notSuitable: string;
   notAllowed: string;
   whatsIncluded: string;
+  notIncluded: string;
   gallery: string;
 }> = {
   en: {
@@ -178,6 +179,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     notSuitable: 'Not Suitable For',
     notAllowed: 'Not Allowed',
     whatsIncluded: "What's included",
+    notIncluded: 'Not included',
     gallery: 'Gallery',
   },
   tr: {
@@ -214,6 +216,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     notSuitable: 'Uygun Olmayanlar',
     notAllowed: 'İzin Verilmeyenler',
     whatsIncluded: 'Dahil Olanlar',
+    notIncluded: 'Dahil Olmayanlar',
     gallery: 'Galeri',
   },
   zh: {
@@ -250,6 +253,7 @@ const TOUR_DETAIL_STRINGS: Record<Lang, {
     notSuitable: '不适合人群',
     notAllowed: '禁止事项',
     whatsIncluded: '包含项目',
+    notIncluded: '不包含项目',
     gallery: '图库',
   },
 };
@@ -364,6 +368,12 @@ function mapDbTourToState(db: {
   notAllowedEn?: string | null;
   notAllowedTr?: string | null;
   notAllowedZh?: string | null;
+  whatsIncludedEn?: string | null;
+  whatsIncludedTr?: string | null;
+  whatsIncludedZh?: string | null;
+  notIncludedEn?: string | null;
+  notIncludedTr?: string | null;
+  notIncludedZh?: string | null;
   faqsEn?: { question: string; answer: string }[] | null;
   faqsTr?: { question: string; answer: string }[] | null;
   faqsZh?: { question: string; answer: string }[] | null;
@@ -398,6 +408,8 @@ function mapDbTourToState(db: {
     knowBefore: getLocalizedContent(_lang, db.knowBeforeEn, db.knowBeforeTr, db.knowBeforeZh),
     notSuitable: getLocalizedContent(_lang, db.notSuitableEn, db.notSuitableTr, db.notSuitableZh),
     notAllowed: getLocalizedContent(_lang, db.notAllowedEn, db.notAllowedTr, db.notAllowedZh),
+    whatsIncluded: getLocalizedContent(_lang, db.whatsIncludedEn, db.whatsIncludedTr, db.whatsIncludedZh),
+    notIncluded: getLocalizedContent(_lang, db.notIncludedEn, db.notIncludedTr, db.notIncludedZh),
     faqs: getLocalizedFaqs(_lang, db.faqsEn, db.faqsTr, db.faqsZh),
     basePrice: db.basePrice,
     transferTiers: db.transferTiers ?? null,
@@ -644,12 +656,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const notSuitableItems = parseLineList(tour.notSuitable);
     const notAllowedItems = parseLineList(tour.notAllowed);
     const isAskForPrice = Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice);
+    const tourLevelWhatsIncluded = parseLineList((tour as { whatsIncluded?: string | null }).whatsIncluded);
     const whatsIncludedItems: string[] = (() => {
+      if (tourLevelWhatsIncluded.length > 0) return tourLevelWhatsIncluded;
       if (!tourWithVariants?.variants?.length) return [];
       const v = tourWithVariants.variants.find((x) => x.isRecommended) ?? tourWithVariants.variants[0];
       const inc = v?.includes;
       return Array.isArray(inc) ? inc.filter((x: unknown): x is string => typeof x === 'string') : [];
     })();
+    const notIncludedItems = parseLineList((tour as { notIncluded?: string | null }).notIncluded);
     const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
     const bookNavLabel = lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now';
     const faqNavLabel = 'FAQs';
@@ -665,6 +680,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     if (notSuitableItems.length > 0) anchorSections.push({ id: 'not-suitable', label: t.notSuitable });
     if (notAllowedItems.length > 0) anchorSections.push({ id: 'not-allowed', label: t.notAllowed });
     if (whatsIncludedItems.length > 0) anchorSections.push({ id: 'whats-included', label: t.whatsIncluded });
+    if (notIncludedItems.length > 0) anchorSections.push({ id: 'not-included', label: t.notIncluded });
     if (faqs.length > 0) anchorSections.push({ id: 'faqs', label: faqNavLabel });
 
     const askPriceLabel = locale === 'tr' ? 'Fiyat Sorun' : locale === 'zh' ? '询价' : 'Ask for Price';
@@ -740,12 +756,14 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                               notSuitableTitle={t.notSuitable}
                               notAllowedTitle={t.notAllowed}
                               whatsIncludedTitle={t.whatsIncluded}
+                              notIncludedTitle={t.notIncluded}
                               itineraryItems={itineraryItems}
                               highlightsItems={highlightsItems}
                               knowBeforeItems={knowBeforeItems}
                               notSuitableItems={notSuitableItems}
                               notAllowedItems={notAllowedItems}
                               whatsIncludedItems={whatsIncludedItems}
+                              notIncludedItems={notIncludedItems}
                               faqs={faqs}
                               galleryMainSrc={galleryMainSrc}
                               galleryFallback={galleryFallback}
@@ -810,12 +828,14 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                   notSuitableTitle={t.notSuitable}
                   notAllowedTitle={t.notAllowed}
                   whatsIncludedTitle={t.whatsIncluded}
+                  notIncludedTitle={t.notIncluded}
                   itineraryItems={itineraryItems}
                   highlightsItems={highlightsItems}
                   knowBeforeItems={knowBeforeItems}
                   notSuitableItems={notSuitableItems}
                   notAllowedItems={notAllowedItems}
                   whatsIncludedItems={whatsIncludedItems}
+                  notIncludedItems={notIncludedItems}
                   faqs={faqs}
                   galleryMainSrc={galleryMainSrc}
                   galleryFallback={galleryFallback}

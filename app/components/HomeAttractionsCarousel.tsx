@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
 
 export interface AttractionSlide {
@@ -19,11 +19,34 @@ interface HomeAttractionsCarouselProps {
   lang: string;
 }
 
+const ATTR_NAV_MQ = '(max-width: 767px)';
+
+function subscribeAttrNav(cb: () => void) {
+  const mq = window.matchMedia(ATTR_NAV_MQ);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+
+function getAttrNavSnapshot() {
+  return window.matchMedia(ATTR_NAV_MQ).matches;
+}
+
+/** SSR + first paint: desktop assumes duplicated strip (marquee). Client corrects after hydrate. */
+function getAttrNavServerSnapshot() {
+  return false;
+}
+
 export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: HomeAttractionsCarouselProps) {
+  const isNarrowViewport = useSyncExternalStore(
+    subscribeAttrNav,
+    getAttrNavSnapshot,
+    getAttrNavServerSnapshot
+  );
+
   const loopItems = useMemo(() => {
     if (items.length === 0) return [];
-    return [...items, ...items];
-  }, [items]);
+    return isNarrowViewport ? items : [...items, ...items];
+  }, [items, isNarrowViewport]);
 
   if (items.length === 0) return null;
 

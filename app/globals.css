@@ -74,6 +74,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -210,27 +211,30 @@ button, input, select, textarea {
   color: white;
 }
 
-.btn-primary:hover {
-  background: var(--color-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(196, 91, 40, 0.3);
-}
-
 .btn-secondary {
   background: transparent;
   border: 2px solid var(--color-secondary);
   color: var(--color-secondary);
 }
 
-.btn-secondary:hover {
-  background: var(--color-secondary);
-  color: white;
-  transform: translateY(-2px);
-}
-
 .btn-lg { padding: 16px 40px; font-size: 1.05rem; }
 .btn-sm { padding: 8px 20px; font-size: 0.85rem; border-radius: var(--radius-full); }
-.btn-sm:hover { transform: translateY(-1px); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(196, 91, 40, 0.3);
+  }
+  .btn-secondary:hover {
+    background: var(--color-secondary);
+    color: white;
+    transform: translateY(-2px);
+  }
+  .btn-sm:hover {
+    transform: translateY(-1px);
+  }
+}
 
 /* Cards */
 .card {
@@ -242,9 +246,11 @@ button, input, select, textarea {
   border: 1px solid var(--color-border);
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 /* Forms */
@@ -416,8 +422,10 @@ main {
   object-fit: cover;
   transition: transform var(--transition-slow);
 }
-.home-welcome-image-wrap:hover img {
-  transform: scale(1.03);
+@media (hover: hover) and (pointer: fine) {
+  .home-welcome-image-wrap:hover img {
+    transform: scale(1.03);
+  }
 }
 .home-welcome-tagline {
   font-size: 0.8rem;
@@ -570,8 +578,10 @@ main {
   display: block;
   transition: transform 0.35s ease;
 }
-.activities-slider .activity-card-slide:hover .activity-card-image-wrap img {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .activities-slider .activity-card-slide:hover .activity-card-image-wrap img {
+    transform: scale(1.05);
+  }
 }
 .activities-slider .activity-card-slide .activity-card-content {
   padding: var(--space-md) var(--space-lg);
@@ -622,15 +632,17 @@ main {
   transition: background 0.4s ease;
   pointer-events: none;
 }
-.home-activity-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  color: var(--color-secondary);
-}
-.home-activity-card:hover::before {
-  background: linear-gradient(to top, rgba(196, 91, 40, 0.08) 0%, transparent 60%);
+@media (hover: hover) and (pointer: fine) {
+  .home-activity-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-secondary);
+  }
+  .home-activity-card:hover::before {
+    background: linear-gradient(to top, rgba(196, 91, 40, 0.08) 0%, transparent 60%);
+  }
 }
 .home-activity-card[data-active='true'] {
   border-color: var(--color-primary);
@@ -672,9 +684,11 @@ main {
   display: block;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
-.home-activity-card:hover .home-activity-icon {
-  color: var(--color-accent);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .home-activity-card:hover .home-activity-icon {
+    color: var(--color-accent);
+    transform: scale(1.1);
+  }
 }
 .home-activity-label {
   position: relative;
@@ -733,8 +747,10 @@ main {
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }
-.home-whyus-item:hover .home-whyus-icon {
-  transform: scale(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .home-whyus-item:hover .home-whyus-icon {
+    transform: scale(1.08);
+  }
 }
 .home-whyus-item h3 {
   font-size: 1.2rem;
@@ -804,12 +820,14 @@ main {
   color: var(--color-bg-card);
 }
 
-.home-cta .home-cta-wa.btn-secondary:hover {
-  background: var(--color-whatsapp-hover);
-  border-color: var(--color-whatsapp-hover);
-  color: var(--color-bg-card);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
+@media (hover: hover) and (pointer: fine) {
+  .home-cta .home-cta-wa.btn-secondary:hover {
+    background: var(--color-whatsapp-hover);
+    border-color: var(--color-whatsapp-hover);
+    color: var(--color-bg-card);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35);
+  }
 }
 
 /* Home hero — full viewport, dramatic overlay */
@@ -926,10 +944,6 @@ main {
   color: white;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.home-hero-ctas .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(196, 91, 40, 0.35);
-}
 .home-hero-ctas .btn-secondary {
   padding: 14px 36px;
   font-size: 1rem;
@@ -939,10 +953,16 @@ main {
   color: white;
   transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
 }
-.home-hero-ctas .btn-secondary:hover {
-  background: white;
-  color: var(--color-secondary);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .home-hero-ctas .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(196, 91, 40, 0.35);
+  }
+  .home-hero-ctas .btn-secondary:hover {
+    background: white;
+    color: var(--color-secondary);
+    transform: translateY(-2px);
+  }
 }
 .home-hero-scroll {
   position: absolute;
@@ -1229,15 +1249,17 @@ main {
   background: linear-gradient(to top, rgba(30, 42, 56, 0.25) 0%, transparent 50%);
   pointer-events: none;
 }
-.card-hover:hover .card-image-wrap {
-  transform: scale(1.08);
-}
 .card-hover {
   transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
-.card-hover:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-card-hover);
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover .card-image-wrap {
+    transform: scale(1.08);
+  }
+  .card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-card-hover);
+  }
 }
 .card-price-badge {
   position: absolute;
@@ -1468,8 +1490,10 @@ main {
   cursor: zoom-in;
   transition: transform 0.15s ease;
 }
-.attraction-gallery-item:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .attraction-gallery-item:hover {
+    transform: translateY(-2px);
+  }
 }
 @media (max-width: 1024px) {
   .attraction-gallery {
@@ -1711,8 +1735,10 @@ main {
   min-height: 0;
   height: 100%;
 }
-.tour-card:hover {
-  box-shadow: var(--shadow-card-hover);
+@media (hover: hover) and (pointer: fine) {
+  .tour-card:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
 }
 .tour-card-image-wrap {
   position: relative;
@@ -2694,9 +2720,11 @@ main {
   transition: color var(--transition-fast), transform var(--transition-normal);
   font-size: 0.9rem;
 }
-.site-top-bar-icon:hover {
-  color: var(--color-primary);
-  transform: scale(1.15);
+@media (hover: hover) and (pointer: fine) {
+  .site-top-bar-icon:hover {
+    color: var(--color-primary);
+    transform: scale(1.15);
+  }
 }
 .site-top-bar-icon:active {
   transform: scale(1.05);
@@ -3154,9 +3182,11 @@ main {
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast), transform var(--transition-fast);
 }
-.site-footer-social-link:hover {
-  color: var(--color-gold);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .site-footer-social-link:hover {
+    color: var(--color-gold);
+    transform: scale(1.1);
+  }
 }
 .site-footer-bottom {
   padding-top: var(--space-xl);
@@ -5005,6 +5035,29 @@ main {
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .home-attr-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .home-attr-viewport::-webkit-scrollbar {
+    display: none;
+  }
+  .home-attr-track {
+    animation: none !important;
+    width: max-content;
+  }
+  .home-attr-card {
+    scroll-snap-align: start;
+    flex: 0 0 280px;
+    min-width: 0;
+  }
+}
+
 /* Why choose us grid */
 .home-trust-title {
   text-align: center;
@@ -5161,8 +5214,10 @@ main {
   transition: transform 0.15s ease;
   flex: 0 0 auto;
 }
-.site-footer-logo-slot:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .site-footer-logo-slot:hover {
+    transform: translateY(-2px);
+  }
 }
 /* Slot sizes stay small; inner images scale up to fill and overflow slightly. */
 .site-footer-logo-slot--agency {
@@ -5267,9 +5322,11 @@ main {
   line-height: 0;
 }
 
-.site-footer-logo-link:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .site-footer-logo-link:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
 }
 
 .site-footer-logo-img {
@@ -5298,9 +5355,11 @@ main {
   color: var(--color-primary);
 }
 
-.site-footer-v2-social .site-footer-social-link:hover {
-  color: var(--color-gold);
-  transform: scale(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .site-footer-v2-social .site-footer-social-link:hover {
+    color: var(--color-gold);
+    transform: scale(1.08);
+  }
 }
 @media (max-width: 1024px) {
   .site-footer-v2-grid {

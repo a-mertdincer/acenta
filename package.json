@@ -19,7 +19,8 @@
     "db:migrate": "prisma migrate deploy",
     "setup": "prisma migrate deploy && npm run seed",
     "seed:tour-images": "tsx scripts/seed-tour-images.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

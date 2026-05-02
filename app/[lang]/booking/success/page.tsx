@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getReservationDetailsByIds } from '../../../actions/reservations';
+import { getContactInfo } from '../../../actions/siteSettings';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
 import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 import { getDictionary } from '@/app/dictionaries/getDictionary';
@@ -32,6 +33,7 @@ export default async function BookingSuccessPage(props: {
   const reservations = await getReservationDetailsByIds(idList);
   if (reservations.length === 0) redirect(`/${lang}/`);
 
+  const contactInfo = await getContactInfo();
   const fromAccount = from === 'account';
 
   type ReservationDetail = Awaited<ReturnType<typeof getReservationDetailsByIds>>[number];
@@ -57,7 +59,7 @@ export default async function BookingSuccessPage(props: {
   }));
 
   if (!fromAccount) {
-    return <BookingSuccessClient lang={lang} reservations={serialized} skipLoading={fromAccount} />;
+    return <BookingSuccessClient lang={lang} reservations={serialized} skipLoading={fromAccount} contactInfo={contactInfo} />;
   }
 
   const locale = normalizeLocale(lang);
@@ -77,7 +79,7 @@ export default async function BookingSuccessPage(props: {
       <div className="container" style={{ paddingTop: 'var(--space-md)' }}>
         <Breadcrumbs items={breadcrumbItems} />
       </div>
-      <BookingSuccessClient lang={lang} reservations={serialized} skipLoading={fromAccount} />
+      <BookingSuccessClient lang={lang} reservations={serialized} skipLoading={fromAccount} contactInfo={contactInfo} />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { changeMyPassword, updateMyProfile, type AccountProfile } from '../../ac
 import { claimCouponForCurrentUser, type CouponListItem } from '../../actions/coupons';
 import { MyReservationsList } from '../../components/MyReservationsList';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
+import type { ContactInfo } from '@/lib/messagingSettings';
 
 type AccountTab = 'profile' | 'coupons' | 'reservations' | 'contact';
 
@@ -172,8 +173,10 @@ export function AccountClient(props: {
   activeCouponCount: number;
   labels: AccountLabels;
   homeLabel: string;
+  contactInfo: ContactInfo;
+  whatsappLink: string;
 }) {
-  const { lang, locale, activeTab, profile, reservations, coupons, couponHistory, totalReservations, totalSpend, activeCouponCount, labels, homeLabel } = props;
+  const { lang, locale, activeTab, profile, reservations, coupons, couponHistory, totalReservations, totalSpend, activeCouponCount, labels, homeLabel, contactInfo, whatsappLink } = props;
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -383,9 +386,13 @@ export function AccountClient(props: {
             <p>{labels.contact.description}</p>
           </div>
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
-            <p><strong>📱 {labels.contact.whatsAppLabel}:</strong> <a href="https://wa.me/905551234567" target="_blank" rel="noreferrer">+90 555 123 4567</a></p>
-            <p><strong>✉️ {labels.contact.emailLabel}:</strong> <a href="mailto:info@kismetgoreme.com">info@kismetgoreme.com</a></p>
-            <p><strong>📍 {labels.contact.addressLabel}:</strong> {labels.contact.addressValue}</p>
+            {whatsappLink ? (
+              <p><strong>📱 {labels.contact.whatsAppLabel}:</strong> <a href={whatsappLink} target="_blank" rel="noreferrer">{contactInfo.contact_phone}</a></p>
+            ) : (
+              <p><strong>📞 {labels.contact.whatsAppLabel}:</strong> <a href={`tel:${contactInfo.contact_phone.replace(/[^+\d]/g, '')}`}>{contactInfo.contact_phone}</a></p>
+            )}
+            <p><strong>✉️ {labels.contact.emailLabel}:</strong> <a href={`mailto:${contactInfo.contact_email}`}>{contactInfo.contact_email}</a></p>
+            <p><strong>📍 {labels.contact.addressLabel}:</strong> {contactInfo.contact_address}</p>
           </div>
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h3>{labels.contact.messageTitle}</h3>

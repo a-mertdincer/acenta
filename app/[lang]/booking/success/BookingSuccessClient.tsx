@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import type { ContactInfo } from '@/lib/messagingSettings';
 
 type ResItem = {
   id: string;
@@ -25,11 +26,14 @@ export function BookingSuccessClient({
   lang,
   reservations,
   skipLoading = false,
+  contactInfo,
 }: {
   lang: string;
   reservations: ResItem[];
   skipLoading?: boolean;
+  contactInfo: ContactInfo;
 }) {
+  const phoneTel = `tel:${contactInfo.contact_phone.replace(/[^+\d]/g, '')}`;
   const [showContent, setShowContent] = useState(skipLoading);
 
   useEffect(() => {
@@ -99,9 +103,9 @@ export function BookingSuccessClient({
           )}
           <div style={{ padding: 'var(--space-md)', background: 'var(--color-bg-alt)', borderRadius: '8px', fontSize: '0.95rem' }}>
             <strong style={{ display: 'block', marginBottom: 'var(--space-xs)' }}>Acenta iletişim:</strong>
-            <a href="tel:+903841212345" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>+90 384 212 34 56</a>
+            <a href={phoneTel} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{contactInfo.contact_phone}</a>
             <span style={{ color: 'var(--color-text-muted)', margin: '0 0.5rem' }}>·</span>
-            <a href="mailto:info@kismetgoreme.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>info@kismetgoreme.com</a>
+            <a href={`mailto:${contactInfo.contact_email}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{contactInfo.contact_email}</a>
           </div>
         </div>
 

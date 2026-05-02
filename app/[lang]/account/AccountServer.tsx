@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getMyProfile } from '../../actions/auth';
 import { getReservationsByUserId } from '../../actions/reservations';
 import { getMyCoupons } from '../../actions/coupons';
+import { getContactInfo, getMessagingLinks } from '../../actions/siteSettings';
 import { prisma } from '../../../lib/prisma';
 import { AccountClient } from './AccountClient';
 import { AdminAccountClient } from './AdminAccountClient';
@@ -104,6 +105,7 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
   const activeCouponCount = coupons.filter((c) => c.isActive && c.bookingStart <= today && c.bookingEnd >= today).length;
 
   const homeLabel = (dict as { navigation?: { home?: string } }).navigation?.home ?? 'Home';
+  const [contactInfo, messaging] = await Promise.all([getContactInfo(), getMessagingLinks()]);
 
   return (
     <AccountClient
@@ -119,6 +121,8 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
       labels={accountDict}
       locale={locale}
       homeLabel={homeLabel}
+      contactInfo={contactInfo}
+      whatsappLink={messaging.whatsapp_link}
     />
   );
 }

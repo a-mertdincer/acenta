@@ -2,6 +2,7 @@
 
 import { getSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
+import { normalizeGuestPaymentMethod } from '@/lib/guestPaymentMethod';
 
 export type CariRecordRow = {
   id: string;
@@ -35,6 +36,14 @@ export type CariRecordRow = {
   missingFields: string[];
   createdAt: Date;
   updatedAt: Date;
+  /** Bağlı rezervasyon varsa misafirin seçtiği ödeme (Reservation.paymentMethod); yoksa null */
+  guestPaymentMethod: string | null;
+  /** Rezervasyon kaydı oluşturulma tarihi (rezervasyon ne zaman alındı) */
+  reservationCreatedAt: Date | null;
+  /** Tur / aktivite tarihi (Reservation.date) */
+  reservationTourDate: Date | null;
+  reservationStartTime: string | null;
+  variantReservationType: string | null;
 };
 
 function computeProfit(salePrice: number, quantity: number, costAmount: number | null): number | null {
@@ -106,6 +115,42 @@ async function getReservationPaxMap(
   );
 }
 
+type ReservationAdminExtras = {
+  paymentMethod: string | null;
+  createdAt: Date;
+  tourDate: Date;
+  startTime: string | null;
+  variantReservationType: string | null;
+};
+
+async function getReservationAdminExtrasMap(ids: string[]): Promise<Map<string, ReservationAdminExtras>> {
+  if (ids.length === 0) return new Map();
+  const wanted = new Set(ids);
+  const rows = await prisma.reservation.findMany({
+    where: { id: { in: [...wanted] } },
+    select: {
+      id: true,
+      paymentMethod: true,
+      createdAt: true,
+      date: true,
+      startTime: true,
+      variant: { select: { reservationType: true } },
+    },
+  });
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      {
+        paymentMethod: r.paymentMethod,
+        createdAt: r.createdAt,
+        tourDate: r.date,
+        startTime: r.startTime,
+        variantReservationType: r.variant?.reservationType ?? null,
+      },
+    ])
+  );
+}
+
 export async function getCariRecords(filters?: { month?: string; agent?: string }): Promise<CariRecordRow[]> {
   try {
     const session = await getSession();
@@ -129,6 +174,11 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
         .filter((id: string | null): id is string => Boolean(id))
     );
     const reservationPaxMap = await getReservationPaxMap(
+      (list ?? [])
+        .map((r: { reservationId: string | null }) => r.reservationId)
+        .filter((id: string | null): id is string => Boolean(id))
+    );
+    const reservationExtrasMap = await getReservationAdminExtrasMap(
       (list ?? [])
         .map((r: { reservationId: string | null }) => r.reservationId)
         .filter((id: string | null): id is string => Boolean(id))
@@ -183,6 +233,21 @@ export async function getCariRecords(filters?: { month?: string; agent?: string 
       }),
       createdAt: r.createdAt as Date,
       updatedAt: r.updatedAt as Date,
+      guestPaymentMethod:
+        r.reservationId != null
+          ? (() => {
+              const pm = reservationExtrasMap.get(String(r.reservationId))?.paymentMethod;
+              return pm != null && String(pm).trim() !== '' ? normalizeGuestPaymentMethod(String(pm)) : null;
+            })()
+          : null,
+      reservationCreatedAt:
+        r.reservationId != null ? reservationExtrasMap.get(String(r.reservationId))?.createdAt ?? null : null,
+      reservationTourDate:
+        r.reservationId != null ? reservationExtrasMap.get(String(r.reservationId))?.tourDate ?? null : null,
+      reservationStartTime:
+        r.reservationId != null ? reservationExtrasMap.get(String(r.reservationId))?.startTime ?? null : null,
+      variantReservationType:
+        r.reservationId != null ? reservationExtrasMap.get(String(r.reservationId))?.variantReservationType ?? null : null,
     }));
   } catch {
     return [];
@@ -377,6 +442,13 @@ export async function syncCariWithReservation(
     const { hotelName, roomNumber } = extractHotelRoomFromReservationNotes(reservation.notes);
     const quantity = Math.max(1, reservation.pax ?? 1);
     const salePrice = Number(reservation.totalPrice ?? 0);
+    const syncedPaymentMethod = normalizeGuestPaymentMethod(
+      reservation.paymentMethod != null && String(reservation.paymentMethod).trim() !== ''
+        ? String(reservation.paymentMethod)
+        : linked?.paymentMethod != null
+          ? String(linked.paymentMethod)
+          : 'cash'
+    );
     const payload = {
       guestName: reservation.guestName,
       hotelName: reservation.transferHotelName ?? hotelName,
@@ -392,6 +464,7 @@ export async function syncCariWithReservation(
       salePrice,
       saleCurrency: 'EUR',
       reservationConfirmed: true,
+      paymentMethod: syncedPaymentMethod,
       profit: computeProfit(salePrice, quantity, linked?.costAmount ?? null),
     };
 
@@ -407,7 +480,6 @@ export async function syncCariWithReservation(
       data: {
         reservationId,
         ...payload,
-        paymentMethod: 'cash',
         paymentDestination: 'internal',
         confirmationReceived: false,
         paymentReceived: false,

@@ -34,7 +34,7 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
         phone: '',
         hotelName: '',
         roomNumber: '',
-        paymentMethod: 'MAIL_ORDER'
+        paymentMethod: 'cash'
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
@@ -209,46 +209,50 @@ export default function CheckoutPage(props: { params: Promise<{ lang: string }> 
                     <div className="card" style={{ padding: 'var(--space-xl)' }}>
                         <h2 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-lg)' }}>Payment Method</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.paymentMethod === 'MAIL_ORDER' ? 'var(--color-bg-card)' : 'transparent' }}>
-                                <input type="radio" name="paymentMethod" value="MAIL_ORDER" checked={formData.paymentMethod === 'MAIL_ORDER'} onChange={handleChange} />
-                                <div>
-                                    <span style={{ fontWeight: 'bold', display: 'block' }}>Mail Order Form (Deposit)</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>We will send you a secure form to leave your credit card details as a guarantee.</span>
-                                </div>
-                            </label>
-
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.paymentMethod === 'CASH_ON_ARRIVAL' ? 'var(--color-bg-card)' : 'transparent' }}>
-                                <input type="radio" name="paymentMethod" value="CASH_ON_ARRIVAL" checked={formData.paymentMethod === 'CASH_ON_ARRIVAL'} onChange={handleChange} />
-                                <div>
-                                    <span style={{ fontWeight: 'bold', display: 'block' }}>Pay on Arrival</span>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Pay in cash (EUR/USD/TRY) directly to your guide or driver.</span>
-                                </div>
-                            </label>
-                            <label
-                                title={lang === 'tr' ? 'Online odeme ozelligi yakinda aktif olacaktir.' : lang === 'zh' ? '在线支付功能即将上线。' : 'Online payment will be available soon.'}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 'var(--space-sm)',
-                                    padding: 'var(--space-md)',
-                                    border: '1px solid var(--color-border)',
-                                    borderRadius: '8px',
-                                    cursor: 'not-allowed',
-                                    opacity: 0.6,
-                                    backgroundColor: 'transparent',
-                                }}
-                            >
-                                <input type="radio" disabled />
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.paymentMethod === 'cash' ? 'var(--color-bg-card)' : 'transparent' }}>
+                                <input type="radio" name="paymentMethod" value="cash" checked={formData.paymentMethod === 'cash'} onChange={handleChange} />
                                 <div>
                                     <span style={{ fontWeight: 'bold', display: 'block' }}>
-                                        Online Payment <small style={{ color: 'var(--color-text-muted)' }}>🔒 {lang === 'tr' ? 'Yakında' : lang === 'zh' ? '即将推出' : 'Coming Soon'}</small>
+                                        {lang === 'tr' ? 'Varışta nakit' : lang === 'zh' ? '抵达时付款' : 'Pay on arrival'}
                                     </span>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                                         {lang === 'tr'
-                                            ? 'Guvenli online odeme secenegi yakinda acilacak.'
+                                            ? 'EUR / USD / TRY — rehber veya şoföre doğrudan.'
                                             : lang === 'zh'
-                                                ? '安全在线支付即将开放。'
-                                                : 'Secure online payment option is coming soon.'}
+                                                ? '现金支付给导游或司机（欧元/美元/里拉）。'
+                                                : 'Pay in cash (EUR/USD/TRY) directly to your guide or driver.'}
+                                    </span>
+                                </div>
+                            </label>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.paymentMethod === 'transfer' ? 'var(--color-bg-card)' : 'transparent' }}>
+                                <input type="radio" name="paymentMethod" value="transfer" checked={formData.paymentMethod === 'transfer'} onChange={handleChange} />
+                                <div>
+                                    <span style={{ fontWeight: 'bold', display: 'block' }}>
+                                        {lang === 'tr' ? 'Banka havalesi' : lang === 'zh' ? '银行转账' : 'Bank transfer'}
+                                    </span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                        {lang === 'tr'
+                                            ? 'Hesap bilgileri onay sonrası paylaşılır.'
+                                            : lang === 'zh'
+                                                ? '确认后将发送账户信息。'
+                                                : 'Bank details will be shared after confirmation.'}
+                                    </span>
+                                </div>
+                            </label>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-md)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.paymentMethod === 'card' ? 'var(--color-bg-card)' : 'transparent' }}>
+                                <input type="radio" name="paymentMethod" value="card" checked={formData.paymentMethod === 'card'} onChange={handleChange} />
+                                <div>
+                                    <span style={{ fontWeight: 'bold', display: 'block' }}>
+                                        {lang === 'tr' ? 'Kredi kartı (mail order / depozito)' : lang === 'zh' ? '信用卡（邮件表格/押金）' : 'Credit card (mail order / deposit)'}
+                                    </span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                        {lang === 'tr'
+                                            ? 'Güvenli mail order formu ile kart bilgisi talebi.'
+                                            : lang === 'zh'
+                                                ? '我们将发送安全表格以留存卡片担保信息。'
+                                                : 'We will send you a secure form to leave your card details as a guarantee.'}
                                     </span>
                                 </div>
                             </label>

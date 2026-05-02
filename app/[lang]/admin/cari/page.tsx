@@ -5,6 +5,8 @@ import { Banknote, CreditCard, Landmark } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { getCariRecords, createCariRecord, updateCariRecord, deleteCariRecord, type CariRecordRow, type CreateCariInput } from '../../../actions/cari';
+import { guestPaymentMethodLabelTr, normalizeGuestPaymentMethod } from '@/lib/guestPaymentMethod';
+import { variantReservationKindLabel } from '@/lib/reservationVariantDisplay';
 
 const CURRENCIES = ['EUR', 'TRY', 'USD'] as const;
 const PAYMENT_METHODS = [{ value: 'cash', label: 'Nakit' }, { value: 'transfer', label: 'Havale' }, { value: 'card', label: 'Kredi Kartı' }];
@@ -163,7 +165,7 @@ export default function AdminCariPage() {
     const q = search.trim().toLowerCase();
     return records.filter((r) => {
       if (filterAgent && (r.agentName ?? '') !== filterAgent) return false;
-      if (filterPayment && r.paymentMethod !== filterPayment) return false;
+      if (filterPayment && normalizeGuestPaymentMethod(r.guestPaymentMethod ?? r.paymentMethod) !== filterPayment) return false;
       if (filterStatus && r.completionStatus !== filterStatus) return false;
       if (!q) return true;
       const searchable = [
@@ -173,6 +175,8 @@ export default function AdminCariPage() {
         r.hotelName ?? '',
         r.roomNumber ?? '',
         r.paymentMethod,
+        guestPaymentMethodLabelTr(r.guestPaymentMethod ?? r.paymentMethod),
+        variantReservationKindLabel(r.variantReservationType) ?? '',
         r.salesperson ?? '',
         r.notes ?? '',
       ]
@@ -432,11 +436,12 @@ export default function AdminCariPage() {
         ) : filteredRecords.length === 0 ? (
           <p style={{ padding: 'var(--space-xl)', color: 'var(--color-text-muted)' }}>Bu ay için kayıt yok. Yeni kayıt ekleyin.</p>
         ) : (
-          <table style={{ width: '100%', minWidth: 1400, borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table style={{ width: '100%', minWidth: 1520, borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                 <th style={{ padding: 'var(--space-md)' }}>Otel / Oda</th>
                 <th style={{ padding: 'var(--space-md)' }}>Ad</th>
+                <th style={{ padding: 'var(--space-md)' }}>Rez. tarihi</th>
                 <th style={{ padding: 'var(--space-md)' }}>Aktivite</th>
                 <th style={{ padding: 'var(--space-md)' }}>Acenta</th>
                 <th style={{ padding: 'var(--space-md)' }}>Satış</th>
@@ -459,26 +464,50 @@ export default function AdminCariPage() {
                     ) : null}
                   </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.guestName}</td>
+                  <td style={{ padding: 'var(--space-md)', whiteSpace: 'nowrap', fontSize: '0.875rem' }}>
+                    {r.reservationCreatedAt ? formatDate(r.reservationCreatedAt) : '—'}
+                  </td>
                   <td style={{ padding: 'var(--space-md)' }}>
-                    {r.activityType} · {(() => {
-                      const adults = r.adultCount ?? Math.max(1, r.quantity - (r.childCount ?? 0) - (r.infantCount ?? 0));
-                      const children = r.childCount ?? 0;
-                      const infants = r.infantCount ?? 0;
-                      if (adults === 0 && children === 0 && infants === 0) return `${r.quantity} kişi`;
-                      const parts = [`${adults}Y`, `${children}Ç`];
-                      if (infants > 0) parts.push(`${infants}B`);
-                      return parts.join('+');
-                    })()} · {formatDate(r.activityDate)}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                      <span>
+                        {r.activityType} · {(() => {
+                          const adults = r.adultCount ?? Math.max(1, r.quantity - (r.childCount ?? 0) - (r.infantCount ?? 0));
+                          const children = r.childCount ?? 0;
+                          const infants = r.infantCount ?? 0;
+                          if (adults === 0 && children === 0 && infants === 0) return `${r.quantity} kişi`;
+                          const parts = [`${adults}Y`, `${children}Ç`];
+                          if (infants > 0) parts.push(`${infants}B`);
+                          return parts.join('+');
+                        })()} · Tur: {formatDate(r.activityDate)}
+                      </span>
+                      {variantReservationKindLabel(r.variantReservationType) ? (
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            background: 'var(--color-bg-alt)',
+                            border: '1px solid var(--color-border)',
+                          }}
+                        >
+                          {variantReservationKindLabel(r.variantReservationType)}
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.agentName ?? '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.saleCurrency} {r.salePrice.toFixed(2)}</td>
                   <td style={{ padding: 'var(--space-md)' }}>{r.costAmount != null ? `${r.costCurrency ?? 'EUR'} ${r.costAmount.toFixed(2)}` : '—'}</td>
                   <td style={{ padding: 'var(--space-md)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      {r.paymentMethod === 'cash' ? (<><Banknote size={14} aria-hidden /> Nakit</>)
-                        : r.paymentMethod === 'transfer' ? (<><Landmark size={14} aria-hidden /> Havale</>)
-                        : r.paymentMethod === 'card' ? (<><CreditCard size={14} aria-hidden /> Kart</>)
-                        : r.paymentMethod}
+                      {(() => {
+                        const pm = normalizeGuestPaymentMethod(r.guestPaymentMethod ?? r.paymentMethod);
+                        return pm === 'cash' ? (<><Banknote size={14} aria-hidden /> {guestPaymentMethodLabelTr(pm)}</>)
+                          : pm === 'transfer' ? (<><Landmark size={14} aria-hidden /> {guestPaymentMethodLabelTr(pm)}</>)
+                          : pm === 'card' ? (<><CreditCard size={14} aria-hidden /> {guestPaymentMethodLabelTr(pm)}</>)
+                          : guestPaymentMethodLabelTr(r.guestPaymentMethod ?? r.paymentMethod);
+                      })()}
                     </span>
                   </td>
                   <td style={{ padding: 'var(--space-md)' }}>

@@ -9,9 +9,10 @@ import { getTransferPriceForPaxAndAirport } from '@/lib/transferPrice';
 import { parsePriceTiers, resolveTierPrice } from '@/lib/pricingTiers';
 import { pickBestPromotionForLine, pricesNearlyEqual } from '@/lib/promotionPricing';
 import { fetchEligiblePromotions } from '@/app/actions/promotions';
+import { normalizeGuestPaymentMethod } from '@/lib/guestPaymentMethod';
 
 type TourSummary = { id: string; titleEn: string; titleTr: string; type: string };
-type VariantSummary = { id: string; titleEn: string; titleTr: string };
+type VariantSummary = { id: string; titleEn: string; titleTr: string; reservationType: string | null; tourType: string | null };
 type UserSummary = { id: string; name: string; email: string; createdAt: Date };
 
 async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSummary>> {
@@ -25,7 +26,9 @@ async function getTourSummaryMap(tourIds: string[]): Promise<Map<string, TourSum
 async function getVariantSummaryMap(variantIds: string[]): Promise<Map<string, VariantSummary>> {
   if (variantIds.length === 0) return new Map();
   const wanted = new Set(variantIds);
-  const variants = await prisma.tourVariant.findMany({ select: { id: true, titleEn: true, titleTr: true } });
+  const variants = await prisma.tourVariant.findMany({
+    select: { id: true, titleEn: true, titleTr: true, reservationType: true, tourType: true },
+  });
   const filtered = variants.filter((v: VariantSummary) => wanted.has(v.id));
   return new Map(filtered.map((v: VariantSummary) => [v.id, v]));
 }
@@ -83,6 +86,7 @@ export async function createReservations(input: CreateReservationInput): Promise
   try {
     const session = await getSession();
     const userId = input.userId ?? session?.id ?? null;
+    const paymentMethodStored = normalizeGuestPaymentMethod(input.paymentMethod);
 
     const promoCache = new Map<string, Awaited<ReturnType<typeof fetchEligiblePromotions>>>();
     async function promosForItemDate(dateIso: string) {
@@ -238,6 +242,7 @@ export async function createReservations(input: CreateReservationInput): Promise
           date: new Date(item.date),
           pax: item.pax,
           totalPrice: itemTotalPrice,
+          paymentMethod: paymentMethodStored,
           options: item.optionsJson,
           notes: [input.hotelName, input.roomNumber].filter(Boolean).join(' | ') || input.notes || null,
           transferAirport: item.transferAirport ?? null,

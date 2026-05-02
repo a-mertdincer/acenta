@@ -23,6 +23,8 @@ import {
   RESERVATION_STATUS,
 } from '@/lib/reservationStatus';
 import { formatNotesForDisplay } from '@/lib/guestNotes';
+import { guestPaymentMethodLabelTr } from '@/lib/guestPaymentMethod';
+import { variantReservationKindLabel } from '@/lib/reservationVariantDisplay';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -123,6 +125,9 @@ interface ResRow {
   pendingDate: string | null;
   pendingPax: number | null;
   pendingNotes: string | null;
+  variantReservationType: string | null;
+  paymentMethod: string | null;
+  startTime: string | null;
 }
 
 type SortKey = 'tourDate' | 'createdAt' | 'customer' | 'tour' | 'totalPrice' | 'status';
@@ -212,7 +217,7 @@ export default function AdminReservationsPage() {
             guestPhone: string;
             tourId: string;
             tour?: { titleEn: string } | null;
-            variant?: { titleEn: string; titleTr: string } | null;
+            variant?: { titleEn: string; titleTr: string; reservationType?: string | null; tourType?: string | null } | null;
             date: Date;
             pax: number;
             totalPrice: number;
@@ -237,6 +242,8 @@ export default function AdminReservationsPage() {
             pendingDate?: Date | null;
             pendingPax?: number | null;
             pendingNotes?: string | null;
+            paymentMethod?: string | null;
+            startTime?: string | null;
           }) => ({
             id: r.id,
             customer: r.guestName,
@@ -244,6 +251,9 @@ export default function AdminReservationsPage() {
             guestPhone: r.guestPhone,
             tour: r.tour?.titleEn ?? r.tourId,
             variantTitle: r.variant?.titleEn ?? null,
+            variantReservationType: r.variant?.reservationType ?? null,
+            paymentMethod: r.paymentMethod ?? null,
+            startTime: r.startTime ?? null,
             date: r.date.toISOString().split('T')[0],
             pax: r.pax,
             adultCount: (r as { adultCount?: number | null }).adultCount ?? null,
@@ -299,6 +309,8 @@ export default function AdminReservationsPage() {
           r.customer.toLowerCase().includes(q) ||
           r.id.toLowerCase().includes(q) ||
           r.tour.toLowerCase().includes(q) ||
+          (r.variantTitle?.toLowerCase().includes(q) ?? false) ||
+          guestPaymentMethodLabelTr(r.paymentMethod).toLowerCase().includes(q) ||
           (r.displayNotes && r.displayNotes.toLowerCase().includes(q))
       );
     }
@@ -422,6 +434,10 @@ export default function AdminReservationsPage() {
         p.id === id
           ? {
               ...p,
+              variantTitle: (next.variant as { titleEn?: string } | null)?.titleEn ?? p.variantTitle,
+              variantReservationType: (next.variant as { reservationType?: string | null } | null)?.reservationType ?? null,
+              paymentMethod: (next as { paymentMethod?: string | null }).paymentMethod ?? null,
+              startTime: (next as { startTime?: string | null }).startTime ?? null,
               status: next.status,
               date: next.date.toISOString().split('T')[0],
               pax: next.pax,
@@ -507,19 +523,22 @@ export default function AdminReservationsPage() {
   };
 
   const exportCsv = () => {
-    const headers = ['ID', 'Müşteri', 'Tur', 'Tur Tarihi', 'Kişi', 'Toplam', 'Depozit', 'Durum', 'Rez. Tarihi'];
+    const headers = ['ID', 'Müşteri', 'Tur', 'Varyant', 'Özel/Grup', 'Rez. Tarihi', 'Tur Tarihi', 'Kişi', 'Toplam', 'Depozit', 'Ödeme', 'Durum'];
     const rows = (selected.size ? filteredAndSorted.filter((r) => selected.has(r.id)) : filteredAndSorted).map(
       (r) =>
         [
           r.id.slice(0, 8),
           r.customer,
           r.tour,
+          r.variantTitle ?? '',
+          variantReservationKindLabel(r.variantReservationType) ?? '',
+          formatDate(r.createdAt),
           formatDate(r.date),
           r.pax,
           r.total,
           `€${r.depositPaid.toFixed(2)}`,
+          guestPaymentMethodLabelTr(r.paymentMethod),
           getReservationStatusLabel(r.status),
-          formatDate(r.createdAt),
         ].join(',')
     );
     const csv = [headers.join(','), ...rows].map((row) => `"${row.replace(/"/g, '""')}"`).join('\n');
@@ -686,6 +705,9 @@ export default function AdminReservationsPage() {
                 Tur / Hizmet <SortIndicator active={sortKey === 'tour'} dir={sortDir} />
               </th>
               <th>Varyant</th>
+              <th className="admin-th-sortable" onClick={() => toggleSort('createdAt')}>
+                Rez. tarihi <SortIndicator active={sortKey === 'createdAt'} dir={sortDir} />
+              </th>
               <th className="admin-th-sortable" onClick={() => toggleSort('tourDate')}>
                 Tur tarihi <SortIndicator active={sortKey === 'tourDate'} dir={sortDir} />
               </th>
@@ -701,7 +723,7 @@ export default function AdminReservationsPage() {
           <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={13} className="admin-empty-cell">
+                <td colSpan={14} className="admin-empty-cell">
                   {filteredAndSorted.length === 0 ? 'Filtreye uyan rezervasyon yok.' : 'Henüz rezervasyon yok.'}
                 </td>
               </tr>
@@ -769,8 +791,25 @@ export default function AdminReservationsPage() {
                         {res.tour}
                       </td>
                       <td className="admin-cell-truncate" title={res.variantTitle ?? ''}>
-                        {res.variantTitle ?? '—'}
+                        <span>{res.variantTitle ?? '—'}</span>
+                        {variantReservationKindLabel(res.variantReservationType) ? (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              marginLeft: 6,
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              background: 'var(--color-bg-alt)',
+                              border: '1px solid var(--color-border)',
+                            }}
+                          >
+                            {variantReservationKindLabel(res.variantReservationType)}
+                          </span>
+                        ) : null}
                       </td>
+                      <td>{formatDate(res.createdAt)}</td>
                       <td>{formatDate(res.date)}</td>
                       <td className="admin-cell-num">{formatPaxShort(res)}</td>
                       <td className="admin-cell-currency">{res.total}</td>
@@ -887,7 +926,7 @@ export default function AdminReservationsPage() {
                     </tr>
                     {isExpanded && (
                       <tr key={`${res.id}-detail`} style={{ background: 'var(--color-bg-light)' }}>
-                        <td colSpan={13} style={{ padding: 'var(--space-lg)' }}>
+                        <td colSpan={14} style={{ padding: 'var(--space-lg)' }}>
                           <div className="admin-expand-content">
                             <div className="admin-expand-section">
                               <h4>Müşteri bilgileri</h4>
@@ -911,6 +950,10 @@ export default function AdminReservationsPage() {
                               <h4>Konaklama / Notlar</h4>
                               <p>{res.displayNotes || '—'}</p>
                               <p><strong>Rez. tarihi:</strong> {formatDate(res.createdAt)}</p>
+                              <p><strong>Tur tarihi:</strong> {formatDate(res.date)}</p>
+                              {res.startTime ? (
+                                <p><strong>Başlangıç saati:</strong> {res.startTime}</p>
+                              ) : null}
                             </div>
                             <div className="admin-expand-section">
                               <h4>Kişi detayı</h4>
@@ -930,6 +973,7 @@ export default function AdminReservationsPage() {
                             <div className="admin-expand-section">
                               <h4>Ödeme</h4>
                               <p>Toplam: {res.total}</p>
+                              <p><strong>Yöntem:</strong> {guestPaymentMethodLabelTr(res.paymentMethod)}</p>
                               {res.couponCode && res.originalPrice != null && res.discountAmount != null && (
                                 <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                                   🎟 {res.couponCode} · Orijinal: €{res.originalPrice.toFixed(2)} · İndirim: -€{res.discountAmount.toFixed(2)}
@@ -941,7 +985,12 @@ export default function AdminReservationsPage() {
                             {res.variantTitle && (
                               <div className="admin-expand-section">
                                 <h4>Varyant</h4>
-                                <p>{res.variantTitle}</p>
+                                <p>
+                                  {res.variantTitle}
+                                  {variantReservationKindLabel(res.variantReservationType)
+                                    ? ` (${variantReservationKindLabel(res.variantReservationType)})`
+                                    : ''}
+                                </p>
                               </div>
                             )}
                             {res.transferAirport && (
@@ -1193,9 +1242,20 @@ export default function AdminReservationsPage() {
                 <p style={{ fontWeight: 600 }}>{res.customer}</p>
                 <p>{res.tour}</p>
                 <div className="admin-reservation-card-meta">
-                  {formatDate(res.date)} · {formatPaxShort(res)} · {res.total}
+                  Tur: {formatDate(res.date)}
+                  {res.startTime ? ` · ${res.startTime}` : ''} · {formatPaxShort(res)} · {res.total}
                 </div>
+                <p className="admin-reservation-card-meta">Rez.: {formatDate(res.createdAt)}</p>
+                {res.variantTitle ? (
+                  <p className="admin-reservation-card-meta">
+                    Varyant: {res.variantTitle}
+                    {variantReservationKindLabel(res.variantReservationType)
+                      ? ` · ${variantReservationKindLabel(res.variantReservationType)}`
+                      : ''}
+                  </p>
+                ) : null}
                 {res.displayNotes && <p className="admin-reservation-card-meta">{res.displayNotes}</p>}
+                <p className="admin-reservation-card-meta">Ödeme: {guestPaymentMethodLabelTr(res.paymentMethod)}</p>
                 <p className="admin-reservation-card-meta">Depozit: €{res.depositPaid.toFixed(2)}</p>
                 <div className="admin-reservation-card-actions">
                   <button type="button" className="admin-action-btn" onClick={() => setExpandedId(isExpanded ? null : res.id)}>
@@ -1225,6 +1285,9 @@ export default function AdminReservationsPage() {
                     <p><a href={`mailto:${res.guestEmail}`}>{res.guestEmail}</a></p>
                     <p><a href={`tel:${res.guestPhone}`}>{res.guestPhone}</a></p>
                     <p>Rez. tarihi: {formatDate(res.createdAt)}</p>
+                    <p>Tur tarihi: {formatDate(res.date)}</p>
+                    {res.startTime ? <p>Başlangıç saati: {res.startTime}</p> : null}
+                    <p>Ödeme yöntemi: {guestPaymentMethodLabelTr(res.paymentMethod)}</p>
                   </div>
                 )}
               </div>

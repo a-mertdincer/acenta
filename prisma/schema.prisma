@@ -273,6 +273,8 @@ model Reservation {
   promotionId       String?
   promotion         Promotion?    @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   review            Review?
+  /** Misafir checkout: cash | transfer | card */
+  paymentMethod    String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 }

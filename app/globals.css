@@ -4947,7 +4947,10 @@ main {
   }
 }
 
-/* Attractions marquee */
+/* ========= Home attractions — desktop marquee ========= */
+.home-attractions {
+  perspective: 1000px;
+}
 .home-attr-title {
   text-align: center;
   margin-bottom: var(--space-lg);
@@ -4965,8 +4968,6 @@ main {
   padding: var(--space-md);
   animation: home-attr-marquee 300s linear infinite;
 }
-/* Only pause on real hover (mouse). Touch devices get sticky :hover and clearing
-   it toggles animation-play-state — WebKit can restart the marquee / flash white. */
 @media (hover: hover) and (pointer: fine) {
   .home-attr-viewport:hover .home-attr-track {
     animation-play-state: paused;
@@ -5035,14 +5036,21 @@ main {
   overflow: hidden;
 }
 
+/* ========= Home attractions — mobile: scroll-snap + scroll-driven UI ========= */
 @media (max-width: 768px) {
   .home-attr-viewport {
     overflow-x: auto;
     overflow-y: hidden;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--space-md);
     scrollbar-width: none;
     overscroll-behavior-x: contain;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: var(--space-sm) 0;
   }
   .home-attr-viewport::-webkit-scrollbar {
     display: none;
@@ -5050,11 +5058,56 @@ main {
   .home-attr-track {
     animation: none !important;
     width: max-content;
+    gap: var(--space-md);
+    padding: 0 var(--space-md);
   }
   .home-attr-card {
-    scroll-snap-align: start;
-    flex: 0 0 280px;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    flex: 0 0 78vw;
+    max-width: 320px;
     min-width: 0;
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+    transition:
+      opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .home-attr-card[data-in-view='true'] {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .home-attr-card[data-in-view='true'][data-active='true'] {
+    transform: scale(1.02) translateY(0);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  }
+  .home-attr-img-wrap {
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+  }
+  .home-attr-img {
+    transform: scale(1.08) translateX(var(--parallax-x, 0px));
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-attr-card {
+      opacity: 1;
+      transform: none;
+      transition: none;
+      will-change: auto;
+    }
+    .home-attr-card[data-in-view='true'][data-active='true'] {
+      transform: none;
+      box-shadow: var(--shadow-md);
+    }
+    .home-attr-img {
+      transform: none;
+      transition: none;
+      will-change: auto;
+    }
   }
 }
 

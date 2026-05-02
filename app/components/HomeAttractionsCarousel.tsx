@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useSyncExternalStore } from 'react';
 import { DEFAULT_ACTIVITY_CARD_IMAGE } from '@/lib/activityCategoryImages';
+import { useScrollDrivenCarousel } from '@/lib/useScrollDrivenCarousel';
 
 export interface AttractionSlide {
   id: string;
@@ -19,7 +20,7 @@ interface HomeAttractionsCarouselProps {
   lang: string;
 }
 
-const ATTR_NAV_MQ = '(max-width: 767px)';
+const ATTR_NAV_MQ = '(max-width: 768px)';
 
 function subscribeAttrNav(cb: () => void) {
   const mq = window.matchMedia(ATTR_NAV_MQ);
@@ -43,6 +44,10 @@ export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: H
     getAttrNavServerSnapshot
   );
 
+  const itemsKey = useMemo(() => `${items.map((i) => i.id).join('|')}::${items.length}`, [items]);
+
+  const viewportRef = useScrollDrivenCarousel<HTMLDivElement>(itemsKey);
+
   const loopItems = useMemo(() => {
     if (items.length === 0) return [];
     return isNarrowViewport ? items : [...items, ...items];
@@ -56,7 +61,12 @@ export function HomeAttractionsCarousel({ title, items, imageFallback, lang }: H
         <h2 id="home-attr-heading" className="home-attr-title">
           {title}
         </h2>
-        <div className="home-attr-viewport" role="region" aria-roledescription="carousel">
+        <div
+          ref={viewportRef}
+          className="home-attr-viewport"
+          role="region"
+          aria-roledescription="carousel"
+        >
           <div className="home-attr-track">
             {loopItems.map((item, idx) => {
               const body = (

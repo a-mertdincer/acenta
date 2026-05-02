@@ -35,15 +35,13 @@ export default async function AttractionsPage(props: { params: Promise<{ lang: s
                       alt={name}
                       className="tour-card-image-img"
                     />
-                  </div>
-                </div>
-                <div className="tour-card-body">
-                  <div className="tour-card-header">
-                    <h2 className="tour-card-title">{name}</h2>
-                    <span className="tour-type-badge">
+                    <span className="attraction-tour-count-badge">
                       {row.tourCount} {tourCountLabel}
                     </span>
                   </div>
+                </div>
+                <div className="tour-card-body">
+                  <h2 className="tour-card-title">{name}</h2>
                   <p className="tour-card-desc">{description ?? (dict.home?.popularExperiences ?? '')}</p>
                   <div className="tour-card-footer">
                     <span className="tour-card-price">{exploreLabel}</span>

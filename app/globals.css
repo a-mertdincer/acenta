@@ -1634,6 +1634,32 @@ main {
   height: 100%;
   object-fit: cover;
 }
+
+/* Attractions listing: tour count on image (avoids header flex overflow with long titles) */
+.attraction-tour-count-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background-color: var(--color-primary);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .attraction-tour-count-badge {
+    top: 8px;
+    right: 8px;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+}
+
 .tour-card-body {
   padding: var(--space-md);
   display: flex;

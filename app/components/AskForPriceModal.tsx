@@ -3,12 +3,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { submitPriceInquiry } from '@/app/actions/priceInquiry';
-import enDict from '@/app/dictionaries/en.json';
-import trDict from '@/app/dictionaries/tr.json';
-import zhDict from '@/app/dictionaries/zh.json';
 
-type Lang = 'en' | 'tr' | 'zh';
-type AskDict = {
+export type AskForPriceStrings = {
   button: string;
   title: string;
   name: string;
@@ -24,46 +20,20 @@ type AskDict = {
   success: string;
 };
 
-const DICTS: Record<Lang, { askForPrice?: AskDict }> = {
-  en: enDict as { askForPrice?: AskDict },
-  tr: trDict as { askForPrice?: AskDict },
-  zh: zhDict as { askForPrice?: AskDict },
-};
-
 const DIAL_DEFAULTS = ['+90', '+1', '+44', '+49', '+33', '+86', '+81', '+82'];
-
-function getAskStrings(lang: Lang): AskDict {
-  const from = DICTS[lang]?.askForPrice ?? DICTS.en.askForPrice;
-  if (from) return from;
-  return {
-    button: 'Ask for Price',
-    title: 'Ask for Price',
-    name: 'Name Surname',
-    email: 'E-mail',
-    phone: 'Phone Number',
-    country: 'Country',
-    date: 'Choose date',
-    people: 'Number of people',
-    hotel: 'Hotel Name or Cruise',
-    message: 'Forward your message',
-    close: 'Close',
-    send: 'Send',
-    success: 'Your inquiry has been received. We will get back to you shortly.',
-  };
-}
 
 export function AskForPriceModal({
   tourId,
-  lang,
+  strings,
   isOpen,
   onClose,
 }: {
   tourId: string;
-  lang: Lang;
+  strings: AskForPriceStrings;
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const a = useMemo(() => getAskStrings(lang), [lang]);
+  const a = strings;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneDial, setPhoneDial] = useState('+90');
@@ -138,11 +108,7 @@ export function AskForPriceModal({
   };
 
   return createPortal(
-    <div
-      className="ask-for-price-overlay"
-      role="presentation"
-      onClick={handleClose}
-    >
+    <div className="ask-for-price-overlay" role="presentation" onClick={handleClose}>
       <div
         className="ask-for-price-dialog"
         role="dialog"
@@ -243,25 +209,25 @@ export function AskForPriceModal({
                   ))}
                 </select>
               </label>
+              <label className="ask-for-price-field ask-for-price-field--full">
+                <span className="ask-for-price-label">{a.hotel}</span>
+                <input
+                  className="ask-for-price-input"
+                  value={hotelOrCruise}
+                  onChange={(ev) => setHotelOrCruise(ev.target.value)}
+                  autoComplete="organization"
+                />
+              </label>
+              <label className="ask-for-price-field ask-for-price-field--full">
+                <span className="ask-for-price-label">{a.message}</span>
+                <textarea
+                  className="ask-for-price-input ask-for-price-textarea"
+                  value={message}
+                  onChange={(ev) => setMessage(ev.target.value)}
+                  rows={4}
+                />
+              </label>
             </div>
-            <label className="ask-for-price-field ask-for-price-field--full">
-              <span className="ask-for-price-label">{a.hotel}</span>
-              <input
-                className="ask-for-price-input"
-                value={hotelOrCruise}
-                onChange={(ev) => setHotelOrCruise(ev.target.value)}
-                autoComplete="organization"
-              />
-            </label>
-            <label className="ask-for-price-field ask-for-price-field--full">
-              <span className="ask-for-price-label">{a.message}</span>
-              <textarea
-                className="ask-for-price-textarea"
-                value={message}
-                onChange={(ev) => setMessage(ev.target.value)}
-                rows={4}
-              />
-            </label>
             {error ? <p className="ask-for-price-error">{error}</p> : null}
             <div className="ask-for-price-actions">
               <button type="button" className="btn btn-secondary" onClick={handleClose}>
@@ -286,17 +252,23 @@ export function AskForPriceModal({
   );
 }
 
-export function AskForPriceBookingBlock({ tourId, lang }: { tourId: string; lang: Lang }) {
-  const a = useMemo(() => getAskStrings(lang), [lang]);
+export function AskForPriceBookingBlock({
+  tourId,
+  strings,
+}: {
+  tourId: string;
+  strings: AskForPriceStrings;
+}) {
   const [open, setOpen] = useState(false);
   const handleOpen = useCallback(() => setOpen(true), []);
   const handleClose = useCallback(() => setOpen(false), []);
+  const a = useMemo(() => strings, [strings]);
   return (
     <>
       <button type="button" className="btn btn-primary ask-for-price-open-btn" onClick={handleOpen}>
         {a.button}
       </button>
-      <AskForPriceModal tourId={tourId} lang={lang} isOpen={open} onClose={handleClose} />
+      <AskForPriceModal tourId={tourId} strings={strings} isOpen={open} onClose={handleClose} />
     </>
   );
 }

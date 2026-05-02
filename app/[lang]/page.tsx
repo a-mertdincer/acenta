@@ -18,6 +18,7 @@ import { HomeHowItWorks } from '../components/HomeHowItWorks';
 import { HomeWhyChooseUs } from '../components/HomeWhyChooseUs';
 import { HomeAttractionsCarousel } from '../components/HomeAttractionsCarousel';
 import { attractionCardSummary } from '@/lib/attractionSummary';
+import { pickTourField } from '@/lib/pickContentLang';
 
 const MOCK_CARDS = [
   { titleKey: 'standardBalloon', descKey: 'standardBalloonDesc', price: 150, tourId: 'mock-balloon', type: 'BALLOON' },
@@ -295,16 +296,12 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   const attractions = await getAttractions({ resolveImages: true });
   const attractionSlides = attractions.map((a) => {
     const fullDesc =
-      lang === 'tr'
-        ? a.descriptionTr
-        : lang === 'zh'
-          ? (a.descriptionZh ?? a.descriptionEn)
-          : a.descriptionEn;
-    const summary = fullDesc?.trim() ? attractionCardSummary(fullDesc, 130) : undefined;
+      pickTourField(a as unknown as Record<string, unknown>, 'description', lang) ?? a.descriptionEn ?? '';
+    const summary = fullDesc.trim() ? attractionCardSummary(fullDesc, 130) : undefined;
     return {
       id: a.id,
       slug: a.slug,
-      name: lang === 'tr' ? a.nameTr : lang === 'zh' ? (a.nameZh ?? a.nameEn) : a.nameEn,
+      name: pickTourField(a as unknown as Record<string, unknown>, 'name', lang) ?? a.nameEn,
       description: summary,
       imageUrl: a.imageUrl,
     };

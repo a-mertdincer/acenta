@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { getRelatedTours, type RelatedTourCard } from '@/app/actions/tours';
 import { getTourImagePath, getTourImageFallback } from '@/lib/imagePaths';
 import { HomeExperienceCard } from './HomeExperienceCard';
-
-type Lang = 'en' | 'tr' | 'zh';
+import { pickTourField } from '@/lib/pickContentLang';
 
 export function RelatedToursSection({
   tourId,
@@ -16,7 +15,7 @@ export function RelatedToursSection({
   askForPriceLabel,
 }: {
   tourId: string;
-  lang: Lang | string;
+  lang: string;
   heading: string;
   fromLabel: string;
   bookLabel: string;
@@ -46,23 +45,23 @@ export function RelatedToursSection({
         {heading}
       </h2>
       <div className="related-tours-grid home-cards">
-        {items.map((t) => {
-          const title = lang === 'tr' ? t.titleTr : lang === 'zh' ? t.titleZh : t.titleEn;
-          const imageSrc = t.imageUrl ?? getTourImagePath(t.type);
-          const imageFallback = getTourImageFallback(t.type);
+        {items.map((card) => {
+          const title = pickTourField(card as unknown as Record<string, unknown>, 'title', lang) ?? card.titleEn;
+          const imageSrc = card.imageUrl ?? getTourImagePath(card.type);
+          const imageFallback = getTourImageFallback(card.type);
           return (
             <HomeExperienceCard
-              key={t.id}
+              key={card.id}
               lang={lang}
               title={title}
               desc=""
               fromLabel={fromLabel}
-              price={t.basePrice}
-              tourId={t.slug ?? t.id}
+              price={card.basePrice}
+              tourId={card.slug ?? card.id}
               imageSrc={imageSrc}
               imageFallback={imageFallback}
               bookLabel={bookLabel}
-              isAskForPrice={t.isAskForPrice}
+              isAskForPrice={card.isAskForPrice}
               askForPriceLabel={askForPriceLabel}
             />
           );

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { Prisma, type Tour } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
+import { sliceTourCatalogLocales, sliceTourDetailLocales, sliceTourOptionLocales } from '@/lib/tourLocaleSlice';
 import { getSession } from './auth';
 import { getCategoryQuerySlugs, normalizeCategorySlug } from '@/lib/destinations';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
@@ -222,6 +223,7 @@ export async function getTours(filters?: { destination?: string; category?: stri
         // NOTE: Tour list API is used for catalog/listing contexts; options are fetched by getTourById.
         options: [],
         images: imageMap.get(t.id) ?? [],
+        ...sliceTourCatalogLocales(t as Tour),
       };
     });
   } catch {
@@ -264,6 +266,17 @@ function parseFaqArray(value: unknown): { question: string; answer: string }[] |
   return rows.length > 0 ? rows : null;
 }
 
+function parseAllFaqsFromTour(tour: Tour): Record<string, { question: string; answer: string }[] | null> {
+  const suffixes = ['En', 'Tr', 'Zh', 'Es', 'It', 'Fr', 'De', 'Nl', 'Ro', 'Ru', 'Pl', 'Ko', 'Ja'] as const;
+  const out: Record<string, { question: string; answer: string }[] | null> = {};
+  for (const suf of suffixes) {
+    const rawKey = `faqs${suf}`;
+    const raw = (tour as Record<string, unknown>)[rawKey];
+    out[rawKey] = parseFaqArray(raw);
+  }
+  return out;
+}
+
 function jsonInputOrNull(value: { question: string; answer: string }[] | null | undefined): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
   return value && value.length > 0 ? (value as Prisma.InputJsonValue) : Prisma.JsonNull;
 }
@@ -295,7 +308,7 @@ export type RelatedTourCard = {
   category: string | null;
   isAskForPrice: boolean;
   imageUrl: string | null;
-};
+} & Record<string, string | number | boolean | null | undefined>;
 
 const COMPLEMENTARY_TYPES: Record<string, string[]> = {
   BALLOON: ['TRANSFER', 'CONCIERGE', 'TOUR', 'ACTIVITY'],
@@ -365,6 +378,7 @@ export async function getRelatedTours(currentTourId: string, limit = 4): Promise
       category: t.category ?? null,
       isAskForPrice: Boolean(t.isAskForPrice),
       imageUrl: firstImageByTour.get(t.id) ?? null,
+      ...sliceTourCatalogLocales(t as Tour),
     }));
   } catch {
     return [];
@@ -427,36 +441,8 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
       slug: (tour as { slug?: string | null }).slug ?? null,
       salesTags: normalizeSalesTagsInput((tour as { salesTags?: unknown }).salesTags),
       startTimes: normalizeStartTimes((tour as { startTimes?: unknown }).startTimes),
-      titleTr: tour.titleTr,
-      titleEn: tour.titleEn,
-      titleZh: tour.titleZh,
-      descTr: tour.descTr,
-      descEn: tour.descEn,
-      descZh: tour.descZh,
-      highlightsEn: (tour as { highlightsEn?: string | null }).highlightsEn ?? null,
-      highlightsTr: (tour as { highlightsTr?: string | null }).highlightsTr ?? null,
-      highlightsZh: (tour as { highlightsZh?: string | null }).highlightsZh ?? null,
-      itineraryEn: (tour as { itineraryEn?: string | null }).itineraryEn ?? null,
-      itineraryTr: (tour as { itineraryTr?: string | null }).itineraryTr ?? null,
-      itineraryZh: (tour as { itineraryZh?: string | null }).itineraryZh ?? null,
-      knowBeforeEn: (tour as { knowBeforeEn?: string | null }).knowBeforeEn ?? null,
-      knowBeforeTr: (tour as { knowBeforeTr?: string | null }).knowBeforeTr ?? null,
-      knowBeforeZh: (tour as { knowBeforeZh?: string | null }).knowBeforeZh ?? null,
-      notSuitableEn: (tour as { notSuitableEn?: string | null }).notSuitableEn ?? null,
-      notSuitableTr: (tour as { notSuitableTr?: string | null }).notSuitableTr ?? null,
-      notSuitableZh: (tour as { notSuitableZh?: string | null }).notSuitableZh ?? null,
-      notAllowedEn: (tour as { notAllowedEn?: string | null }).notAllowedEn ?? null,
-      notAllowedTr: (tour as { notAllowedTr?: string | null }).notAllowedTr ?? null,
-      notAllowedZh: (tour as { notAllowedZh?: string | null }).notAllowedZh ?? null,
-      whatsIncludedEn: (tour as { whatsIncludedEn?: string | null }).whatsIncludedEn ?? null,
-      whatsIncludedTr: (tour as { whatsIncludedTr?: string | null }).whatsIncludedTr ?? null,
-      whatsIncludedZh: (tour as { whatsIncludedZh?: string | null }).whatsIncludedZh ?? null,
-      notIncludedEn: (tour as { notIncludedEn?: string | null }).notIncludedEn ?? null,
-      notIncludedTr: (tour as { notIncludedTr?: string | null }).notIncludedTr ?? null,
-      notIncludedZh: (tour as { notIncludedZh?: string | null }).notIncludedZh ?? null,
-      faqsEn: parseFaqArray((tour as { faqsEn?: unknown }).faqsEn),
-      faqsTr: parseFaqArray((tour as { faqsTr?: unknown }).faqsTr),
-      faqsZh: parseFaqArray((tour as { faqsZh?: unknown }).faqsZh),
+      ...sliceTourDetailLocales(tour),
+      ...parseAllFaqsFromTour(tour),
       isAskForPrice: Boolean((tour as { isAskForPrice?: boolean }).isAskForPrice),
       isFeatured: Boolean((tour as { isFeatured?: boolean }).isFeatured),
       cancellationNoteEn: (tour as { cancellationNoteEn?: string | null }).cancellationNoteEn?.trim() || null,
@@ -505,11 +491,12 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
         imageUrl: row.attraction.imageUrl ?? null,
       })),
       attractionIds: tourAttractions.map((row) => row.attraction.id),
-      options: options.map((o: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number }) => ({
+      options: options.map((o) => ({
         id: o.id,
         titleTr: o.titleTr,
         titleEn: o.titleEn,
         titleZh: o.titleZh,
+        ...sliceTourOptionLocales(o),
         priceAdd: o.priceAdd,
         pricingMode: (() => {
           const m = (o as { pricingMode?: string }).pricingMode;
@@ -518,7 +505,7 @@ export async function getTourById(idOrSlug: string): Promise<TourWithOptions | n
           return 'per_person';
         })(),
       })),
-    };
+    } as TourWithOptions;
   } catch {
     return null;
   }

@@ -2,6 +2,7 @@
 
 import type { TourVariantDisplay } from '@/lib/types/variant';
 import { getTierFromPrice } from '@/lib/pricingTiers';
+import { pickTourField } from '@/lib/pickContentLang';
 
 export function ReservationTypeCards({
   variants,
@@ -14,13 +15,14 @@ export function ReservationTypeCards({
   variants: TourVariantDisplay[];
   value: string;
   onChange: (variantId: string) => void;
-  lang: 'en' | 'tr' | 'zh';
+  lang: string;
   labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
   showTypeMeta?: boolean;
 }) {
   const cards = variants.filter((v) => Boolean(v.reservationType));
 
-  const title = (v: TourVariantDisplay) => (lang === 'tr' ? v.titleTr : lang === 'zh' ? v.titleZh : v.titleEn);
+  const title = (v: TourVariantDisplay) =>
+    pickTourField(v as unknown as Record<string, unknown>, 'title', lang) ?? v.titleEn;
   const priceLabel = (v: TourVariantDisplay) => {
     if ((v.privatePriceTiers?.length ?? 0) > 0) {
       const fromTier = getTierFromPrice(v.privatePriceTiers ?? null);

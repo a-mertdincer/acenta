@@ -11,7 +11,7 @@ import { ProductVariantBookingCard } from '../../../components/ProductVariantBoo
 import { TourDetailMainColumn, type FaqItem } from '../../../components/TourDetailMainColumn';
 import { TourReviewsSection } from '../../../components/TourReviewsSection';
 import { RelatedToursSection } from '../../../components/RelatedToursSection';
-import { AskForPriceBookingBlock } from '../../../components/AskForPriceModal';
+import { AskForPriceBookingBlock, type AskForPriceStrings } from '../../../components/AskForPriceModal';
 import { TourBookingTrustExtras } from '../../../components/TourBookingTrustExtras';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import { TourTagBadges } from '../../../components/TourTagBadges';
@@ -19,9 +19,19 @@ import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { useExchangeRate } from '../../../hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
 import { getTierFromPrice } from '@/lib/pricingTiers';
-import enPageDict from '@/app/dictionaries/en.json';
-import trPageDict from '@/app/dictionaries/tr.json';
-import zhPageDict from '@/app/dictionaries/zh.json';
+import { normalizeLocale, type SiteLocale } from '@/lib/i18n';
+import { pickTourField, pickFaqs, pickContentLang } from '@/lib/pickContentLang';
+import {
+  tourDetailUi,
+  variantUi,
+  promotionUi,
+  whyBookUi,
+  tourCancellationUi,
+  navigationUi,
+  askForPriceUi,
+  reviewsUi,
+  siteDictionary,
+} from '@/lib/siteLocaleDict';
 
 function getTransferPriceForPaxClient(transferTiers: { minPax: number; maxPax: number; price: number }[] | null, pax: number, basePrice: number): number {
   if (transferTiers?.length) {
@@ -59,23 +69,14 @@ function buildProductSchema(
 
 type TransferAirport = 'ASR' | 'NAV';
 
-function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' | 'not_allowed'): string {
-  if (lang === 'tr') {
-    if (pricingType === 'free') return 'Ucretsiz';
-    if (pricingType === 'child') return 'Cocuk fiyati';
-    if (pricingType === 'adult') return 'Yetiskin fiyati';
-    return 'Kabul edilmez';
-  }
-  if (lang === 'zh') {
-    if (pricingType === 'free') return '免费';
-    if (pricingType === 'child') return '儿童价格';
-    if (pricingType === 'adult') return '成人价格';
-    return '不接受';
-  }
-  if (pricingType === 'free') return 'Free of charge';
-  if (pricingType === 'child') return 'Child price';
-  if (pricingType === 'adult') return 'Adult price';
-  return 'Not allowed';
+function agePriceShortLabel(
+  v: Record<string, string>,
+  pricingType: 'free' | 'child' | 'adult' | 'not_allowed'
+): string {
+  if (pricingType === 'free') return v.agePriceFree ?? 'Free of charge';
+  if (pricingType === 'child') return v.agePriceChild ?? 'Child price';
+  if (pricingType === 'adult') return v.agePriceAdult ?? 'Adult price';
+  return v.agePriceNotAllowed ?? 'Not allowed';
 }
 
 function getAgePolicyDetail(
@@ -106,157 +107,20 @@ function getAgePolicyDetail(
   return normalized;
 }
 
-type Lang = 'en' | 'tr' | 'zh';
 
-const TOUR_DETAIL_STRINGS: Record<Lang, {
-  description: string;
-  optionalAddons: string;
-  basePrice: string;
-  perPerson: string;
-  baseSubtotal: string;
-  optionLine: string;
-  netTotal: string;
-  free: string;
-  selectDate: string;
-  passengers: string;
-  thisDayPrice: string;
-  capacity: string;
-  guests: string;
-  bookNow: string;
-  addToCart: string;
-  dateClosed: string;
-  transferPrice: string;
-  airport: string;
-  airportASR: string;
-  airportNAV: string;
-  addedToCart: string;
-  goToCart: string;
-  continueShopping: string;
-  agePolicyTitle: string;
-  agePolicyInfant: string;
-  agePolicyChild: string;
-  agePolicyAdult: string;
-  highlights: string;
-  itinerary: string;
-  knowBefore: string;
-  notSuitable: string;
-  notAllowed: string;
-  whatsIncluded: string;
-  notIncluded: string;
-  gallery: string;
-}> = {
-  en: {
-    description: 'Description',
-    optionalAddons: 'Optional add-ons',
-    basePrice: 'Base price',
-    perPerson: 'per person',
-    baseSubtotal: 'Base (×{pax} guests)',
-    optionLine: '{title} (×{pax})',
-    netTotal: 'Net total',
-    free: 'Free',
-    selectDate: 'Select date',
-    passengers: 'Number of guests',
-    thisDayPrice: "This day's price",
-    capacity: 'Capacity',
-    guests: 'guests',
-    bookNow: 'Book now',
-    addToCart: 'Add to cart',
-    dateClosed: 'This date is closed for booking.',
-    transferPrice: 'Price for {pax} passenger(s)',
-    airport: 'Airport',
-    airportASR: 'Kayseri (ASR)',
-    airportNAV: 'Nevşehir (NAV)',
-    addedToCart: 'added to cart!',
-    goToCart: 'Go to cart',
-    continueShopping: 'Continue shopping',
-    agePolicyTitle: 'Age policy:',
-    agePolicyInfant: '0-3 years: Free',
-    agePolicyChild: '4-7 years: Child price',
-    agePolicyAdult: '7+ years: Adult price',
-    highlights: 'Highlights',
-    itinerary: 'Itinerary',
-    knowBefore: 'Know Before You Go',
-    notSuitable: 'Not Suitable For',
-    notAllowed: 'Not Allowed',
-    whatsIncluded: "What's included",
-    notIncluded: 'Not included',
-    gallery: 'Gallery',
-  },
-  tr: {
-    description: 'Açıklama',
-    optionalAddons: 'Opsiyonlar (ekstralar)',
-    basePrice: 'Temel fiyat',
-    perPerson: 'kişi başı',
-    baseSubtotal: 'Temel fiyat (×{pax} kişi)',
-    optionLine: '{title} (×{pax})',
-    netTotal: 'Net toplam',
-    free: 'Dahil',
-    selectDate: 'Tarih seçin',
-    passengers: 'Yolcu sayısı',
-    thisDayPrice: 'Bu günün fiyatı',
-    capacity: 'Kapasite',
-    guests: 'kişi',
-    bookNow: 'Rezervasyon yap',
-    addToCart: 'Sepete ekle',
-    dateClosed: 'Bu tarih için rezervasyon alınmamaktadır.',
-    transferPrice: '{pax} kişi fiyatı',
-    airport: 'Havalimanı',
-    airportASR: 'Kayseri (ASR)',
-    airportNAV: 'Nevşehir (NAV)',
-    addedToCart: 'sepete eklendi!',
-    goToCart: 'Sepete Git',
-    continueShopping: 'Alışverişe Devam Et',
-    agePolicyTitle: 'Yaş politikası:',
-    agePolicyInfant: '0-3 yaş: Ücretsiz',
-    agePolicyChild: '4-7 yaş: Çocuk fiyatı',
-    agePolicyAdult: '7+ yaş: Yetişkin fiyatı',
-    highlights: 'Öne Çıkanlar',
-    itinerary: 'Güzergah',
-    knowBefore: 'Bilmeniz Gerekenler',
-    notSuitable: 'Uygun Olmayanlar',
-    notAllowed: 'İzin Verilmeyenler',
-    whatsIncluded: 'Dahil Olanlar',
-    notIncluded: 'Dahil Olmayanlar',
-    gallery: 'Galeri',
-  },
-  zh: {
-    description: '描述',
-    optionalAddons: '可选附加项目',
-    basePrice: '基础价格',
-    perPerson: '每人',
-    baseSubtotal: '基础 (×{pax} 人)',
-    optionLine: '{title} (×{pax})',
-    netTotal: '合计',
-    free: '免费',
-    selectDate: '选择日期',
-    passengers: '乘客人数',
-    thisDayPrice: '当日价格',
-    capacity: '容量',
-    guests: '人',
-    bookNow: '立即预订',
-    addToCart: '加入购物车',
-    dateClosed: '该日期不接受预订。',
-    transferPrice: '{pax} 人价格',
-    airport: '机场',
-    airportASR: '开塞利 (ASR)',
-    airportNAV: '内夫谢希尔 (NAV)',
-    addedToCart: '已加入购物车！',
-    goToCart: '前往购物车',
-    continueShopping: '继续购物',
-    agePolicyTitle: '年龄政策：',
-    agePolicyInfant: '0-3岁：免费',
-    agePolicyChild: '4-7岁：儿童价格',
-    agePolicyAdult: '7岁以上：成人价格',
-    highlights: '亮点',
-    itinerary: '行程安排',
-    knowBefore: '出行须知',
-    notSuitable: '不适合人群',
-    notAllowed: '禁止事项',
-    whatsIncluded: '包含项目',
-    notIncluded: '不包含项目',
-    gallery: '图库',
-  },
-};
+const EXT_TITLE_DESC_SUFFIXES = ['Es', 'It', 'Fr', 'De', 'Nl', 'Ro', 'Ru', 'Pl', 'Ko', 'Ja'] as const;
+
+function extendTitlesDesc(row: Record<string, unknown>): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = {};
+  for (const base of ['title', 'desc'] as const) {
+    for (const suf of EXT_TITLE_DESC_SUFFIXES) {
+      const k = `${base}${suf}`;
+      const v = row[k];
+      if (typeof v === 'string') out[k] = v;
+    }
+  }
+  return out;
+}
 
 function parseLineList(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -264,30 +128,6 @@ function parseLineList(value: string | null | undefined): string[] {
     .split('\n')
     .map((line) => line.replace(/^[\s\-*•]+/, '').trim())
     .filter(Boolean);
-}
-
-function getLocalizedContent(
-  lang: Lang,
-  en?: string | null,
-  tr?: string | null,
-  zh?: string | null
-): string | null {
-  const preferred = lang === 'tr' ? tr : lang === 'zh' ? zh : en;
-  const preferredText = typeof preferred === 'string' ? preferred.trim() : '';
-  if (preferredText) return preferredText;
-  const enText = typeof en === 'string' ? en.trim() : '';
-  return enText || null;
-}
-
-function getLocalizedFaqs(
-  lang: Lang,
-  en?: FaqItem[] | null,
-  tr?: FaqItem[] | null,
-  zh?: FaqItem[] | null
-): FaqItem[] {
-  const preferred = lang === 'tr' ? tr : lang === 'zh' ? zh : en;
-  if (Array.isArray(preferred) && preferred.length > 0) return preferred;
-  return Array.isArray(en) ? en : [];
 }
 
 function StickyAnchorBar({
@@ -345,94 +185,79 @@ function StickyAnchorBar({
   );
 }
 
-function getTourExtrasDict(lang: string): { whyBook: NonNullable<typeof enPageDict.whyBook>; tourCancellation: NonNullable<typeof enPageDict.tourCancellation> } {
-  if (lang === 'tr') return { whyBook: trPageDict.whyBook, tourCancellation: trPageDict.tourCancellation };
-  if (lang === 'zh') return { whyBook: zhPageDict.whyBook, tourCancellation: zhPageDict.tourCancellation };
-  return { whyBook: enPageDict.whyBook, tourCancellation: enPageDict.tourCancellation };
-}
+function mapDbTourToState(db: Record<string, unknown>, siteLang: SiteLocale) {
+  const row = db;
+  const titleEn = String(row.titleEn ?? '');
+  const titleTr = String(row.titleTr ?? '');
+  const titleZh = String(row.titleZh ?? '');
+  const descEn = String(row.descEn ?? '');
+  const descTr = String(row.descTr ?? '');
+  const descZh = String(row.descZh ?? '');
+  const optionsRaw = Array.isArray(row.options) ? row.options : [];
 
-function mapDbTourToState(db: {
-  id: string; type: string; titleEn: string; titleTr: string; titleZh: string; descEn: string; descTr: string; descZh: string; basePrice: number;
-  highlightsEn?: string | null;
-  highlightsTr?: string | null;
-  highlightsZh?: string | null;
-  itineraryEn?: string | null;
-  itineraryTr?: string | null;
-  itineraryZh?: string | null;
-  knowBeforeEn?: string | null;
-  knowBeforeTr?: string | null;
-  knowBeforeZh?: string | null;
-  notSuitableEn?: string | null;
-  notSuitableTr?: string | null;
-  notSuitableZh?: string | null;
-  notAllowedEn?: string | null;
-  notAllowedTr?: string | null;
-  notAllowedZh?: string | null;
-  whatsIncludedEn?: string | null;
-  whatsIncludedTr?: string | null;
-  whatsIncludedZh?: string | null;
-  notIncludedEn?: string | null;
-  notIncludedTr?: string | null;
-  notIncludedZh?: string | null;
-  faqsEn?: { question: string; answer: string }[] | null;
-  faqsTr?: { question: string; answer: string }[] | null;
-  faqsZh?: { question: string; answer: string }[] | null;
-  transferTiers?: { minPax: number; maxPax: number; price: number }[] | null;
-  transferAirportTiers?: { ASR?: { minPax: number; maxPax: number; price: number }[]; NAV?: { minPax: number; maxPax: number; price: number }[] } | null;
-  options: { id: string; titleTr: string; titleEn: string; titleZh: string; priceAdd: number; pricingMode?: 'per_person' | 'flat' | 'per_unit' }[];
-  minAgeLimit?: number | null;
-  ageRestrictionEn?: string | null;
-  ageRestrictionTr?: string | null;
-  ageRestrictionZh?: string | null;
-  ageGroups?: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; descriptionEn: string; descriptionTr: string; descriptionZh?: string | null }[];
-  images?: { url: string; isPrimary: boolean }[];
-  isAskForPrice?: boolean;
-  salesTags?: string[] | null;
-  startTimes?: string[] | null;
-  cancellationNoteEn?: string | null;
-  cancellationNoteTr?: string | null;
-  cancellationNoteZh?: string | null;
-}, _lang: Lang) {
-  const titleEn = db.titleEn; const titleTr = db.titleTr; const titleZh = db.titleZh;
   return {
-    id: db.id,
-    type: db.type,
+    id: String(row.id ?? ''),
+    type: String(row.type ?? ''),
     titleEn,
     titleTr,
     titleZh,
-    descEn: db.descEn,
-    descTr: db.descTr,
-    descZh: db.descZh,
-    highlights: getLocalizedContent(_lang, db.highlightsEn, db.highlightsTr, db.highlightsZh),
-    itinerary: getLocalizedContent(_lang, db.itineraryEn, db.itineraryTr, db.itineraryZh),
-    knowBefore: getLocalizedContent(_lang, db.knowBeforeEn, db.knowBeforeTr, db.knowBeforeZh),
-    notSuitable: getLocalizedContent(_lang, db.notSuitableEn, db.notSuitableTr, db.notSuitableZh),
-    notAllowed: getLocalizedContent(_lang, db.notAllowedEn, db.notAllowedTr, db.notAllowedZh),
-    whatsIncluded: getLocalizedContent(_lang, db.whatsIncludedEn, db.whatsIncludedTr, db.whatsIncludedZh),
-    notIncluded: getLocalizedContent(_lang, db.notIncludedEn, db.notIncludedTr, db.notIncludedZh),
-    faqs: getLocalizedFaqs(_lang, db.faqsEn, db.faqsTr, db.faqsZh),
-    basePrice: db.basePrice,
-    transferTiers: db.transferTiers ?? null,
-    transferAirportTiers: db.transferAirportTiers ?? null,
-    minAgeLimit: db.minAgeLimit ?? null,
-    ageRestriction: getLocalizedContent(_lang, db.ageRestrictionEn, db.ageRestrictionTr, db.ageRestrictionZh),
-    ageGroups: (db.ageGroups ?? []).map((group) => ({
-      minAge: group.minAge,
-      maxAge: group.maxAge,
-      pricingType: group.pricingType,
-      description: getLocalizedContent(_lang, group.descriptionEn, group.descriptionTr, group.descriptionZh) ?? '',
-    })),
-    images: (db.images ?? []).map((img) => img.url),
-    salesTags: Array.isArray(db.salesTags) ? db.salesTags.filter((x): x is string => typeof x === 'string') : [],
-    startTimes: Array.isArray(db.startTimes) ? db.startTimes.filter((x): x is string => typeof x === 'string') : [],
-    options: db.options.map((o) => ({
-      id: o.id,
-      title: _lang === 'tr' ? o.titleTr : _lang === 'zh' ? o.titleZh : o.titleEn,
-      price: o.priceAdd,
-      pricingMode: o.pricingMode === 'flat' ? 'flat' : o.pricingMode === 'per_unit' ? 'per_unit' : 'per_person',
-    })),
-    isAskForPrice: Boolean(db.isAskForPrice),
-    cancellationNote: getLocalizedContent(_lang, db.cancellationNoteEn, db.cancellationNoteTr, db.cancellationNoteZh),
+    descEn,
+    descTr,
+    descZh,
+    highlights: pickTourField(row, 'highlights', siteLang),
+    itinerary: pickTourField(row, 'itinerary', siteLang),
+    knowBefore: pickTourField(row, 'knowBefore', siteLang),
+    notSuitable: pickTourField(row, 'notSuitable', siteLang),
+    notAllowed: pickTourField(row, 'notAllowed', siteLang),
+    whatsIncluded: pickTourField(row, 'whatsIncluded', siteLang),
+    notIncluded: pickTourField(row, 'notIncluded', siteLang),
+    faqs: pickFaqs(row, siteLang),
+    basePrice: Number(row.basePrice ?? 0),
+    transferTiers: (row.transferTiers as typeof row.transferTiers) ?? null,
+    transferAirportTiers: (row.transferAirportTiers as typeof row.transferAirportTiers) ?? null,
+    minAgeLimit: (row.minAgeLimit as number | null | undefined) ?? null,
+    ageRestriction: pickTourField(row, 'ageRestriction', siteLang),
+    ageGroups: (Array.isArray(row.ageGroups) ? row.ageGroups : []).map((group) => {
+      const g = group as Record<string, unknown>;
+      return {
+        minAge: Number(g.minAge),
+        maxAge: Number(g.maxAge),
+        pricingType: g.pricingType as 'free' | 'child' | 'adult' | 'not_allowed',
+        description:
+          pickContentLang(
+            {
+              en: typeof g.descriptionEn === 'string' ? g.descriptionEn : '',
+              tr: typeof g.descriptionTr === 'string' ? g.descriptionTr : '',
+              zh: typeof g.descriptionZh === 'string' ? g.descriptionZh : '',
+            },
+            siteLang
+          ) ?? (typeof g.descriptionEn === 'string' ? g.descriptionEn : ''),
+      };
+    }),
+    images: (Array.isArray(row.images) ? row.images : []).map((img) =>
+      String((img as { url?: string }).url ?? '')
+    ),
+    salesTags: Array.isArray(row.salesTags)
+      ? row.salesTags.filter((x): x is string => typeof x === 'string')
+      : [],
+    startTimes: Array.isArray(row.startTimes)
+      ? row.startTimes.filter((x): x is string => typeof x === 'string')
+      : [],
+    options: optionsRaw.map((o) => {
+      const opt = o as Record<string, unknown>;
+      const pricingModeRaw = typeof opt.pricingMode === 'string' ? opt.pricingMode : 'per_person';
+      const pricingMode =
+        pricingModeRaw === 'flat' ? 'flat' : pricingModeRaw === 'per_unit' ? 'per_unit' : 'per_person';
+      return {
+        id: String(opt.id ?? ''),
+        title: pickTourField(opt, 'title', siteLang) ?? String(opt.titleEn ?? ''),
+        price: Number(opt.priceAdd ?? 0),
+        pricingMode,
+      };
+    }),
+    isAskForPrice: Boolean(row.isAskForPrice),
+    cancellationNote: pickTourField(row, 'cancellationNote', siteLang),
+    ...extendTitlesDesc(row),
   };
 }
 
@@ -471,6 +296,17 @@ const mockTours = [
 export default function TourDetailPage(props: { params: Promise<{ lang: string; id: string }> }) {
     const params = use(props.params);
     const { lang, id } = params;
+    const siteLang = normalizeLocale(lang);
+    const t = tourDetailUi(siteLang);
+    const vUiFlat = variantUi(siteLang) as Record<string, string>;
+    const promoFlat = promotionUi(siteLang) as Record<string, string>;
+    const navUi = navigationUi(siteLang);
+    const askStrings = askForPriceUi(siteLang);
+    const askModalStrings = askStrings as unknown as AskForPriceStrings;
+    const reviewsLabels = reviewsUi(siteLang) as Record<string, string>;
+    const homeUi = siteDictionary(siteLang).home;
+    const whyBook = whyBookUi(siteLang);
+    const tourCancellation = tourCancellationUi(siteLang);
     const router = useRouter();
     const addItem = useCartStore(state => state.addItem);
 
@@ -487,7 +323,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [cartToastOpen, setCartToastOpen] = useState(false);
     const [cartToastTitle, setCartToastTitle] = useState('');
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-    const { eurTryRate, updatedAt } = useExchangeRate(lang === 'tr');
+    const { eurTryRate, updatedAt } = useExchangeRate(siteLang === 'tr');
     const showChildren = (tour?.minAgeLimit != null ? tour.minAgeLimit < 8 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { pricingType: string; maxAge: number }) => g.pricingType === 'child' && g.maxAge >= 4) : true);
     const showInfants = (tour?.minAgeLimit != null ? tour.minAgeLimit < 4 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { minAge: number; pricingType: string }) => g.minAge <= 3 && g.pricingType !== 'not_allowed') : true);
 
@@ -506,7 +342,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
           .then(([dbTour, variantData]) => {
             setTourWithVariants(variantData);
             if (dbTour) {
-              setTour(mapDbTourToState(dbTour, lang as Lang));
+              setTour(mapDbTourToState(dbTour as unknown as Record<string, unknown>, siteLang));
               return;
             }
             if (variantData) {
@@ -537,11 +373,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                   minAge: group.minAge,
                   maxAge: group.maxAge,
                   pricingType: group.pricingType,
-                  description: lang === 'tr'
-                    ? group.descriptionTr
-                    : lang === 'zh'
-                      ? (group.descriptionZh ?? '')
-                      : group.descriptionEn,
+                  description:
+                    pickContentLang(
+                      {
+                        en: group.descriptionEn,
+                        tr: group.descriptionTr,
+                        zh: group.descriptionZh ?? '',
+                      },
+                      siteLang
+                    ) ?? group.descriptionEn,
                 })),
                 cancellationNote: null,
               });
@@ -578,7 +418,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
         if (!showInfants && infants !== 0) setInfants(0);
     }, [showChildren, showInfants, children, infants]);
 
-    if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>Loading...</div>;
+    if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>{t.loading}</div>;
 
     // Transfer sayfasında layout atlamasını önle: varyant verisi gelene kadar aynı layout ile skeleton göster
     const needsVariants = tour.type === 'TRANSFER';
@@ -595,15 +435,13 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             <div style={{ height: 120, background: 'var(--color-border)', borderRadius: 8 }} />
           </div>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'var(--space-lg)' }}>Yükleniyor...</p>
+        <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 'var(--space-lg)' }}>{t.loading}</p>
       </div>;
     }
 
-    const locale = (lang === 'tr' || lang === 'zh' ? lang : 'en') as Lang;
-    const t = TOUR_DETAIL_STRINGS[locale];
-    const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
-    const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
-    const formatShown = (eur: number) => formatPriceByLang(eur, locale, eurTryRate);
+    const title = pickTourField(tour as Record<string, unknown>, 'title', siteLang) ?? tour.titleEn;
+    const desc = pickTourField(tour as Record<string, unknown>, 'desc', siteLang) ?? tour.descEn;
+    const formatShown = (eur: number) => formatPriceByLang(eur, siteLang, eurTryRate);
 
     const pax = adults + children + infants;
     const transferTiersForAirport =
@@ -671,8 +509,8 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     })();
     const notIncludedItems = parseLineList((tour as { notIncluded?: string | null }).notIncluded);
     const faqs = (Array.isArray(tour.faqs) ? tour.faqs : []) as FaqItem[];
-    const bookNavLabel = lang === 'tr' ? 'Rezervasyon' : lang === 'zh' ? '立即预订' : 'Book Now';
-    const faqNavLabel = 'FAQs';
+    const bookNavLabel = t.bookNow;
+    const faqNavLabel = t.faqs;
     const hasDesc = Boolean(desc?.trim());
     const anchorSections: { id: string; label: string }[] = [
       { id: 'book-now', label: bookNavLabel },
@@ -688,14 +526,13 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     if (notIncludedItems.length > 0) anchorSections.push({ id: 'not-included', label: t.notIncluded });
     if (faqs.length > 0) anchorSections.push({ id: 'faqs', label: faqNavLabel });
 
-    const askPriceLabel = locale === 'tr' ? 'Fiyat Sorun' : locale === 'zh' ? '询价' : 'Ask for Price';
+    const askPriceLabel = askStrings.button;
 
     const productSchema =
       !isAskForPrice && useVariantBooking && tourWithVariants && tour
         ? buildProductSchema(tour, tourWithVariants, title, desc, galleryMainSrc)
         : null;
 
-    const { whyBook, tourCancellation } = getTourExtrasDict(lang);
     const cancellationNoteLocalized = (tour as { cancellationNote?: string | null }).cancellationNote ?? null;
 
     const askPriceNextDay = new Date();
@@ -705,17 +542,11 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
       dateYmd: askPriceNextDay.toISOString().split('T')[0],
       people: 2,
     });
-    const pageDictForVariant = lang === 'tr' ? trPageDict : lang === 'zh' ? zhPageDict : enPageDict;
-    const askWhatsAppLabel =
-      (pageDictForVariant as { variant?: { askWhatsApp?: string } }).variant?.askWhatsApp ??
-      (enPageDict as { variant?: { askWhatsApp?: string } }).variant?.askWhatsApp ??
-      'Ask on WhatsApp';
+    const askWhatsAppLabel = vUiFlat.askWhatsApp ?? 'Ask on WhatsApp';
 
-    const homeLabel = lang === 'tr' ? 'Ana Sayfa' : lang === 'zh' ? '首页' : 'Home';
-    const toursLabel = lang === 'tr' ? 'Turlar' : lang === 'zh' ? '旅游' : 'Tours';
     const breadcrumbItems: { label: string; href?: string }[] = [
-      { label: homeLabel, href: `/${lang}` },
-      { label: toursLabel, href: `/${lang}/tours` },
+      { label: navUi.home, href: `/${lang}` },
+      { label: navUi.tours, href: `/${lang}/tours` },
       { label: title },
     ];
 
@@ -737,7 +568,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             {Array.isArray((tour as { salesTags?: string[] }).salesTags) && (tour as { salesTags?: string[] }).salesTags!.length > 0 ? (
                                 <TourTagBadges
                                     tagSlugs={(tour as { salesTags?: string[] }).salesTags ?? []}
-                                    lang={locale}
+                                    lang={siteLang}
                                     variant="detail"
                                     max={6}
                                 />
@@ -747,7 +578,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             ) : (
                               fromPrice != null && (
                                 <p className="tour-detail-price-from">
-                                    From {formatShown(fromPrice).primary}
+                                    {homeUi.from} {formatShown(fromPrice).primary}
                                     {formatShown(fromPrice).secondary ? <small className="tour-detail-price-secondary">{formatShown(fromPrice).secondary}</small> : null}
                                 </p>
                               )
@@ -776,13 +607,16 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                               openFaqIndex={openFaqIndex}
                               onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
                             />
-                            <TourReviewsSection tourId={tour.id} lang={locale} />
+                            <TourReviewsSection tourId={tour.id} lang={siteLang} reviewsLabels={reviewsLabels} />
                         </div>
                         <div className="tour-detail-booking-card-wrapper" id="book-now">
                             <ProductVariantBookingCard
                                 tourId={tour.id}
                                 tourType={tour.type}
-                                lang={locale}
+                                lang={siteLang}
+                                variantUi={vUiFlat}
+                                promotionUi={promoFlat}
+                                askForPriceStrings={askModalStrings}
                                 isAskForPrice={isAskForPrice}
                                 whyBook={whyBook}
                                 tourCancellationLabels={tourCancellation}
@@ -848,13 +682,13 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                   openFaqIndex={openFaqIndex}
                   onToggleFaq={(idx) => setOpenFaqIndex((prev) => (prev === idx ? null : idx))}
                 />
-                <TourReviewsSection tourId={tour.id} lang={locale} />
+                <TourReviewsSection tourId={tour.id} lang={siteLang} reviewsLabels={reviewsLabels} />
             </div>
 
             <div id="book-now" className="tour-detail-booking-card-wrapper">
                 {isAskForPrice ? (
                   <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
-                    <AskForPriceBookingBlock tourId={tour.id} lang={locale} />
+                    <AskForPriceBookingBlock tourId={tour.id} strings={askModalStrings} />
                     <TourBookingTrustExtras
                       lang={lang}
                       whatsappHref={askPriceWhatsappHrefLegacy}
@@ -901,7 +735,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                     <div style={{ marginBottom: 'var(--space-xl)' }}>
                         <label style={{ display: 'block', marginBottom: 'var(--space-xs)', fontWeight: 'bold' }}>{t.passengers}</label>
                         <div className="age-group">
-                            <span className="age-group-label">{lang === 'tr' ? 'Yetiskin' : lang === 'zh' ? '成人' : 'Adults'}</span>
+                            <span className="age-group-label">{vUiFlat.adults}</span>
                             <div className="stepper-control">
                                 <button type="button" className="stepper-btn" disabled={adults <= 1} onClick={() => setAdults((n) => Math.max(1, n - 1))}>-</button>
                                 <span>{adults}</span>
@@ -910,7 +744,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         </div>
                         {showChildren && (
                             <div className="age-group">
-                                <span className="age-group-label">{lang === 'tr' ? 'Cocuk' : lang === 'zh' ? '儿童' : 'Children'}</span>
+                                <span className="age-group-label">{vUiFlat.children}</span>
                                 <div className="stepper-control">
                                     <button type="button" className="stepper-btn" disabled={children <= 0} onClick={() => setChildren((n) => Math.max(0, n - 1))}>-</button>
                                     <span>{children}</span>
@@ -920,7 +754,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                         )}
                         {showInfants && (
                             <div className="age-group">
-                                <span className="age-group-label">{lang === 'tr' ? 'Bebek' : lang === 'zh' ? '婴儿' : 'Infants'}</span>
+                                <span className="age-group-label">{vUiFlat.infants}</span>
                                 <div className="stepper-control">
                                     <button type="button" className="stepper-btn" disabled={infants <= 0} onClick={() => setInfants((n) => Math.max(0, n - 1))}>-</button>
                                     <span>{infants}</span>
@@ -935,7 +769,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                                     {(tour.ageGroups ?? []).map((g: { minAge: number; maxAge: number; pricingType: 'free' | 'child' | 'adult' | 'not_allowed'; description: string }, idx: number) => {
                                         const icon = g.pricingType === 'not_allowed' ? '⛔' : g.pricingType === 'child' ? '👶' : g.pricingType === 'free' ? '🎉' : '👤';
                                         const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
-                                        const label = getAgePricingLabel(locale, g.pricingType);
+                                        const label = agePriceShortLabel(vUiFlat, g.pricingType);
                                         const extra = getAgePolicyDetail(g.description, label, g.pricingType);
                                         return <span key={`${range}-${idx}`}>{icon} {range}: {label}{extra ? ` — ${extra}` : ''}<br /></span>;
                                     })}
@@ -1013,19 +847,19 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <>
                                 {adults > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span>{`${adults} ${lang === 'tr' ? 'Yetişkin' : lang === 'zh' ? '成人' : 'Adult'} × ${formatShown(adultUnitPrice).primary}`}</span>
+                                        <span>{`${adults} ${vUiFlat.adults} × ${formatShown(adultUnitPrice).primary}`}</span>
                                         <span>{formatShown(adultUnitPrice * adults).primary}</span>
                                     </div>
                                 )}
                                 {children > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span>{`${children} ${lang === 'tr' ? 'Çocuk' : lang === 'zh' ? '儿童' : 'Child'} × ${formatShown(childUnitPrice).primary}`}</span>
+                                        <span>{`${children} ${vUiFlat.children} × ${formatShown(childUnitPrice).primary}`}</span>
                                         <span>{formatShown(childUnitPrice * children).primary}</span>
                                     </div>
                                 )}
                                 {infants > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                                        <span>{`${infants} ${lang === 'tr' ? 'Bebek' : lang === 'zh' ? '婴儿' : 'Infant'}`}</span>
+                                        <span>{`${infants} ${vUiFlat.infants}`}</span>
                                         <span>{t.free}</span>
                                     </div>
                                 )}
@@ -1039,7 +873,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             const isPerUnit = opt.pricingMode === 'per_unit';
                             const multiplier = isFlat ? 1 : isPerUnit ? qty : pax;
                             const optTotal = opt.price * multiplier;
-                            const multiplierLabel = isFlat ? '(sabit)' : `(×${multiplier})`;
+                            const multiplierLabel = `(×${multiplier})`;
                             return (
                                 <div key={optId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
                                     <span>{opt.title} {multiplierLabel}</span>
@@ -1055,7 +889,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             </span>
                         </div>
                     </div>
-                    {lang === 'tr' && (
+                    {siteLang === 'tr' && (
                         <p style={{ marginTop: 'var(--space-sm)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                             TL tutarlar bilgilendirme amaçlıdır; ödeme EUR cinsindendir.
                             {updatedAt ? ` Kur güncelleme: ${new Date(updatedAt).toLocaleString('tr-TR')}` : ''}
@@ -1064,7 +898,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
 
                     <Button style={{ width: '100%' }} disabled={isClosed} onClick={() => {
                         if (isClosed) return;
-                        const itemTitle = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
+                        const itemTitle = pickTourField(tour as Record<string, unknown>, 'title', siteLang) ?? tour.titleEn;
                         addItem({
                             tourId: tour.id,
                             tourType: tour.type,
@@ -1096,21 +930,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
             {!id.startsWith('mock-') && (
               <RelatedToursSection
                 tourId={tour.id}
-                lang={locale}
-                heading={
-                  (lang === 'tr'
-                    ? (trPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked
-                    : lang === 'zh'
-                      ? (zhPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked
-                      : (enPageDict as { tourDetail?: { customersAlsoLiked?: string } }).tourDetail?.customersAlsoLiked) ?? 'Customers Also Liked'
-                }
-                fromLabel={
-                  lang === 'tr'
-                    ? ((trPageDict as { home?: { from?: string } }).home?.from ?? 'Başlangıç')
-                    : lang === 'zh'
-                      ? ((zhPageDict as { home?: { from?: string } }).home?.from ?? '起价')
-                      : ((enPageDict as { home?: { from?: string } }).home?.from ?? 'From')
-                }
+                lang={siteLang}
+                heading={t.customersAlsoLiked}
+                fromLabel={homeUi.from ?? 'From'}
                 bookLabel={t.bookNow}
                 askForPriceLabel={askPriceLabel}
               />
@@ -1131,7 +953,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 }}
               >
                 <p style={{ marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
-                  ✅ {cartToastTitle} {t.addedToCart}
+                  ✅ {cartToastTitle} {vUiFlat.addedToCart}
                 </p>
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                   <button
@@ -1142,10 +964,10 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                       router.push(`/${lang}/cart`);
                     }}
                   >
-                    {t.goToCart}
+                    {vUiFlat.goToCart}
                   </button>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
-                    {t.continueShopping}
+                    {vUiFlat.continueShopping}
                   </button>
                 </div>
               </div>

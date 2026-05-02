@@ -104,7 +104,9 @@
     "ctaLine2": "Contact us via WhatsApp — we value your time, your plans, and every detail you ask about.",
     "ctaLine3": "Fast replies within 5–15 minutes.",
     "ctaExplore": "Explore",
-    "ctaWhatsApp": "WhatsApp"
+    "ctaWhatsApp": "WhatsApp",
+    "carouselPrev": "Previous tours",
+    "carouselNext": "Next tours"
   },
   "account": {
     "title": "Мой аккаунт",
@@ -287,7 +289,26 @@
     "maxGuestsInfo": "Максимум {max} гостей для этого варианта.",
     "addedToCart": "добавлено в корзину!",
     "goToCart": "Перейти в корзину",
-    "continueShopping": "Продолжить покупки"
+    "continueShopping": "Продолжить покупки",
+    "startTime": "Start time",
+    "selectStartTime": "Select start time",
+    "agePriceFree": "Free of charge",
+    "agePriceChild": "Child price",
+    "agePriceAdult": "Adult price",
+    "agePriceNotAllowed": "Not allowed",
+    "validationSelectStartTime": "Please select a start time.",
+    "validationArrivalFlight": "Please enter arrival flight info.",
+    "validationDepartureFlight": "Please enter departure flight info.",
+    "validationHotel": "Please enter hotel name / address.",
+    "transferPickFlight": "Select flight",
+    "transferManualFlight": "Enter flight code manually",
+    "transferHotelPlaceholder": "Hotel name or address",
+    "guestsWord": "guests",
+    "transferHotelSection": "Hotel name / address",
+    "transferFlightPlaceholderArrival": "e.g. TK 2000",
+    "transferFlightPlaceholderDeparture": "e.g. TK 2001",
+    "alertNoVariant": "No matching variant for this selection.",
+    "roundtripApplied": "Applied"
   },
   "tourDetail": {
     "description": "Описание",
@@ -308,7 +329,23 @@
     "dateClosed": "На эту дату бронирование закрыто.",
     "transferPrice": "Цена для {pax} чел.",
     "highlights": "Основные моменты",
-    "customersAlsoLiked": "Клиентам также понравилось"
+    "customersAlsoLiked": "Клиентам также понравилось",
+    "airport": "Airport",
+    "airportASR": "Kayseri (ASR)",
+    "airportNAV": "Nevşehir (NAV)",
+    "itinerary": "Itinerary",
+    "knowBefore": "Know Before You Go",
+    "notSuitable": "Not Suitable For",
+    "notAllowed": "Not Allowed",
+    "whatsIncluded": "What's included",
+    "notIncluded": "Not included",
+    "gallery": "Gallery",
+    "agePolicyTitle": "Age policy:",
+    "agePolicyInfant": "0-3 years: Free",
+    "agePolicyChild": "4-7 years: Child price",
+    "agePolicyAdult": "7+ years: Adult price",
+    "faqs": "FAQs",
+    "loading": "Loading..."
   },
   "footer": {
     "about": "О нас",

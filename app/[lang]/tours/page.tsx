@@ -12,6 +12,10 @@ import { formatPriceByLang } from '@/lib/currency';
 import { getCategoryBySlug, getCategoryLabel, normalizeCategorySlug, type Lang } from '@/lib/destinations';
 import { getTourWithVariants } from '@/app/actions/variants';
 import { getTierFromPrice } from '@/lib/pricingTiers';
+import type { Tour } from '@prisma/client';
+import { sliceTourCatalogLocales } from '@/lib/tourLocaleSlice';
+import { normalizeLocale } from '@/lib/i18n';
+import { pickTourField } from '@/lib/pickContentLang';
 
 const MOCK_TOURS = [
     { id: 'mock-balloon', type: 'BALLOON' as const, titleEn: 'Standard Balloon Flight', titleTr: 'Standart Balon Turu', titleZh: '标准热气球飞行', descEn: 'Float above the fairy chimneys at sunrise in our spacious baskets. 1 hour flight with champagne toast.', descTr: 'Geniş sepetlerimizde gün doğumunda peribacalarının üzerinde süzülün. Şampanya ikramlı 1 saatlik uçuş.', descZh: '在宽敞的吊篮中，在日出时分漂浮在仙女烟囱上方。香槟吐司1小时飞行。', basePrice: 150.0 },
@@ -26,6 +30,7 @@ export default async function ToursPage(props: {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const lang = params.lang as Lang;
+    const siteLang = normalizeLocale(lang);
     const dict = await getDictionary(lang);
     const selectedCategory = searchParams.category ? normalizeCategorySlug(searchParams.category) : '';
 
@@ -58,12 +63,7 @@ export default async function ToursPage(props: {
             return {
                 id: t.id,
                 type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'PACKAGE' | 'CONCIERGE',
-                titleEn: t.titleEn,
-                titleTr: t.titleTr,
-                titleZh: t.titleZh,
-                descEn: t.descEn,
-                descTr: t.descTr,
-                descZh: t.descZh,
+                ...sliceTourCatalogLocales(t as unknown as Tour),
                 basePrice: t.basePrice,
                 fromPrice,
                 destination: t.destination ?? 'cappadocia',
@@ -139,8 +139,9 @@ export default async function ToursPage(props: {
 
                 <div className="tours-grid">
                 {tours.map((tour) => {
-                    const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
-                    const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+                    const row = tour as Record<string, unknown>;
+                    const title = pickTourField(row, 'title', siteLang) ?? String(row.titleEn ?? '');
+                    const desc = pickTourField(row, 'desc', siteLang) ?? String(row.descEn ?? '');
                     const category = tour.category ? getCategoryBySlug(tour.destination ?? 'cappadocia', tour.category) : null;
                     const categoryBadge = category ? getCategoryLabel(category, lang) : tour.type;
                     const isAsk = Boolean(tour.isAskForPrice);

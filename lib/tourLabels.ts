@@ -1,14 +1,11 @@
 import type { TourWithOptions } from '@/app/actions/tours';
 import type { SiteLocale } from '@/lib/i18n';
+import { pickTourField } from '@/lib/pickContentLang';
 
 export function tourTitle(t: Pick<TourWithOptions, 'titleEn' | 'titleTr' | 'titleZh'>, lang: SiteLocale): string {
-  if (lang === 'tr') return t.titleTr;
-  if (lang === 'zh') return t.titleZh;
-  return t.titleEn;
+  return pickTourField(t as Record<string, unknown>, 'title', lang) ?? t.titleEn;
 }
 
 export function tourDescription(t: Pick<TourWithOptions, 'descEn' | 'descTr' | 'descZh'>, lang: SiteLocale): string {
-  if (lang === 'tr') return t.descTr;
-  if (lang === 'zh') return t.descZh;
-  return t.descEn;
+  return pickTourField(t as Record<string, unknown>, 'desc', lang) ?? t.descEn;
 }

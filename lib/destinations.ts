@@ -3,7 +3,11 @@
  * Yeni destinasyon/kategori eklemek için sadece bu dosyayı güncellemek yeterli.
  */
 
-export type Lang = 'en' | 'tr' | 'zh';
+import type { SiteLocale } from '@/lib/i18n';
+import { pickContentLang } from '@/lib/pickContentLang';
+
+/** @deprecated use SiteLocale from lib/i18n */
+export type Lang = SiteLocale;
 
 export interface DestinationConfig {
   id: string;
@@ -98,12 +102,18 @@ export function isDestinationSlug(slug: string): boolean {
   return DESTINATIONS.some((d) => d.slug === slug);
 }
 
-export function getDestinationName(dest: DestinationConfig, lang: Lang): string {
-  return lang === 'tr' ? dest.nameTr : lang === 'zh' ? dest.nameZh : dest.nameEn;
+export function getDestinationName(dest: DestinationConfig, lang: SiteLocale | string): string {
+  return (
+    pickContentLang({ en: dest.nameEn, tr: dest.nameTr, zh: dest.nameZh }, lang) ??
+    dest.nameEn
+  );
 }
 
-export function getCategoryLabel(cat: CategoryConfig, lang: Lang): string {
-  return lang === 'tr' ? cat.labelTr : lang === 'zh' ? cat.labelZh : cat.labelEn;
+export function getCategoryLabel(cat: CategoryConfig, lang: SiteLocale | string): string {
+  return (
+    pickContentLang({ en: cat.labelEn, tr: cat.labelTr, zh: cat.labelZh }, lang) ??
+    cat.labelEn
+  );
 }
 
 export function normalizeCategorySlug(input: string): string {

@@ -104,7 +104,9 @@
     "ctaLine2": "通过 WhatsApp 联系我们——我们重视您的时间、您的计划以及您提出的每一个问题。",
     "ctaLine3": "通常在 5–15 分钟内回复您。",
     "ctaExplore": "探索",
-    "ctaWhatsApp": "WhatsApp"
+    "ctaWhatsApp": "WhatsApp",
+    "carouselPrev": "Previous tours",
+    "carouselNext": "Next tours"
   },
   "account": {
     "title": "我的账户",
@@ -287,7 +289,26 @@
     "maxGuestsInfo": "此选项最多可接待 {max} 位客人。",
     "addedToCart": "已加入购物车！",
     "goToCart": "前往购物车",
-    "continueShopping": "继续购物"
+    "continueShopping": "继续购物",
+    "startTime": "Start time",
+    "selectStartTime": "Select start time",
+    "agePriceFree": "Free of charge",
+    "agePriceChild": "Child price",
+    "agePriceAdult": "Adult price",
+    "agePriceNotAllowed": "Not allowed",
+    "validationSelectStartTime": "Please select a start time.",
+    "validationArrivalFlight": "Please enter arrival flight info.",
+    "validationDepartureFlight": "Please enter departure flight info.",
+    "validationHotel": "Please enter hotel name / address.",
+    "transferPickFlight": "Select flight",
+    "transferManualFlight": "Enter flight code manually",
+    "transferHotelPlaceholder": "Hotel name or address",
+    "guestsWord": "guests",
+    "transferHotelSection": "Hotel name / address",
+    "transferFlightPlaceholderArrival": "e.g. TK 2000",
+    "transferFlightPlaceholderDeparture": "e.g. TK 2001",
+    "alertNoVariant": "No matching variant for this selection.",
+    "roundtripApplied": "Applied"
   },
   "tourDetail": {
     "description": "描述",
@@ -308,7 +329,23 @@
     "dateClosed": "该日期不接受预订。",
     "transferPrice": "{pax} 人价格",
     "highlights": "亮点",
-    "customersAlsoLiked": "您可能还喜欢"
+    "customersAlsoLiked": "您可能还喜欢",
+    "airport": "Airport",
+    "airportASR": "Kayseri (ASR)",
+    "airportNAV": "Nevşehir (NAV)",
+    "itinerary": "Itinerary",
+    "knowBefore": "Know Before You Go",
+    "notSuitable": "Not Suitable For",
+    "notAllowed": "Not Allowed",
+    "whatsIncluded": "What's included",
+    "notIncluded": "Not included",
+    "gallery": "Gallery",
+    "agePolicyTitle": "Age policy:",
+    "agePolicyInfant": "0-3 years: Free",
+    "agePolicyChild": "4-7 years: Child price",
+    "agePolicyAdult": "7+ years: Adult price",
+    "faqs": "FAQs",
+    "loading": "Loading..."
   },
   "footer": {
     "about": "关于我们",

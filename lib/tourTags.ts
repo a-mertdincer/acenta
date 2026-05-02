@@ -1,3 +1,5 @@
+import type { SiteLocale } from '@/lib/i18n';
+import { pickContentLang } from '@/lib/pickContentLang';
 import {
   TrendingUp,
   Star,
@@ -108,10 +110,13 @@ export function getTagBySlug(slug: string): TagDefinition | undefined {
   return TOUR_TAGS.find((t) => t.slug === slug);
 }
 
-export function getTagLabel(slug: string, lang: 'en' | 'tr' | 'zh'): string {
+export function getTagLabel(slug: string, lang: SiteLocale | string): string {
   const tag = getTagBySlug(slug);
   if (!tag) return slug;
-  return lang === 'tr' ? tag.labelTr : lang === 'zh' ? tag.labelZh : tag.labelEn;
+  return (
+    pickContentLang({ en: tag.labelEn, tr: tag.labelTr, zh: tag.labelZh }, lang) ??
+    tag.labelEn
+  );
 }
 
 /**

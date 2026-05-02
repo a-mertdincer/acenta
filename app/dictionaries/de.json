@@ -104,7 +104,9 @@
     "ctaLine2": "Contact us via WhatsApp — we value your time, your plans, and every detail you ask about.",
     "ctaLine3": "Fast replies within 5–15 minutes.",
     "ctaExplore": "Explore",
-    "ctaWhatsApp": "WhatsApp"
+    "ctaWhatsApp": "WhatsApp",
+    "carouselPrev": "Previous tours",
+    "carouselNext": "Next tours"
   },
   "account": {
     "title": "Mein Konto",
@@ -287,7 +289,26 @@
     "maxGuestsInfo": "Diese Option ist für maximal {max} Personen verfügbar.",
     "addedToCart": "zum Warenkorb hinzugefügt!",
     "goToCart": "Zum Warenkorb",
-    "continueShopping": "Weiter einkaufen"
+    "continueShopping": "Weiter einkaufen",
+    "startTime": "Start time",
+    "selectStartTime": "Select start time",
+    "agePriceFree": "Free of charge",
+    "agePriceChild": "Child price",
+    "agePriceAdult": "Adult price",
+    "agePriceNotAllowed": "Not allowed",
+    "validationSelectStartTime": "Please select a start time.",
+    "validationArrivalFlight": "Please enter arrival flight info.",
+    "validationDepartureFlight": "Please enter departure flight info.",
+    "validationHotel": "Please enter hotel name / address.",
+    "transferPickFlight": "Select flight",
+    "transferManualFlight": "Enter flight code manually",
+    "transferHotelPlaceholder": "Hotel name or address",
+    "guestsWord": "guests",
+    "transferHotelSection": "Hotel name / address",
+    "transferFlightPlaceholderArrival": "e.g. TK 2000",
+    "transferFlightPlaceholderDeparture": "e.g. TK 2001",
+    "alertNoVariant": "No matching variant for this selection.",
+    "roundtripApplied": "Applied"
   },
   "tourDetail": {
     "description": "Beschreibung",
@@ -308,7 +329,23 @@
     "dateClosed": "Dieses Datum ist nicht buchbar.",
     "transferPrice": "Preis für {pax} Person(en)",
     "highlights": "Highlights",
-    "customersAlsoLiked": "Kunden mochten auch"
+    "customersAlsoLiked": "Kunden mochten auch",
+    "airport": "Airport",
+    "airportASR": "Kayseri (ASR)",
+    "airportNAV": "Nevşehir (NAV)",
+    "itinerary": "Itinerary",
+    "knowBefore": "Know Before You Go",
+    "notSuitable": "Not Suitable For",
+    "notAllowed": "Not Allowed",
+    "whatsIncluded": "What's included",
+    "notIncluded": "Not included",
+    "gallery": "Gallery",
+    "agePolicyTitle": "Age policy:",
+    "agePolicyInfant": "0-3 years: Free",
+    "agePolicyChild": "4-7 years: Child price",
+    "agePolicyAdult": "7+ years: Adult price",
+    "faqs": "FAQs",
+    "loading": "Loading..."
   },
   "footer": {
     "about": "Über uns",

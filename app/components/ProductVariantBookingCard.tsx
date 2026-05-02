@@ -16,26 +16,17 @@ import {
   type ReservationTypeVariant,
 } from '@/lib/types/variant';
 import type { TourWithVariantsResult } from '@/app/actions/variants';
-import enDict from '@/app/dictionaries/en.json';
-import trDict from '@/app/dictionaries/tr.json';
-import zhDict from '@/app/dictionaries/zh.json';
 import { getLastTierPax, resolveTierPrice } from '@/lib/pricingTiers';
 import { useExchangeRate } from '@/app/hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
-import { AskForPriceBookingBlock } from './AskForPriceModal';
+import { AskForPriceBookingBlock, type AskForPriceStrings } from './AskForPriceModal';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { TourBookingTrustExtras, type TourCancellationLabels, type WhyBookDict } from './TourBookingTrustExtras';
 import { Ban, Baby, PartyPopper, User as UserIcon, type LucideIcon } from 'lucide-react';
+import type { SiteLocale } from '@/lib/i18n';
+import { pickTourField } from '@/lib/pickContentLang';
 
-type Lang = 'en' | 'tr' | 'zh';
 type TransferDirection = 'arrival' | 'departure' | 'roundtrip';
-
-const DICTS = { en: enDict, tr: trDict, zh: zhDict } as const;
-
-function getVariantStrings(lang: Lang): Record<string, string> {
-  const variant = (DICTS[lang] as { variant?: Record<string, string> })?.variant;
-  return variant ?? (DICTS.en as { variant?: Record<string, string> }).variant ?? {};
-}
 
 function normalizeNullable(value: string | null | undefined): string | null {
   if (value == null) return null;
@@ -43,27 +34,18 @@ function normalizeNullable(value: string | null | undefined): string | null {
   return trimmed === '' ? null : trimmed.toLowerCase();
 }
 
-function getVariantLabel(lang: Lang, variant: TourVariantDisplay): string {
-  return lang === 'tr' ? variant.titleTr : lang === 'zh' ? variant.titleZh : variant.titleEn;
+function agePriceShortLabelUi(
+  v: Record<string, string>,
+  pricingType: 'free' | 'child' | 'adult' | 'not_allowed'
+): string {
+  if (pricingType === 'free') return v.agePriceFree ?? 'Free of charge';
+  if (pricingType === 'child') return v.agePriceChild ?? 'Child price';
+  if (pricingType === 'adult') return v.agePriceAdult ?? 'Adult price';
+  return v.agePriceNotAllowed ?? 'Not allowed';
 }
 
-function getAgePricingLabel(lang: Lang, pricingType: 'free' | 'child' | 'adult' | 'not_allowed'): string {
-  if (lang === 'tr') {
-    if (pricingType === 'free') return 'Ucretsiz';
-    if (pricingType === 'child') return 'Cocuk fiyati';
-    if (pricingType === 'adult') return 'Yetiskin fiyati';
-    return 'Kabul edilmez';
-  }
-  if (lang === 'zh') {
-    if (pricingType === 'free') return '免费';
-    if (pricingType === 'child') return '儿童价格';
-    if (pricingType === 'adult') return '成人价格';
-    return '不接受';
-  }
-  if (pricingType === 'free') return 'Free of charge';
-  if (pricingType === 'child') return 'Child price';
-  if (pricingType === 'adult') return 'Adult price';
-  return 'Not allowed';
+function variantTitleFor(lang: SiteLocale | string, variant: TourVariantDisplay, fallbackTitle: string): string {
+  return pickTourField(variant as unknown as Record<string, unknown>, 'title', lang) ?? fallbackTitle;
 }
 
 function getAgePolicyDetail(
@@ -97,7 +79,10 @@ function getAgePolicyDetail(
 type ProductVariantBookingCardProps = {
   tourId: string;
   tourType: string;
-  lang: Lang;
+  lang: SiteLocale;
+  variantUi: Record<string, string>;
+  promotionUi: Record<string, string>;
+  askForPriceStrings: AskForPriceStrings;
   data: TourWithVariantsResult;
   title: string;
   isAskForPrice?: boolean;
@@ -122,8 +107,20 @@ function AskPriceOnlyCard({
   whyBook,
   tourCancellationLabels,
   cancellationNote,
-}: Pick<ProductVariantBookingCardProps, 'tourId' | 'lang' | 'title' | 'whyBook' | 'tourCancellationLabels' | 'cancellationNote'>) {
-  const t = useMemo(() => getVariantStrings(lang), [lang]);
+  variantUi,
+  askForPriceStrings,
+}: Pick<
+  ProductVariantBookingCardProps,
+  | 'tourId'
+  | 'lang'
+  | 'title'
+  | 'whyBook'
+  | 'tourCancellationLabels'
+  | 'cancellationNote'
+  | 'variantUi'
+  | 'askForPriceStrings'
+>) {
+  const t = variantUi;
   const askPriceWhatsappHref = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -135,11 +132,11 @@ function AskPriceOnlyCard({
   }, [title]);
   return (
     <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
-      <AskForPriceBookingBlock tourId={tourId} lang={lang} />
+      <AskForPriceBookingBlock tourId={tourId} strings={askForPriceStrings} />
       <TourBookingTrustExtras
         lang={lang}
         whatsappHref={askPriceWhatsappHref}
-        whatsappLabel={t.askWhatsApp}
+        whatsappLabel={t.askWhatsApp ?? 'Ask on WhatsApp'}
         whyBook={whyBook}
         cancellationNote={cancellationNote}
         policyLabels={tourCancellationLabels}
@@ -158,6 +155,8 @@ export function ProductVariantBookingCard(props: ProductVariantBookingCardProps)
         whyBook={props.whyBook}
         tourCancellationLabels={props.tourCancellationLabels}
         cancellationNote={props.cancellationNote}
+        variantUi={props.variantUi}
+        askForPriceStrings={props.askForPriceStrings}
       />
     );
   }
@@ -168,6 +167,8 @@ function ProductVariantBookingCardInner({
   tourId,
   tourType,
   lang,
+  variantUi,
+  promotionUi,
   data,
   title,
   options,
@@ -180,7 +181,8 @@ function ProductVariantBookingCardInner({
 }: ProductVariantBookingCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
-  const t = useMemo(() => getVariantStrings(lang), [lang]);
+  const t = variantUi;
+  const promoOff = promotionUi.off ?? 'off';
   const { eurTryRate } = useExchangeRate(lang === 'tr');
 
   const defaultSelection = useMemo(
@@ -401,13 +403,7 @@ function ProductVariantBookingCardInner({
       });
   }, [selectedOptions, options, adults, children, infants, optionQuantities]);
 
-  const variantTitle = activeVariant
-    ? lang === 'tr'
-      ? activeVariant.titleTr
-      : lang === 'zh'
-        ? activeVariant.titleZh
-        : activeVariant.titleEn
-    : title;
+  const variantTitle = activeVariant ? variantTitleFor(lang, activeVariant, title) : title;
   const formatShown = (eur: number) => formatPriceByLang(eur, lang, eurTryRate);
 
   const [promoPreview, setPromoPreview] = useState<{
@@ -435,12 +431,10 @@ function ProductVariantBookingCardInner({
   }, [tourId, selectedDate, total]);
 
   const payTotal = promoPreview && promoPreview.discount > 0 ? promoPreview.final : total;
-  const dictForPromo = lang === 'tr' ? DICTS.tr : lang === 'zh' ? DICTS.zh : DICTS.en;
-  const promoDict = (dictForPromo as { promotion?: { off?: string } }).promotion;
 
   const handleAddToCart = () => {
     if (!activeVariant) {
-      alert('Bu seçenek için uygun varyant bulunamadı.');
+      alert(t.alertNoVariant ?? 'No matching variant for this selection.');
       return;
     }
     const pax = adults + children + infants;
@@ -449,7 +443,7 @@ function ProductVariantBookingCardInner({
       return;
     }
     if (startTimes.length > 0 && !selectedStartTime) {
-      alert(lang === 'tr' ? 'Lütfen bir başlangıç saati seçin.' : lang === 'zh' ? '请选择开始时间。' : 'Please select a start time.');
+      alert(t.validationSelectStartTime ?? 'Please select a start time.');
       return;
     }
     const isTransferLike = data.hasAirportSelect || tourType === 'TRANSFER';
@@ -459,15 +453,15 @@ function ProductVariantBookingCardInner({
       const arrivalValue = flightArrival === '__manual__' ? '' : flightArrival.trim();
       const departureValue = flightDeparture === '__manual__' ? '' : flightDeparture.trim();
       if (arrivalRequired && !arrivalValue) {
-        alert(lang === 'tr' ? 'Lütfen geliş uçuş bilgisini girin.' : lang === 'zh' ? '请输入抵达航班信息。' : 'Please enter arrival flight info.');
+        alert(t.validationArrivalFlight ?? 'Please enter arrival flight info.');
         return;
       }
       if (departureRequired && !departureValue) {
-        alert(lang === 'tr' ? 'Lütfen dönüş uçuş bilgisini girin.' : lang === 'zh' ? '请输入出发航班信息。' : 'Please enter departure flight info.');
+        alert(t.validationDepartureFlight ?? 'Please enter departure flight info.');
         return;
       }
       if (!transferHotelName.trim()) {
-        alert(lang === 'tr' ? 'Lütfen otel adı / adres bilgisini girin.' : lang === 'zh' ? '请输入酒店名称/地址。' : 'Please enter hotel name / address.');
+        alert(t.validationHotel ?? 'Please enter hotel name / address.');
         return;
       }
     }
@@ -535,7 +529,7 @@ function ProductVariantBookingCardInner({
       {startTimes.length > 0 ? (
         <div style={{ marginBottom: 'var(--space-md)' }}>
           <label className="form-label">
-            {(t as { startTime?: string }).startTime ?? (lang === 'tr' ? 'Başlangıç saati' : lang === 'zh' ? '开始时间' : 'Start time')}
+            {t.startTime ?? 'Start time'}
           </label>
           {startTimes.length === 1 ? (
             <div style={{ padding: '0.75rem', borderRadius: 4, border: '1px solid var(--color-border)', background: 'var(--color-bg-alt)' }}>
@@ -549,7 +543,7 @@ function ProductVariantBookingCardInner({
               style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
             >
               <option value="">
-                {(t as { selectStartTime?: string }).selectStartTime ?? (lang === 'tr' ? 'Saat seçin' : lang === 'zh' ? '选择开始时间' : 'Select start time')}
+                {t.selectStartTime ?? 'Select start time'}
               </option>
               {startTimes.map((time) => (
                 <option key={time} value={time}>{time}</option>
@@ -626,7 +620,7 @@ function ProductVariantBookingCardInner({
                   }}
                 >
                   {variant.isRecommended && <span className="recommended-badge">★ {t.recommended ?? 'Recommended'}</span>}
-                  <strong className="reservation-card-title">{getVariantLabel(lang, variant)}</strong>
+                  <strong className="reservation-card-title">{variantTitleFor(lang, variant, variant.titleEn)}</strong>
                   <span className="reservation-card-price">{formatShown(variant.adultPrice).primary}</span>
                   <span className="reservation-card-subtitle">
                     {variant.pricingType === 'per_vehicle' ? (t.perVehicle ?? 'per vehicle') : (t.perPerson ?? 'per person')}
@@ -703,7 +697,7 @@ function ProductVariantBookingCardInner({
         <div className="variant-description">
           <h4>{variantTitle}</h4>
           <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>
-            {lang === 'tr' ? activeVariant.descTr : lang === 'zh' ? activeVariant.descZh : activeVariant.descEn}
+            {pickTourField(activeVariant as unknown as Record<string, unknown>, 'desc', lang) ?? activeVariant.descEn}
           </p>
           {activeVariant.includes.length > 0 && (
             <>
@@ -758,13 +752,13 @@ function ProductVariantBookingCardInner({
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                 >
                   <option value="">
-                    {lang === 'tr' ? 'Uçuş seçin' : lang === 'zh' ? '选择航班' : 'Select flight'}
+                    {t.transferPickFlight ?? 'Select flight'}
                   </option>
                   {flightsArrival.map((f) => (
                     <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
                   ))}
                   <option value="__manual__">
-                    {lang === 'tr' ? 'Manuel uçuş kodu gir' : lang === 'zh' ? '手动输入航班号' : 'Enter flight code manually'}
+                    {t.transferManualFlight ?? 'Enter flight code manually'}
                   </option>
                 </select>
               ) : null}
@@ -773,7 +767,7 @@ function ProductVariantBookingCardInner({
                   type="text"
                   value={flightArrival === '__manual__' ? '' : flightArrival}
                   onChange={(e) => setFlightArrival(e.target.value)}
-                  placeholder={lang === 'tr' ? 'örn. TK 2000' : 'e.g. TK 2000'}
+                  placeholder={t.transferFlightPlaceholderArrival ?? 'e.g. TK 2000'}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsArrival.length > 0 ? 8 : 0 }}
                 />
               )}
@@ -789,13 +783,13 @@ function ProductVariantBookingCardInner({
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
                 >
                   <option value="">
-                    {lang === 'tr' ? 'Uçuş seçin' : lang === 'zh' ? '选择航班' : 'Select flight'}
+                    {t.transferPickFlight ?? 'Select flight'}
                   </option>
                   {flightsDeparture.map((f) => (
                     <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
                   ))}
                   <option value="__manual__">
-                    {lang === 'tr' ? 'Manuel uçuş kodu gir' : lang === 'zh' ? '手动输入航班号' : 'Enter flight code manually'}
+                    {t.transferManualFlight ?? 'Enter flight code manually'}
                   </option>
                 </select>
               ) : null}
@@ -804,7 +798,7 @@ function ProductVariantBookingCardInner({
                   type="text"
                   value={flightDeparture === '__manual__' ? '' : flightDeparture}
                   onChange={(e) => setFlightDeparture(e.target.value)}
-                  placeholder={lang === 'tr' ? 'örn. TK 2001' : 'e.g. TK 2001'}
+                  placeholder={t.transferFlightPlaceholderDeparture ?? 'e.g. TK 2001'}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsDeparture.length > 0 ? 8 : 0 }}
                 />
               )}
@@ -812,13 +806,13 @@ function ProductVariantBookingCardInner({
           )}
           <div style={{ marginBottom: 'var(--space-md)' }}>
             <label className="form-label">
-              {(t as { transferHotel?: string }).transferHotel ?? (lang === 'tr' ? 'Otel adı / adres' : lang === 'zh' ? '酒店名称/地址' : 'Hotel name / address')}
+              {t.transferHotelSection ?? t.hotel ?? 'Hotel name / address'}
             </label>
             <input
               type="text"
               value={transferHotelName}
               onChange={(e) => setTransferHotelName(e.target.value)}
-              placeholder={lang === 'tr' ? 'Kalacağınız otel' : lang === 'zh' ? '您入住的酒店' : 'Hotel name or address'}
+              placeholder={t.transferHotelPlaceholder ?? 'Hotel name or address'}
               style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
             />
           </div>
@@ -916,7 +910,7 @@ function ProductVariantBookingCardInner({
                   : g.pricingType === 'free' ? PartyPopper
                   : UserIcon;
                 const range = g.maxAge >= 99 ? `${g.minAge}+` : `${g.minAge}-${g.maxAge}`;
-                const label = getAgePricingLabel(lang, g.pricingType);
+                const label = agePriceShortLabelUi(t, g.pricingType);
                 const extra = getAgePolicyDetail(g.description, label, g.pricingType);
                 return (
                   <span key={`${range}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 6 }}>
@@ -945,7 +939,7 @@ function ProductVariantBookingCardInner({
                 {(activeVariant.privatePriceTiers?.length ?? 0) > 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span>
-                      {`${adults + children + infants} ${lang === 'tr' ? 'kişi' : lang === 'zh' ? '人' : 'guests'}`}
+                      {`${adults + children + infants} ${t.guestsWord ?? 'guests'}`}
                     </span>
                     <span>{formatShown(baseTotal).primary}</span>
                   </div>
@@ -988,7 +982,7 @@ function ProductVariantBookingCardInner({
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                     <span>{t.roundtrip} ({t.roundtripOff})</span>
-                    <span>Uygulandı</span>
+                    <span>{t.roundtripApplied ?? 'Applied'}</span>
                   </div>
                 )}
               </>
@@ -1008,8 +1002,8 @@ function ProductVariantBookingCardInner({
               <>
                 <span className="tour-price-strike">{formatShown(total).primary}</span>{' '}
                 {formatShown(payTotal).primary}
-                <small className="tour-promotion-pill" title={promoDict?.off}>
-                  {promoPreview.percentOff != null ? `-${promoPreview.percentOff}% ${promoDict?.off ?? 'off'}` : `-${formatShown(promoPreview.discount).primary}`}
+                <small className="tour-promotion-pill" title={promoOff}>
+                  {promoPreview.percentOff != null ? `-${promoPreview.percentOff}% ${promoOff}` : `-${formatShown(promoPreview.discount).primary}`}
                 </small>
               </>
             ) : (

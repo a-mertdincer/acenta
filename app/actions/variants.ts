@@ -3,6 +3,7 @@
 import { getSession } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import type { TourVariantDisplay } from '@/lib/types/variant';
+import { sliceTourVariantLocales } from '@/lib/tourLocaleSlice';
 import { parsePriceTiers, validateContinuousPriceTiers, type PriceTier } from '@/lib/pricingTiers';
 import type { ReservationTypeMode, TransferAirportTiers } from '@/app/actions/tours';
 
@@ -78,6 +79,7 @@ function mapVariantToDisplay(v: Record<string, unknown>): TourVariantDisplay {
     tourType: v.tourType != null ? String(v.tourType) : null,
     reservationType: v.reservationType != null ? String(v.reservationType) : null,
     airport: v.airport != null ? String(v.airport) : null,
+    ...sliceTourVariantLocales(v),
     titleEn: String(v.titleEn),
     titleTr: String(v.titleTr),
     titleZh: String(v.titleZh),

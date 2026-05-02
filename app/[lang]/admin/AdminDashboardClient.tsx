@@ -15,6 +15,7 @@ import {
 } from '@/app/actions/reservations';
 import { getReservationStatusLabel, getReservationStatusStyle } from '@/lib/reservationStatus';
 import type { DashboardStats, PendingReservationCard, TodayReservationRow, RecentActivity, GuestRequestItem } from '@/app/actions/reservations';
+import type { DeepLUsageRow } from '@/lib/deeplTranslate';
 
 function formatDateTr(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00');
@@ -28,6 +29,7 @@ export default function AdminDashboardClient({
   todayList,
   activities,
   guestRequestList: initialGuestRequests,
+  deeplUsage,
 }: {
   lang: string;
   stats: DashboardStats;
@@ -35,6 +37,7 @@ export default function AdminDashboardClient({
   todayList: TodayReservationRow[];
   activities: RecentActivity[];
   guestRequestList: GuestRequestItem[];
+  deeplUsage: DeepLUsageRow[];
 }) {
   const router = useRouter();
   const [pendingList, setPendingList] = useState<PendingReservationCard[]>(initialPending);
@@ -113,6 +116,28 @@ export default function AdminDashboardClient({
   return (
     <div>
       <h1 style={{ marginBottom: 'var(--space-xl)' }}>Pano</h1>
+
+      <section style={{ marginBottom: 'var(--space-2xl)', padding: 'var(--space-lg)', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
+        <h2 style={{ marginTop: 0, marginBottom: 'var(--space-md)', fontSize: '1.1rem' }}>DeepL çeviri kotası</h2>
+        {deeplUsage.length === 0 ? (
+          <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>API anahtarı tanımlı değil veya kullanım bilgisi alınamadı.</p>
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            {deeplUsage.map((u) => (
+              <li key={u.keyHint} style={{ marginBottom: 'var(--space-sm)' }}>
+                <span>{u.keyHint}</span> ({u.isPro ? 'PRO' : 'FREE'}):{' '}
+                <strong>
+                  {u.used.toLocaleString()} / {u.limit.toLocaleString()}
+                </strong>
+                {u.percentage != null ? ` (${u.percentage}%)` : ''}
+                {u.percentage != null && u.percentage >= 90 ? (
+                  <span style={{ marginLeft: 8, color: 'var(--color-error, #b42318)' }}>Kritik</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Özet kartları */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-2xl)' }}>

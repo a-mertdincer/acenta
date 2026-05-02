@@ -1,10 +1,9 @@
-import { getTagBySlug, pickDisplayTagSlugs, type TagDefinition } from '@/lib/tourTags';
-
-type Lang = 'en' | 'tr' | 'zh';
+import { getTagBySlug, getTagLabel, pickDisplayTagSlugs, type TagDefinition } from '@/lib/tourTags';
+import type { SiteLocale } from '@/lib/i18n';
 
 interface TourTagBadgesProps {
   tagSlugs: string[] | null | undefined;
-  lang: Lang | string;
+  lang: SiteLocale | string;
   variant?: 'card' | 'detail';
   max?: number;
   className?: string;
@@ -28,13 +27,11 @@ export function TourTagBadges({
     .filter((t): t is TagDefinition => Boolean(t));
   if (picked.length === 0) return null;
 
-  const loc: Lang = lang === 'tr' || lang === 'zh' ? lang : 'en';
-
   return (
     <div className={`tour-tag-badges tour-tag-badges-${variant}${className ? ` ${className}` : ''}`}>
       {picked.map((tag) => {
         const Icon = tag.icon;
-        const label = loc === 'tr' ? tag.labelTr : loc === 'zh' ? tag.labelZh : tag.labelEn;
+        const label = getTagLabel(tag.slug, lang);
         return (
           <span
             key={tag.slug}

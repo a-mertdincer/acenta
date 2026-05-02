@@ -19,6 +19,10 @@ import { getTourWithVariants } from '@/app/actions/variants';
 import { getTierFromPrice } from '@/lib/pricingTiers';
 import { getPromotionCardPrices } from '@/app/actions/promotions';
 import { TourTagBadges } from '@/app/components/TourTagBadges';
+import type { Tour } from '@prisma/client';
+import { sliceTourCatalogLocales } from '@/lib/tourLocaleSlice';
+import { normalizeLocale } from '@/lib/i18n';
+import { pickTourField } from '@/lib/pickContentLang';
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string; destination: string; category: string }>;
@@ -41,6 +45,7 @@ export default async function ToursCategoryPage(props: {
 }) {
   const params = await props.params;
   const lang = params.lang as Lang;
+  const siteLang = normalizeLocale(lang);
   const { destination, category } = params;
 
   const dest = getDestinationBySlug(destination);
@@ -79,12 +84,7 @@ export default async function ToursCategoryPage(props: {
       id: t.id,
       slug: t.slug ?? null,
       type: t.type,
-      titleEn: t.titleEn,
-      titleTr: t.titleTr,
-      titleZh: t.titleZh,
-      descEn: t.descEn,
-      descTr: t.descTr,
-      descZh: t.descZh,
+      ...sliceTourCatalogLocales(t as unknown as Tour),
       basePrice: t.basePrice,
       fromPrice,
       isAskForPrice: t.isAskForPrice ?? false,
@@ -129,8 +129,9 @@ export default async function ToursCategoryPage(props: {
         ) : (
           <div className="tours-grid">
             {tours.map((tour) => {
-              const title = lang === 'tr' ? tour.titleTr : lang === 'zh' ? tour.titleZh : tour.titleEn;
-              const desc = lang === 'tr' ? tour.descTr : lang === 'zh' ? tour.descZh : tour.descEn;
+              const row = tour as Record<string, unknown>;
+              const title = pickTourField(row, 'title', siteLang) ?? String(row.titleEn ?? '');
+              const desc = pickTourField(row, 'desc', siteLang) ?? String(row.descEn ?? '');
               const badgeCategory = tour.category ? getCategoryBySlug(tour.destination ?? destination, tour.category) : null;
               const isAskTopBadge = tour.isAskForPrice ?? false;
               const promoTopBadge = promoMap.get(tour.id);

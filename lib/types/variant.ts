@@ -14,8 +14,34 @@ export interface VariantSelection {
   airport: AirportVariant | null;         // NAV | ASR; null when not transfer
 }
 
+export type TourVariantExtendedLocales = Partial<
+  Record<
+    | 'titleEs'
+    | 'titleIt'
+    | 'titleFr'
+    | 'titleDe'
+    | 'titleNl'
+    | 'titleRo'
+    | 'titleRu'
+    | 'titlePl'
+    | 'titleKo'
+    | 'titleJa'
+    | 'descEs'
+    | 'descIt'
+    | 'descFr'
+    | 'descDe'
+    | 'descNl'
+    | 'descRo'
+    | 'descRu'
+    | 'descPl'
+    | 'descKo'
+    | 'descJa',
+    string | undefined
+  >
+>;
+
 /** Display shape for a single variant (from DB or API). */
-export interface TourVariantDisplay {
+export interface TourVariantDisplay extends TourVariantExtendedLocales {
   id: string;
   tourId: string;
   tourType: string | null;

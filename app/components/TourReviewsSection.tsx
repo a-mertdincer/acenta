@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { getApprovedReviewsPage } from '@/app/actions/reviews';
-import en from '@/app/dictionaries/en.json';
-import tr from '@/app/dictionaries/tr.json';
-import zh from '@/app/dictionaries/zh.json';
-
-const DICTS = { en, tr, zh } as const;
-type UiLang = 'en' | 'tr' | 'zh';
 
 const PAGE = 5;
 
@@ -19,9 +13,33 @@ type RevRow = {
   createdAt: string;
 };
 
-export function TourReviewsSection({ tourId, lang }: { tourId: string; lang: string }) {
-  const ui = (lang === 'tr' || lang === 'zh' ? lang : 'en') as UiLang;
-  const dict = (DICTS[ui].reviews ?? {}) as Record<string, string>;
+function reviewMonthLocale(lang: string): string {
+  const l = lang.toLowerCase();
+  if (l === 'tr') return 'tr-TR';
+  if (l === 'zh') return 'zh-CN';
+  if (l === 'ja') return 'ja-JP';
+  if (l === 'ko') return 'ko-KR';
+  if (l === 'de') return 'de-DE';
+  if (l === 'fr') return 'fr-FR';
+  if (l === 'es') return 'es-ES';
+  if (l === 'it') return 'it-IT';
+  if (l === 'nl') return 'nl-NL';
+  if (l === 'pl') return 'pl-PL';
+  if (l === 'ro') return 'ro-RO';
+  if (l === 'ru') return 'ru-RU';
+  return 'en-US';
+}
+
+export function TourReviewsSection({
+  tourId,
+  lang,
+  reviewsLabels,
+}: {
+  tourId: string;
+  lang: string;
+  reviewsLabels: Record<string, string>;
+}) {
+  const dict = reviewsLabels;
   const [total, setTotal] = useState(0);
   const [reviews, setReviews] = useState<RevRow[]>([]);
   const [skip, setSkip] = useState(0);
@@ -54,7 +72,7 @@ export function TourReviewsSection({ tourId, lang }: { tourId: string; lang: str
 
   const monthLabel = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleDateString(ui === 'tr' ? 'tr-TR' : ui === 'zh' ? 'zh-CN' : 'en-US', {
+    return d.toLocaleDateString(reviewMonthLocale(lang), {
       month: 'long',
       year: 'numeric',
     });

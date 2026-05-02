@@ -151,11 +151,12 @@ export async function getTours(filters?: { destination?: string; category?: stri
       });
       imageMap.set(img.tourId, list);
     });
-    return tours.map((t: { id: string; type: string; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; salesTags?: unknown }) => {
+    return tours.map((t: { id: string; type: string; slug?: string | null; titleTr: string; titleEn: string; titleZh: string; descTr: string; descEn: string; descZh: string; highlightsEn?: string | null; highlightsTr?: string | null; highlightsZh?: string | null; itineraryEn?: string | null; itineraryTr?: string | null; itineraryZh?: string | null; knowBeforeEn?: string | null; knowBeforeTr?: string | null; knowBeforeZh?: string | null; notSuitableEn?: string | null; notSuitableTr?: string | null; notSuitableZh?: string | null; notAllowedEn?: string | null; notAllowedTr?: string | null; notAllowedZh?: string | null; faqsEn?: unknown; faqsTr?: unknown; faqsZh?: unknown; basePrice: number; capacity: number; transferTiers: unknown; transferAirportTiers?: unknown; destination?: string; category?: string | null; salesTags?: unknown }) => {
       const { transferTiers, transferAirportTiers } = buildTransferAirportTiers(t.transferAirportTiers, parseTransferTiers(t.transferTiers));
       return {
         id: t.id,
         type: t.type,
+        slug: t.slug ?? null,
         salesTags: normalizeSalesTagsInput(t.salesTags),
         titleTr: t.titleTr,
         titleEn: t.titleEn,
@@ -271,6 +272,7 @@ function buildTransferAirportTiers(
 
 export type RelatedTourCard = {
   id: string;
+  slug: string | null;
   type: string;
   titleEn: string;
   titleTr: string;
@@ -340,6 +342,7 @@ export async function getRelatedTours(currentTourId: string, limit = 4): Promise
 
     return picked.map((t) => ({
       id: t.id,
+      slug: (t as { slug?: string | null }).slug ?? null,
       type: t.type,
       titleEn: t.titleEn,
       titleTr: t.titleTr,

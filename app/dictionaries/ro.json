@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "Contul Meu",
+    "reservation": "Rezervare",
     "tabs": {
       "profile": "Profil",
       "coupons": "Cupoanele Mele",

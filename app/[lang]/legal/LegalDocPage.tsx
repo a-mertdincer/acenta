@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LegalDocumentBody } from '@/app/components/LegalDocumentBody';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 import { getDictionary } from '../../dictionaries/getDictionary';
 import { normalizeLocale } from '@/lib/i18n';
 import { readLegalDocument, type LegalDocKey } from '@/lib/legalDocuments';
@@ -22,6 +23,12 @@ export async function LegalDocPage({
 
   return (
     <div className="container legal-page">
+      <Breadcrumbs
+        items={[
+          { label: dict.navigation?.home ?? 'Home', href: `/${lang}` },
+          { label: title },
+        ]}
+      />
       <h1 className="legal-page-title">{title}</h1>
       <LegalDocumentBody text={text} />
       <p className="legal-page-back">

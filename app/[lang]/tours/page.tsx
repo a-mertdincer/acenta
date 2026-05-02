@@ -58,7 +58,7 @@ export default async function ToursPage(props: {
                 type: t.type as 'BALLOON' | 'TOUR' | 'TRANSFER' | 'ACTIVITY' | 'PACKAGE' | 'CONCIERGE',
                 titleEn: t.titleEn,
                 titleTr: t.titleTr,
-                titleZh: t.titleZh,
+                                titleZh: t.titleZh,
                 descEn: t.descEn,
                 descTr: t.descTr,
                 descZh: t.descZh,
@@ -68,9 +68,10 @@ export default async function ToursPage(props: {
                 category: t.category ? normalizeCategorySlug(t.category) : null,
                 imageUrl: (t.images ?? []).find((img) => img.isPrimary)?.url ?? (t.images ?? [])[0]?.url ?? null,
                 isAskForPrice: t.isAskForPrice ?? false,
+                slug: t.slug ?? null,
             };
         })
-        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null, destination: 'cappadocia', category: t.type === 'BALLOON' ? 'balloon-flights' : t.type === 'TRANSFER' ? 'transfers' : 'daily-tours', isAskForPrice: false }));
+        : MOCK_TOURS.map((t) => ({ ...t, fromPrice: t.basePrice, imageUrl: null, destination: 'cappadocia', category: t.type === 'BALLOON' ? 'balloon-flights' : t.type === 'TRANSFER' ? 'transfers' : 'daily-tours', isAskForPrice: false, slug: null }));
 
     const bookNowLabel = (dict.tours as { bookNow?: string }).bookNow ?? 'Book Now';
     const contactForPriceLabel = lang === 'tr' ? 'Fiyat için iletişime geçin' : lang === 'zh' ? '价格请咨询' : 'Contact for price';
@@ -114,7 +115,7 @@ export default async function ToursPage(props: {
                     const categoryBadge = category ? getCategoryLabel(category, lang) : tour.type;
                     return (
                         <article key={tour.id} className="tour-card tour-card-clickable">
-                            <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
+                            <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={title}>
                             <TourCardImage
                                 src={tour.imageUrl ?? getTourImagePath(tour.type)}
                                 fallback={getTourImageFallback(tour.type)}

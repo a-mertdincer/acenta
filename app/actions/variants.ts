@@ -101,14 +101,20 @@ function mapVariantToDisplay(v: Record<string, unknown>): TourVariantDisplay {
   };
 }
 
-/** Fetch tour by id with variants. Returns null if tour not found or DB error. */
-export async function getTourWithVariants(tourId: string): Promise<TourWithVariantsResult | null> {
+/** Fetch tour by id (or slug) with variants. Returns null if tour not found or DB error. */
+export async function getTourWithVariants(tourIdOrSlug: string): Promise<TourWithVariantsResult | null> {
   try {
-    const tour = await prisma.tour.findUnique({
-      where: { id: tourId },
+    let tour = await prisma.tour.findUnique({
+      where: { id: tourIdOrSlug },
     });
+    if (!tour) {
+      tour = await prisma.tour.findUnique({
+        where: { slug: tourIdOrSlug },
+      });
+    }
     if (!tour) return null;
 
+    const tourId = tour.id;
     const tourRecord = tour as Record<string, unknown>;
     let variants: TourVariantDisplay[] = [];
     const ageGroups = await prisma.productAgeGroup.findMany({

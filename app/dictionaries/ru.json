@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "Мой аккаунт",
+    "reservation": "Бронирование",
     "tabs": {
       "profile": "Профиль",
       "coupons": "Мои купоны",

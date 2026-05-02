@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "マイアカウント",
+    "reservation": "予約",
     "tabs": {
       "profile": "プロフィール",
       "coupons": "マイクーポン",

@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { changeMyPassword, updateMyProfile, type AccountProfile } from '../../actions/auth';
 import { claimCouponForCurrentUser, type CouponListItem } from '../../actions/coupons';
 import { MyReservationsList } from '../../components/MyReservationsList';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 
 type AccountTab = 'profile' | 'coupons' | 'reservations' | 'contact';
 
@@ -170,8 +171,9 @@ export function AccountClient(props: {
   totalSpend: number;
   activeCouponCount: number;
   labels: AccountLabels;
+  homeLabel: string;
 }) {
-  const { lang, locale, activeTab, profile, reservations, coupons, couponHistory, totalReservations, totalSpend, activeCouponCount, labels } = props;
+  const { lang, locale, activeTab, profile, reservations, coupons, couponHistory, totalReservations, totalSpend, activeCouponCount, labels, homeLabel } = props;
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -240,8 +242,28 @@ export function AccountClient(props: {
     }
   }
 
+  const tabLabelByKey: Record<AccountTab, string> = {
+    profile: labels.tabs.profile,
+    coupons: labels.tabs.coupons,
+    reservations: labels.tabs.reservations,
+    contact: labels.tabs.contact,
+  };
+
+  const breadcrumbItems =
+    activeTab === 'profile'
+      ? [
+          { label: homeLabel, href: `/${lang}` },
+          { label: labels.title },
+        ]
+      : [
+          { label: homeLabel, href: `/${lang}` },
+          { label: labels.title, href: `/${lang}/account` },
+          { label: tabLabelByKey[activeTab] },
+        ];
+
   return (
     <div className="container" style={{ padding: 'var(--space-2xl) 0' }}>
+      <Breadcrumbs items={breadcrumbItems} />
       <h1 style={{ marginBottom: 'var(--space-lg)' }}>{labels.title}</h1>
 
       <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>

@@ -103,6 +103,8 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
   const today = new Date();
   const activeCouponCount = coupons.filter((c) => c.isActive && c.bookingStart <= today && c.bookingEnd >= today).length;
 
+  const homeLabel = (dict as { navigation?: { home?: string } }).navigation?.home ?? 'Home';
+
   return (
     <AccountClient
       lang={lang}
@@ -116,6 +118,7 @@ export async function AccountServer({ lang, tab }: { lang: string; tab: AccountT
       activeCouponCount={activeCouponCount}
       labels={accountDict}
       locale={locale}
+      homeLabel={homeLabel}
     />
   );
 }

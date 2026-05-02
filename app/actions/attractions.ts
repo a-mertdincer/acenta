@@ -123,6 +123,7 @@ export type AttractionImageRow = {
 export async function getAttractionBySlug(slug: string): Promise<(AttractionRow & {
   tours: {
     id: string;
+    slug: string | null;
     type: string;
     titleEn: string;
     titleTr: string;
@@ -180,6 +181,7 @@ export async function getAttractionBySlug(slug: string): Promise<(AttractionRow 
       })),
       tours: row.tours.map((rel) => ({
         id: rel.tour.id,
+        slug: (rel.tour as { slug?: string | null }).slug ?? null,
         type: rel.tour.type,
         titleEn: rel.tour.titleEn,
         titleTr: rel.tour.titleTr,

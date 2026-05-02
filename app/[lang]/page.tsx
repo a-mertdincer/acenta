@@ -110,6 +110,7 @@ function pickTourCardImage(tour: TourWithOptions): { src: string; fallback: stri
 
 type TourRow = {
   id: string;
+  slug: string | null;
   type: string;
   title: string;
   desc: string;
@@ -145,6 +146,7 @@ function buildTourRowsFromDb(
     const img = pickTourCardImage(t);
     return {
       id: String(t.id),
+      slug: t.slug ?? null,
       type: String(t.type ?? 'TOUR'),
       title: tourTitle(t, lang),
       desc: tourDescription(t, lang),
@@ -174,6 +176,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
   let askForPriceButton = 'Ask for Price';
   let tours: TourRow[] = MOCK_CARDS.map((c) => ({
     id: c.tourId,
+    slug: null,
     type: c.type,
     title: FALLBACK_TOURS_DICT[c.titleKey] ?? c.titleKey,
     desc: FALLBACK_TOURS_DICT[c.descKey] ?? '',
@@ -223,6 +226,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
     } else {
       tours = MOCK_CARDS.map((c) => ({
         id: c.tourId,
+        slug: null,
         type: c.type,
         title: toursDict[c.titleKey] ?? c.titleKey,
         desc: toursDict[c.descKey] ?? '',
@@ -333,7 +337,7 @@ export default async function Home(props: { params: Promise<{ lang: string }> })
             desc={tour.desc}
             fromLabel={homeDict.from ?? FALLBACK_HOME.from}
             price={tour.price}
-            tourId={tour.id}
+            tourId={tour.slug ?? tour.id}
             imageSrc={tour.imageSrc}
             imageFallback={tour.imageFallback}
             bookLabel={bookNowLabel}

@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "Hesabım",
+    "reservation": "Rezervasyon",
     "tabs": {
       "profile": "Profil Bilgileri",
       "coupons": "Kuponlarım",

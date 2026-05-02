@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "Moje Konto",
+    "reservation": "Rezerwacja",
     "tabs": {
       "profile": "Profil",
       "coupons": "Moje Kupony",

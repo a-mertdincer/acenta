@@ -64,7 +64,7 @@ export default async function AttractionDetailPage(props: {
           const shownPrice = formatPriceByLang(tour.basePrice, locale, rateData?.rate ?? null);
           return (
             <article key={tour.id} className="tour-card tour-card-clickable">
-              <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={tourTitle}>
+              <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={tourTitle}>
                 <div className="tour-card-image">
                   <TourCardImageWithFallback
                     primaryUrl={tour.primaryImage}

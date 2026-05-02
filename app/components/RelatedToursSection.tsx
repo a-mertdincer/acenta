@@ -58,7 +58,7 @@ export function RelatedToursSection({
               desc=""
               fromLabel={fromLabel}
               price={t.basePrice}
-              tourId={t.id}
+              tourId={t.slug ?? t.id}
               imageSrc={imageSrc}
               imageFallback={imageFallback}
               bookLabel={bookLabel}

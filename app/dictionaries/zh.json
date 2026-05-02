@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "我的账户",
+    "reservation": "预订",
     "tabs": {
       "profile": "个人资料",
       "coupons": "我的优惠券",

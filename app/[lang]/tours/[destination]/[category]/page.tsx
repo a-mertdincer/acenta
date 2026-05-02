@@ -76,6 +76,7 @@ export default async function ToursCategoryPage(props: {
     const fromPrice = t.type === 'TRANSFER' && allTierPrices.length ? Math.min(...allTierPrices) : (variantFromPriceMap.get(t.id) ?? t.basePrice);
     return {
       id: t.id,
+      slug: t.slug ?? null,
       type: t.type,
       titleEn: t.titleEn,
       titleTr: t.titleTr,
@@ -131,7 +132,7 @@ export default async function ToursCategoryPage(props: {
               const badgeCategory = tour.category ? getCategoryBySlug(tour.destination ?? destination, tour.category) : null;
               return (
                 <article key={tour.id} className="tour-card tour-card-clickable">
-                  <Link href={`/${lang}/tour/${tour.id}`} className="tour-card-link-area" aria-label={title}>
+                  <Link href={`/${lang}/tour/${tour.slug ?? tour.id}`} className="tour-card-link-area" aria-label={title}>
                   <TourCardImage
                     src={tour.imageUrl ?? getTourImagePath(tour.type)}
                     fallback={getTourImageFallback(tour.type)}

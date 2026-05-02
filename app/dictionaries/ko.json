@@ -108,6 +108,7 @@
   },
   "account": {
     "title": "내 계정",
+    "reservation": "예약",
     "tabs": {
       "profile": "프로필",
       "coupons": "내 쿠폰",

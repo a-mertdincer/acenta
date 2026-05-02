@@ -913,7 +913,12 @@ export default function AdminReservationsPage() {
                           title="Diğer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setContextMenu({ id: res.id, x: e.clientX, y: e.clientY });
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setContextMenu({
+                              id: res.id,
+                              x: rect.right,
+                              y: rect.bottom + 4,
+                            });
                           }}
                         >
                           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -1092,7 +1097,11 @@ export default function AdminReservationsPage() {
         <div
           ref={contextMenuRef}
           className="admin-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+            transform: 'translateX(-100%)',
+          }}
         >
           <button type="button" onClick={() => handleSendConfirmation(contextMenu.id)}>
             Onay mail gönder

@@ -4284,12 +4284,14 @@ main {
   position: fixed;
   z-index: 100;
   min-width: 200px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   padding: 6px 0;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
-  transform: translate(0, 4px);
 }
 
 .admin-context-menu button {

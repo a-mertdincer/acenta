@@ -5039,8 +5039,11 @@ main {
     padding: 0;
   }
   .home-attractions .container {
-    padding: 0;
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+    padding-bottom: var(--space-md);
     max-width: 100%;
+    box-sizing: border-box;
   }
   .home-attr-title {
     padding: var(--space-md) var(--space-md) var(--space-sm);
@@ -5049,19 +5052,23 @@ main {
     text-align: center;
     font-size: 1.4rem;
   }
+  /* Biraz daha kısa + yan çerçeve: alttan sayfa devam ediyor hissi + son slayttan sonra scroll geçişi */
   .home-attr-viewport {
-    height: calc(100dvh - 80px);
-    max-height: 700px;
+    --home-attr-slide-h: min(620px, calc(88dvh - 112px));
+    height: var(--home-attr-slide-h);
+    max-height: 640px;
     overflow-y: auto;
     overflow-x: hidden;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    border: none;
-    border-radius: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
     background: #000;
     scroll-behavior: smooth;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
+    box-sizing: border-box;
+    box-shadow: var(--shadow-md);
   }
   .home-attr-viewport::-webkit-scrollbar {
     display: none;
@@ -5082,7 +5089,7 @@ main {
     flex: 0 0 auto;
     flex-shrink: 0;
     width: 100%;
-    height: min(700px, calc(100dvh - 80px));
+    height: var(--home-attr-slide-h, min(620px, calc(88dvh - 112px)));
     max-width: none;
     scroll-snap-align: start;
     scroll-snap-stop: always;
@@ -5104,7 +5111,7 @@ main {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    min-height: min(700px, calc(100dvh - 80px));
+    min-height: var(--home-attr-slide-h, min(620px, calc(88dvh - 112px)));
   }
   .home-attr-img-wrap {
     position: absolute;

@@ -20,6 +20,12 @@
     "setup": "prisma migrate deploy && npm run seed",
     "seed:tour-images": "tsx scripts/seed-tour-images.ts",
     "test:deepl": "tsx scripts/test-deepl.ts",
+    "translate:all": "tsx scripts/bulk-translate.ts",
+    "translate:dry": "tsx scripts/bulk-translate.ts --dry-run",
+    "translate:tours": "tsx scripts/bulk-translate.ts --only=tours",
+    "translate:attractions": "tsx scripts/bulk-translate.ts --only=attractions",
+    "translate:variants": "tsx scripts/bulk-translate.ts --only=variants",
+    "translate:options": "tsx scripts/bulk-translate.ts --only=options",
     "prepare": "husky",
     "postinstall": "prisma generate"
   },

@@ -50,5 +50,6 @@ test-results/
 # Local DB dumps from pg_dump — contain customer data, never commit
 /backups/
 *.sql
+!prisma/migrations/**/*.sql
 *.sql.gz
 *.dump

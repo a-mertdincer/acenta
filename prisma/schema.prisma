@@ -79,6 +79,129 @@ model Tour {
   cancellationNoteEn String?
   cancellationNoteTr String?
   cancellationNoteZh String?
+
+  // Extended locales (nullable; EN/TR/ZH remain canonical until translated)
+  titleEs              String?
+  titleIt              String?
+  titleFr              String?
+  titleDe              String?
+  titleNl              String?
+  titleRo              String?
+  titleRu              String?
+  titlePl              String?
+  titleKo              String?
+  titleJa              String?
+  descEs               String?
+  descIt               String?
+  descFr               String?
+  descDe               String?
+  descNl               String?
+  descRo               String?
+  descRu               String?
+  descPl               String?
+  descKo               String?
+  descJa               String?
+  highlightsEs         String?
+  highlightsIt         String?
+  highlightsFr         String?
+  highlightsDe         String?
+  highlightsNl         String?
+  highlightsRo         String?
+  highlightsRu         String?
+  highlightsPl         String?
+  highlightsKo         String?
+  highlightsJa         String?
+  itineraryEs          String?
+  itineraryIt          String?
+  itineraryFr          String?
+  itineraryDe          String?
+  itineraryNl          String?
+  itineraryRo          String?
+  itineraryRu          String?
+  itineraryPl          String?
+  itineraryKo          String?
+  itineraryJa          String?
+  knowBeforeEs         String?
+  knowBeforeIt         String?
+  knowBeforeFr         String?
+  knowBeforeDe         String?
+  knowBeforeNl         String?
+  knowBeforeRo         String?
+  knowBeforeRu         String?
+  knowBeforePl         String?
+  knowBeforeKo         String?
+  knowBeforeJa         String?
+  notSuitableEs        String?
+  notSuitableIt        String?
+  notSuitableFr        String?
+  notSuitableDe        String?
+  notSuitableNl        String?
+  notSuitableRo        String?
+  notSuitableRu        String?
+  notSuitablePl        String?
+  notSuitableKo        String?
+  notSuitableJa        String?
+  notAllowedEs         String?
+  notAllowedIt         String?
+  notAllowedFr         String?
+  notAllowedDe         String?
+  notAllowedNl         String?
+  notAllowedRo         String?
+  notAllowedRu         String?
+  notAllowedPl         String?
+  notAllowedKo         String?
+  notAllowedJa         String?
+  whatsIncludedEs      String?
+  whatsIncludedIt      String?
+  whatsIncludedFr      String?
+  whatsIncludedDe      String?
+  whatsIncludedNl      String?
+  whatsIncludedRo      String?
+  whatsIncludedRu      String?
+  whatsIncludedPl      String?
+  whatsIncludedKo      String?
+  whatsIncludedJa      String?
+  notIncludedEs        String?
+  notIncludedIt        String?
+  notIncludedFr        String?
+  notIncludedDe        String?
+  notIncludedNl        String?
+  notIncludedRo        String?
+  notIncludedRu        String?
+  notIncludedPl        String?
+  notIncludedKo        String?
+  notIncludedJa        String?
+  cancellationNoteEs   String?
+  cancellationNoteIt   String?
+  cancellationNoteFr   String?
+  cancellationNoteDe   String?
+  cancellationNoteNl   String?
+  cancellationNoteRo   String?
+  cancellationNoteRu   String?
+  cancellationNotePl   String?
+  cancellationNoteKo   String?
+  cancellationNoteJa   String?
+  ageRestrictionEs     String?
+  ageRestrictionIt     String?
+  ageRestrictionFr     String?
+  ageRestrictionDe     String?
+  ageRestrictionNl     String?
+  ageRestrictionRo     String?
+  ageRestrictionRu     String?
+  ageRestrictionPl     String?
+  ageRestrictionKo     String?
+  ageRestrictionJa     String?
+  faqsEs               Json?
+  faqsIt               Json?
+  faqsFr               Json?
+  faqsDe               Json?
+  faqsNl               Json?
+  faqsRo               Json?
+  faqsRu               Json?
+  faqsPl               Json?
+  faqsKo               Json?
+  faqsJa               Json?
+
   ageGroups          ProductAgeGroup[]
   images             TourImage[]
   priceInquiries     PriceInquiry[]
@@ -118,6 +241,26 @@ model Attraction {
   descriptionEn String?
   descriptionTr String?
   descriptionZh String?
+  nameEs        String?
+  nameIt        String?
+  nameFr        String?
+  nameDe        String?
+  nameNl        String?
+  nameRo        String?
+  nameRu        String?
+  namePl        String?
+  nameKo        String?
+  nameJa        String?
+  descriptionEs String?
+  descriptionIt String?
+  descriptionFr String?
+  descriptionDe String?
+  descriptionNl String?
+  descriptionRo String?
+  descriptionRu String?
+  descriptionPl String?
+  descriptionKo String?
+  descriptionJa String?
   imageUrl      String?
   sortOrder     Int                @default(0)
   tours         TourAttraction[]
@@ -134,6 +277,16 @@ model AttractionImage {
   altEn        String?
   altTr        String?
   altZh        String?
+  altEs        String?
+  altIt        String?
+  altFr        String?
+  altDe        String?
+  altNl        String?
+  altRo        String?
+  altRu        String?
+  altPl        String?
+  altKo        String?
+  altJa        String?
   isPrimary    Boolean    @default(false)
   sortOrder    Int        @default(0)
   createdAt    DateTime   @default(now())
@@ -167,6 +320,26 @@ model TourVariant {
   descEn             String
   descTr             String
   descZh             String
+  titleEs            String?
+  titleIt            String?
+  titleFr            String?
+  titleDe            String?
+  titleNl            String?
+  titleRo            String?
+  titleRu            String?
+  titlePl            String?
+  titleKo            String?
+  titleJa            String?
+  descEs             String?
+  descIt             String?
+  descFr             String?
+  descDe             String?
+  descNl             String?
+  descRo             String?
+  descRu             String?
+  descPl             String?
+  descKo             String?
+  descJa             String?
   includes           Json     // string[] e.g. ["Klimalı araç", "Rehber"]
   excludes           Json     // string[]
   duration           String?  // "4 saat" or "~40 dakika"
@@ -206,6 +379,16 @@ model TourOption {
   titleTr   String
   titleEn   String
   titleZh   String
+  titleEs   String?
+  titleIt   String?
+  titleFr   String?
+  titleDe   String?
+  titleNl   String?
+  titleRo   String?
+  titleRu   String?
+  titlePl   String?
+  titleKo   String?
+  titleJa   String?
   priceAdd  Float // Amount added to base price
   pricingMode String @default("per_person") // per_person | flat
   createdAt DateTime @default(now())

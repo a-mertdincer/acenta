@@ -11,7 +11,9 @@
     "account": "Mi Cuenta",
     "logout": "Cerrar Sesión",
     "admin": "Admin",
-    "search": "Buscar"
+    "search": "Buscar",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú"
   },
   "attractionsPage": {
     "title": "Descubre Capadocia",

@@ -11,7 +11,9 @@
     "account": "Mijn Account",
     "logout": "Uitloggen",
     "admin": "Admin",
-    "search": "Zoeken"
+    "search": "Zoeken",
+    "openMenu": "Menu openen",
+    "closeMenu": "Menu sluiten"
   },
   "attractionsPage": {
     "title": "Ontdek Cappadocië",

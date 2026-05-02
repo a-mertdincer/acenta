@@ -11,7 +11,9 @@
     "account": "Contul Meu",
     "logout": "Deconectare",
     "admin": "Admin",
-    "search": "Căutare"
+    "search": "Căutare",
+    "openMenu": "Deschide meniul",
+    "closeMenu": "Închide meniul"
   },
   "attractionsPage": {
     "title": "Descoperă Cappadocia",

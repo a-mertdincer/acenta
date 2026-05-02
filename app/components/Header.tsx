@@ -42,6 +42,8 @@ interface NavDict {
   logout: string;
   admin: string;
   search: string;
+  openMenu: string;
+  closeMenu: string;
 }
 
 interface HeaderProps {
@@ -158,6 +160,24 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const langLabels: Record<string, string> = {
     en: 'English',
@@ -285,7 +305,7 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
             type="button"
             className="site-header-mobile-toggle"
             onClick={() => setMobileOpen((o) => !o)}
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-label={mobileOpen ? nav.closeMenu : nav.openMenu}
             aria-expanded={mobileOpen}
           >
             <span className="hamburger-line" />
@@ -293,7 +313,26 @@ export function Header({ lang, nav, menu, categories = {}, isLoggedIn = false, i
             <span className="hamburger-line" />
           </button>
 
+          {mobileOpen ? (
+            <div
+              className="site-nav-backdrop"
+              onClick={() => setMobileOpen(false)}
+              aria-hidden
+            />
+          ) : null}
+
           <nav className={`site-nav ${mobileOpen ? 'site-nav-open' : ''}`}>
+            <button
+              type="button"
+              className="site-nav-close-btn"
+              onClick={() => setMobileOpen(false)}
+              aria-label={nav.closeMenu}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
             <div className="site-nav-links">
               <Link href={`/${lang}`} className="site-nav-link" onClick={() => setMobileOpen(false)}>
                 {nav.home}

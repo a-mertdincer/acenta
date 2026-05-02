@@ -11,7 +11,9 @@
     "account": "My Account",
     "logout": "Log out",
     "admin": "Admin",
-    "search": "Search"
+    "search": "Search",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "headerUserMenu": {
     "signedInAs": "Signed in as",

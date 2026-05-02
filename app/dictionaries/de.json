@@ -11,7 +11,9 @@
     "account": "Mein Konto",
     "logout": "Abmelden",
     "admin": "Admin",
-    "search": "Suchen"
+    "search": "Suchen",
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen"
   },
   "attractionsPage": {
     "title": "Kappadokien entdecken",

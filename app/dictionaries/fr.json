@@ -11,7 +11,9 @@
     "account": "Mon Compte",
     "logout": "Déconnexion",
     "admin": "Admin",
-    "search": "Rechercher"
+    "search": "Rechercher",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
   },
   "attractionsPage": {
     "title": "Découvrez la Cappadoce",

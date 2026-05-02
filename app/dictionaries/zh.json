@@ -11,7 +11,9 @@
     "account": "我的账户",
     "logout": "退出",
     "admin": "管理",
-    "search": "搜索"
+    "search": "搜索",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单"
   },
   "headerUserMenu": {
     "signedInAs": "当前用户",

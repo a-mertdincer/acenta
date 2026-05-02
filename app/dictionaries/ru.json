@@ -11,7 +11,9 @@
     "account": "Мой аккаунт",
     "logout": "Выйти",
     "admin": "Админ",
-    "search": "Поиск"
+    "search": "Поиск",
+    "openMenu": "Открыть меню",
+    "closeMenu": "Закрыть меню"
   },
   "attractionsPage": {
     "title": "Откройте Каппадокию",

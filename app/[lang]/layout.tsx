@@ -27,6 +27,8 @@ const fallbackNav = {
   logout: 'Log out',
   admin: 'Admin',
   search: 'Search',
+  openMenu: 'Open menu',
+  closeMenu: 'Close menu',
 };
 const fallbackFooter = {
   about: 'About us',

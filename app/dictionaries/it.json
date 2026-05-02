@@ -11,7 +11,9 @@
     "account": "Il Mio Account",
     "logout": "Esci",
     "admin": "Admin",
-    "search": "Cerca"
+    "search": "Cerca",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu"
   },
   "attractionsPage": {
     "title": "Scopri la Cappadocia",

@@ -11,7 +11,9 @@
     "account": "Moje Konto",
     "logout": "Wyloguj się",
     "admin": "Admin",
-    "search": "Szukaj"
+    "search": "Szukaj",
+    "openMenu": "Otwórz menu",
+    "closeMenu": "Zamknij menu"
   },
   "attractionsPage": {
     "title": "Odkryj Kapadocję",

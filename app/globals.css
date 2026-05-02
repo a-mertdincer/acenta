@@ -79,6 +79,8 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 170px;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 ::selection {
@@ -98,6 +100,8 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -2798,6 +2802,14 @@ main {
   align-items: center;
   gap: var(--space-xl);
 }
+
+.site-nav-close-btn {
+  display: none;
+}
+
+.site-nav-backdrop {
+  display: none;
+}
 .site-nav-links {
   display: flex;
   align-items: center;
@@ -3263,6 +3275,38 @@ main {
 @media (max-width: 768px) {
   .site-header-mobile-toggle {
     display: flex;
+  }
+  .site-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 42, 56, 0.4);
+    z-index: 99;
+    touch-action: none;
+  }
+  .site-nav-close-btn {
+    display: flex;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    color: var(--color-text-main);
+    z-index: 10;
+    padding: 0;
+  }
+  .site-nav-close-btn:hover {
+    background: var(--color-bg-light);
+  }
+  .site-nav-close-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
   .site-nav {
     position: fixed;

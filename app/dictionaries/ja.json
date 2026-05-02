@@ -11,7 +11,9 @@
     "account": "マイアカウント",
     "logout": "ログアウト",
     "admin": "管理",
-    "search": "検索"
+    "search": "検索",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる"
   },
   "attractionsPage": {
     "title": "カッパドキアを探索",

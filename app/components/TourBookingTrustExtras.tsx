@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 
 export interface WhyBookDict {
@@ -38,10 +39,24 @@ export function TourBookingTrustExtras({
   policyLabels,
 }: TourBookingTrustExtrasProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const tourNote = typeof cancellationNote === 'string' ? cancellationNote.trim() : '';
   const fallbackBody = policyLabels.defaultBody.trim();
   const policyBodyText = tourNote || fallbackBody;
   const showReturnPolicy = policyBodyText.length > 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -78,50 +93,53 @@ export function TourBookingTrustExtras({
         </button>
       ) : null}
 
-      {open ? (
-        <div
-          className="tour-cancellation-modal-backdrop"
-          role="presentation"
-          onClick={() => setOpen(false)}
-        >
+      {mounted &&
+        open &&
+        createPortal(
           <div
-            className="tour-cancellation-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tour-cancellation-modal-title"
-            onClick={(e) => e.stopPropagation()}
+            className="tour-cancellation-modal-backdrop"
+            role="presentation"
+            onClick={() => setOpen(false)}
           >
-            <div className="tour-cancellation-modal-header">
-              <h2 id="tour-cancellation-modal-title" className="tour-cancellation-modal-title">
-                {policyLabels.modalTitle}
-              </h2>
-              <button
-                type="button"
-                className="tour-cancellation-modal-close"
-                aria-label="Close"
-                onClick={() => setOpen(false)}
-              >
-                ✕
-              </button>
+            <div
+              className="tour-cancellation-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="tour-cancellation-modal-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="tour-cancellation-modal-header">
+                <h2 id="tour-cancellation-modal-title" className="tour-cancellation-modal-title">
+                  {policyLabels.modalTitle}
+                </h2>
+                <button
+                  type="button"
+                  className="tour-cancellation-modal-close"
+                  aria-label="Close"
+                  onClick={() => setOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="tour-cancellation-modal-body">
+                <p className="tour-cancellation-modal-text">{policyBodyText}</p>
+                {policyLabels.fullTermsLink?.trim() ? (
+                  <p className="tour-cancellation-modal-legal">
+                    <Link href={`/${lang}/legal/cancellation`} className="tour-cancellation-modal-legal-link">
+                      {policyLabels.fullTermsLink}
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+              <div className="tour-cancellation-modal-footer">
+                <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>
+                  {policyLabels.acknowledge}
+                </button>
+              </div>
             </div>
-            <div className="tour-cancellation-modal-body">
-              <p className="tour-cancellation-modal-text">{policyBodyText}</p>
-              {policyLabels.fullTermsLink?.trim() ? (
-                <p className="tour-cancellation-modal-legal">
-                  <Link href={`/${lang}/legal/cancellation`} className="tour-cancellation-modal-legal-link">
-                    {policyLabels.fullTermsLink}
-                  </Link>
-                </p>
-              ) : null}
-            </div>
-            <div className="tour-cancellation-modal-footer">
-              <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>
-                {policyLabels.acknowledge}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

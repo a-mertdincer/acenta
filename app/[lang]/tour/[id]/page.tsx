@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, use, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/Button';
 import { useCartStore } from '../../../store/cartStore';
@@ -323,10 +324,15 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     const [datePrice, setDatePrice] = useState<{ price: number; capacity: number; isClosed: boolean } | null>(null);
     const [cartToastOpen, setCartToastOpen] = useState(false);
     const [cartToastTitle, setCartToastTitle] = useState('');
+    const [portalMounted, setPortalMounted] = useState(false);
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
     const { eurTryRate, updatedAt } = useExchangeRate(siteLang === 'tr');
     const showChildren = (tour?.minAgeLimit != null ? tour.minAgeLimit < 8 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { pricingType: string; maxAge: number }) => g.pricingType === 'child' && g.maxAge >= 4) : true);
     const showInfants = (tour?.minAgeLimit != null ? tour.minAgeLimit < 4 : true) && (tour?.ageGroups?.length ? tour.ageGroups.some((g: { minAge: number; pricingType: string }) => g.minAge <= 3 && g.pricingType !== 'not_allowed') : true);
+
+    useEffect(() => {
+        setPortalMounted(true);
+    }, []);
 
     useEffect(() => {
         const d = new Date();
@@ -957,41 +963,31 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                 askForPriceLabel={askPriceLabel}
               />
             )}
-            {cartToastOpen && (
-              <div
-                style={{
-                  position: 'fixed',
-                  right: 16,
-                  bottom: 16,
-                  width: 'min(92vw, 360px)',
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 12,
-                  boxShadow: 'var(--shadow-lg)',
-                  padding: 'var(--space-md)',
-                  zIndex: 999,
-                }}
-              >
-                <p style={{ marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
-                  ✅ {cartToastTitle} {vUiFlat.addedToCart}
-                </p>
-                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      setCartToastOpen(false);
-                      router.push(`/${lang}/cart`);
-                    }}
-                  >
-                    {vUiFlat.goToCart}
-                  </button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
-                    {vUiFlat.continueShopping}
-                  </button>
-                </div>
-              </div>
-            )}
+            {portalMounted &&
+              cartToastOpen &&
+              createPortal(
+                <div className="cart-toast" role="status" aria-live="polite">
+                  <p className="cart-toast-message">
+                    ✅ {cartToastTitle} {vUiFlat.addedToCart}
+                  </p>
+                  <div className="cart-toast-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        setCartToastOpen(false);
+                        router.push(`/${lang}/cart`);
+                      }}
+                    >
+                      {vUiFlat.goToCart}
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
+                      {vUiFlat.continueShopping}
+                    </button>
+                  </div>
+                </div>,
+                document.body
+              )}
         </div>
     );
 }

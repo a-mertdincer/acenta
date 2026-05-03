@@ -165,16 +165,30 @@ Sadece DB'ye yazmak yetmez. Page query'sinde `findFirst({ where: { OR: [{ id: pa
 
 **Verify:** Yeni slug girdiğinde URL'i tarayıcıda aç, 200 dönüyor mu?
 
-## F. Modal'lar createPortal ile
+## F. Modal, toast, overlay — `createPortal` + containing block
 
-Modal yazarken:
-- `createPortal(..., document.body)` kullan
-- Parent re-render'dan etkilenmesin
-- `useCallback` ile `onClose` sabitle
-- ESC ve backdrop click ile kapansın
-- Body scroll lock yap
+**Kök sebep:** `position: fixed` viewport'a göre konumlanır *ancak* üst parent'lardan birinde `transform`, `filter`, `perspective` veya `will-change` varsa, fixed eleman o parent'a göre konumlanır. Örnek: `app/globals.css` içinde `.card:hover { transform: translateY(-4px) }` — içerideki fixed toast/modal mouse ile hover açılıp kapanınca **kayar gibi** görünür.
 
-Daha önce `AskForPriceModal` ve `WriteReviewModal`'da bu sebeplerden flicker bug'ı yaşadık.
+**Kural — modal, toast, popover, tam ekran overlay:**
+
+- `createPortal(..., document.body)` ile DOM'da `body` direkt çocuğu ol; React ağacında nerede üretildiği fark etmez.
+- **SSR / hydration:** `document.body` yalnızca client'ta vardır. `const [mounted, setMounted] = useState(false)` + `useEffect(() => { setMounted(true); }, [])` ile `mounted && open && createPortal(...)` — ilk paint'te portal yok, mismatch olmaz.
+- İptal / onay modallarında: **body scroll lock** (`overflow: hidden`, cleanup'ta eski değer), **ESC** ve **backdrop** ile kapanma.
+- Z-index: toast (ör. 9999) < tam ekran modal backdrop (daha yüksek) — aynı anda üst üste binmesin.
+
+```tsx
+import { createPortal } from 'react-dom';
+
+const [mounted, setMounted] = useState(false);
+useEffect(() => { setMounted(true); }, []);
+
+return mounted && open && createPortal(
+  <div className="modal-backdrop">...</div>,
+  document.body
+);
+```
+
+Daha önce `AskForPriceModal` ve `WriteReviewModal`'da benzer nedenlerle flicker / kayma yaşandı; sepet toast ve iade politikası modal'ı da aynı pattern'e uyar.
 
 ## G. Component Library Limitleri
 

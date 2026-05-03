@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Button } from './Button';
 import { useCartStore } from '../store/cartStore';
@@ -165,6 +166,7 @@ function ProductVariantBookingCardInner({
   const [transferHotelName, setTransferHotelName] = useState('');
   const [cartToastOpen, setCartToastOpen] = useState(false);
   const [cartToastTitle, setCartToastTitle] = useState('');
+  const [portalMounted, setPortalMounted] = useState(false);
   const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
   const selectedOptions = useMemo(
     () => Object.entries(optionQuantities).filter(([, q]) => q > 0).map(([id]) => id),
@@ -190,6 +192,10 @@ function ProductVariantBookingCardInner({
     () => category === 'transfers' || data.hasAirportSelect || tourType === 'TRANSFER',
     [category, data.hasAirportSelect, tourType]
   );
+
+  useEffect(() => {
+    setPortalMounted(true);
+  }, []);
 
   useEffect(() => {
     const from = new Date();
@@ -1279,41 +1285,31 @@ function ProductVariantBookingCardInner({
         />
       ) : null}
 
-      {cartToastOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            right: 16,
-            bottom: 16,
-            width: 'min(92vw, 360px)',
-            background: 'var(--color-bg-card)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 12,
-            boxShadow: 'var(--shadow-lg)',
-            padding: 'var(--space-md)',
-            zIndex: 999,
-          }}
-        >
-          <p style={{ marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
-            ✅ {cartToastTitle} {t.addedToCart}
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setCartToastOpen(false);
-                router.push(`/${lang}/cart`);
-              }}
-            >
-              {t.goToCart}
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
-              {t.continueShopping}
-            </button>
-          </div>
-        </div>
-      )}
+      {portalMounted &&
+        cartToastOpen &&
+        createPortal(
+          <div className="cart-toast" role="status" aria-live="polite">
+            <p className="cart-toast-message">
+              ✅ {cartToastTitle} {t.addedToCart}
+            </p>
+            <div className="cart-toast-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setCartToastOpen(false);
+                  router.push(`/${lang}/cart`);
+                }}
+              >
+                {t.goToCart}
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCartToastOpen(false)}>
+                {t.continueShopping}
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -90,6 +90,8 @@ function getAgePolicyDetail(
 type ProductVariantBookingCardProps = {
   tourId: string;
   tourType: string;
+  /** `Tour.category` slug (e.g. transfers); primary signal for transfer flight UI */
+  category?: string | null;
   lang: SiteLocale;
   variantUi: Record<string, string>;
   promotionUi: Record<string, string>;
@@ -118,6 +120,7 @@ export function ProductVariantBookingCard(props: ProductVariantBookingCardProps)
 function ProductVariantBookingCardInner({
   tourId,
   tourType,
+  category = null,
   lang,
   variantUi,
   promotionUi,
@@ -183,6 +186,11 @@ function ProductVariantBookingCardInner({
     return ageGroups.some((g) => (g.pricingType === 'free' || g.pricingType === 'adult' || g.pricingType === 'child') && g.minAge <= 3);
   }, [ageGroups, minAgeLimit]);
 
+  const isTransfer = useMemo(
+    () => category === 'transfers' || data.hasAirportSelect || tourType === 'TRANSFER',
+    [category, data.hasAirportSelect, tourType]
+  );
+
   useEffect(() => {
     const from = new Date();
     const to = new Date();
@@ -205,7 +213,7 @@ function ProductVariantBookingCardInner({
   }, [tourId]);
 
   useEffect(() => {
-    if (!data.hasAirportSelect && tourType !== 'TRANSFER') return;
+    if (!isTransfer) return;
     const airport = selection.airport ?? 'NAV';
     setSelectedSingleFlight('');
     setSelectedArrivalFlight('');
@@ -221,7 +229,7 @@ function ProductVariantBookingCardInner({
         }))
       )
     );
-  }, [data.hasAirportSelect, selection.airport, tourType]);
+  }, [isTransfer, selection.airport]);
 
   useEffect(() => {
     if (!cartToastOpen) return;
@@ -235,7 +243,7 @@ function ProductVariantBookingCardInner({
   }, [showChildren, showInfants, children, infants]);
 
   const fallbackTransferVariant = useMemo((): TourVariantDisplay | null => {
-    if (data.variants.length > 0 || tourType !== 'TRANSFER') return null;
+    if (data.variants.length > 0 || !isTransfer) return null;
     const tiersNav = data.transferAirportTiers?.NAV ?? [];
     const tiersAsr = data.transferAirportTiers?.ASR ?? [];
     const allTiers = [...tiersNav, ...tiersAsr];
@@ -268,7 +276,7 @@ function ProductVariantBookingCardInner({
       isActive: true,
       isRecommended: true,
     };
-  }, [data.variants.length, data.id, tourType, data.transferAirportTiers]);
+  }, [data.variants.length, data.id, isTransfer, data.transferAirportTiers]);
 
   const variantsSource = useMemo(() => {
     if (data.variants.length > 0) return data.variants;
@@ -373,10 +381,10 @@ function ProductVariantBookingCardInner({
   }, [activeVariant, selectedVariantId]);
 
   const transferDirectionForPricing = useMemo((): 'arrival' | 'departure' | 'roundtrip' | undefined => {
-    if (!data.hasAirportSelect && tourType !== 'TRANSFER') return undefined;
+    if (!isTransfer) return undefined;
     if (flightMode === 'roundtrip') return 'roundtrip';
     return undefined;
-  }, [data.hasAirportSelect, tourType, flightMode]);
+  }, [isTransfer, flightMode]);
 
   const arrivalFlights = useMemo(() => allFlights.filter((f) => f.direction === 'arrival'), [allFlights]);
   const departureFlights = useMemo(() => allFlights.filter((f) => f.direction === 'departure'), [allFlights]);
@@ -404,8 +412,7 @@ function ProductVariantBookingCardInner({
       effectivePrivateTiers && effectivePrivateTiers.length > 0
         ? { ...activeVariant, privatePriceTiers: effectivePrivateTiers }
         : activeVariant;
-    const isTransferContext = data.hasAirportSelect || tourType === 'TRANSFER';
-    const direction = isTransferContext ? transferDirectionForPricing : undefined;
+    const direction = isTransfer ? transferDirectionForPricing : undefined;
     const baseTotal = calculateVariantTotal(tieredVariant, adults, children, infants, direction);
     // Per-person variants can still use tier table as total override.
     if (activeVariant.pricingType === 'per_person' && effectivePrivateTiers && effectivePrivateTiers.length > 0) {
@@ -429,8 +436,7 @@ function ProductVariantBookingCardInner({
     adults,
     children,
     infants,
-    data.hasAirportSelect,
-    tourType,
+    isTransfer,
     transferDirectionForPricing,
     transferAirportTiers,
     selection.airport,
@@ -489,7 +495,7 @@ function ProductVariantBookingCardInner({
     if (selectedOptionLabels.length > 0) {
       lines.push(`Options: ${selectedOptionLabels.join(', ')}`);
     }
-    if (data.hasAirportSelect || tourType === 'TRANSFER') {
+    if (isTransfer) {
       if (flightMode === 'single' && selectedSingleFlightObj) {
         lines.push(`Direction: ${selectedSingleFlightObj.direction}`);
         lines.push(`Flight: ${selectedSingleFlightObj.code} — ${selectedSingleFlightObj.airline} (${selectedSingleFlightObj.estimatedTime})`);
@@ -507,7 +513,7 @@ function ProductVariantBookingCardInner({
       }
     }
     const hotelTrim = transferHotelName.trim();
-    if ((data.hasAirportSelect || tourType === 'TRANSFER') && hotelTrim) {
+    if (isTransfer && hotelTrim) {
       lines.push(`Hotel: ${hotelTrim}`);
     }
     return {
@@ -524,8 +530,7 @@ function ProductVariantBookingCardInner({
     infants,
     variantTitle,
     selectedOptionLabels,
-    data.hasAirportSelect,
-    tourType,
+    isTransfer,
     transferHotelName,
     flightMode,
     selectedSingleFlightObj,
@@ -580,8 +585,7 @@ function ProductVariantBookingCardInner({
       alert(t.validationSelectStartTime ?? 'Please select a start time.');
       return;
     }
-    const isTransferLike = data.hasAirportSelect || tourType === 'TRANSFER';
-    if (isTransferLike) {
+    if (isTransfer) {
       if (flightMode === 'single') {
         if (!selectedSingleFlight.trim()) {
           alert(t.validationSelectFlight ?? 'Please select a flight.');
@@ -624,14 +628,12 @@ function ProductVariantBookingCardInner({
       totalPrice: payTotal,
       ...(activeVariant.id !== TRANSFER_FALLBACK_VARIANT_ID ? { variantId: activeVariant.id } : {}),
       startTime: selectedStartTime || null,
-      ...((data.hasAirportSelect || tourType === 'TRANSFER') && {
+      ...(isTransfer && {
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
         transferDirection:
           flightMode === 'roundtrip'
             ? 'roundtrip'
-            : selectedSingleFlightObj
-              ? selectedSingleFlightObj.direction
-              : undefined,
+            : selectedSingleFlightObj?.direction ?? undefined,
         transferFlightArrival:
           flightMode === 'single'
             ? selectedSingleFlightObj?.direction === 'arrival'
@@ -677,11 +679,10 @@ function ProductVariantBookingCardInner({
         ) : null}
       </div>
 
-      {(data.hasAirportSelect || tourType === 'TRANSFER') && (
+      {isTransfer && (
         <>
-          <div className="flight-mode-toggle" style={{ marginBottom: 'var(--space-md)' }}>
-            <label className="form-label">{t.transferTripType ?? 'Transfer type'} *</label>
-            <div className="flight-mode-toggle-group" role="radiogroup" aria-label={t.transferTripType ?? 'Transfer type'}>
+          <div className="flight-mode-toggle-wrap" style={{ marginBottom: 'var(--space-md)' }}>
+            <div className="flight-mode-toggle-group" role="radiogroup" aria-label={t.transferTripType ?? 'Transfer trip type'}>
               <button
                 type="button"
                 role="radio"
@@ -782,6 +783,20 @@ function ProductVariantBookingCardInner({
               </div>
             </>
           )}
+
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label className="form-label">
+              {t.transferHotelSection ?? t.hotel ?? 'Hotel name / address'} *
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={transferHotelName}
+              onChange={(e) => setTransferHotelName(e.target.value)}
+              placeholder={t.transferHotelPlaceholder ?? 'Hotel name or address'}
+              required
+            />
+          </div>
         </>
       )}
 
@@ -823,7 +838,7 @@ function ProductVariantBookingCardInner({
         </>
       )}
 
-      {data.hasAirportSelect && !isOptionMode && (
+      {isTransfer && !isOptionMode && (
         <>
           <label className="form-label">{t.airport}</label>
           <AirportSelector
@@ -891,21 +906,6 @@ function ProductVariantBookingCardInner({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {(data.hasAirportSelect || tourType === 'TRANSFER') && (
-        <div style={{ marginBottom: 'var(--space-md)' }}>
-          <label className="form-label">
-            {t.transferHotelSection ?? t.hotel ?? 'Hotel name / address'} *
-          </label>
-          <input
-            type="text"
-            className="form-control"
-            value={transferHotelName}
-            onChange={(e) => setTransferHotelName(e.target.value)}
-            placeholder={t.transferHotelPlaceholder ?? 'Hotel name or address'}
-          />
         </div>
       )}
 
@@ -1188,7 +1188,7 @@ function ProductVariantBookingCardInner({
                     )}
                   </>
                 )}
-                {(data.hasAirportSelect || tourType === 'TRANSFER') && flightMode === 'roundtrip' && (
+                {isTransfer && flightMode === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                     <span>{t.roundtrip} ({t.roundtripOff})</span>
                     <span>×2</span>
@@ -1208,7 +1208,7 @@ function ProductVariantBookingCardInner({
                     )}
                   </span>
                 </div>
-                {(data.hasAirportSelect || tourType === 'TRANSFER') && flightMode === 'roundtrip' && (
+                {isTransfer && flightMode === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
                     <span>{t.roundtrip} ({t.roundtripOff})</span>
                     <span>{t.roundtripApplied ?? 'Applied'}</span>

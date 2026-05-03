@@ -237,6 +237,7 @@ function mapDbTourToState(db: Record<string, unknown>, siteLang: SiteLocale) {
     images: (Array.isArray(row.images) ? row.images : []).map((img) =>
       String((img as { url?: string }).url ?? '')
     ),
+    category: row.category != null ? String(row.category) : null,
     salesTags: Array.isArray(row.salesTags)
       ? row.salesTags.filter((x): x is string => typeof x === 'string')
       : [],
@@ -421,7 +422,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     if (!tour) return <div className="container" style={{ padding: 'var(--space-2xl) 0', textAlign: 'center' }}>{t.loading}</div>;
 
     // Transfer sayfasında layout atlamasını önle: varyant verisi gelene kadar aynı layout ile skeleton göster
-    const needsVariants = tour.type === 'TRANSFER';
+    const tourCategory = (tour as { category?: string | null }).category ?? null;
+    const needsVariants =
+      tour.type === 'TRANSFER' || tourCategory === 'transfers';
     if (needsVariants && !tourWithVariants) {
       return <div className="container tour-detail-layout tour-detail-layout--variant" style={{ padding: 'var(--space-2xl) 0', minHeight: '60vh' }}>
         <div className="tour-detail-hero-grid tour-detail-hero-grid--variant" style={{ opacity: 0.6 }}>
@@ -478,7 +481,9 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
 
     const availableVariants = tourWithVariants?.variants ?? [];
     const useVariantBooking =
-      availableVariants.length > 0 || tour.type === 'TRANSFER';
+      availableVariants.length > 0 ||
+      tour.type === 'TRANSFER' ||
+      tourCategory === 'transfers';
     const fromPrice = (() => {
       if (!useVariantBooking) return null;
       if (availableVariants.length > 0) {
@@ -491,7 +496,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
           })
         );
       }
-      if (tour.type === 'TRANSFER') {
+      if (tour.type === 'TRANSFER' || tourCategory === 'transfers') {
         const tiers = tourWithVariants?.transferAirportTiers;
         const nav = tiers?.NAV ?? [];
         const asr = tiers?.ASR ?? [];
@@ -627,6 +632,7 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
                             <ProductVariantBookingCard
                                 tourId={tour.id}
                                 tourType={tour.type}
+                                category={tourCategory}
                                 lang={siteLang}
                                 variantUi={vUiFlat}
                                 promotionUi={promoFlat}

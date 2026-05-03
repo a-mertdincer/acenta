@@ -182,6 +182,11 @@ export async function createReservations(input: CreateReservationInput): Promise
 
     for (const meta of lineMeta) {
       const item = meta.item;
+      const dateKey = item.date.length >= 10 ? item.date.slice(0, 10) : item.date;
+      const tourDayPricing = await getTourDatePrice(item.tourId, dateKey);
+      if (tourDayPricing?.isClosed) {
+        return { ok: false, error: 'Bu tarih için rezervasyon kabul edilmemektedir.' };
+      }
       const adults = Math.max(1, item.adultCount ?? Math.max(1, item.pax - (item.childCount ?? 0) - (item.infantCount ?? 0)));
       const children = Math.max(0, item.childCount ?? 0);
       const infants = Math.max(0, item.infantCount ?? 0);

@@ -159,6 +159,7 @@ function ProductVariantBookingCardInner({
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [askModalOpen, setAskModalOpen] = useState(false);
   const handleCloseAskModal = useCallback(() => setAskModalOpen(false), []);
+  const [closedBookingDates, setClosedBookingDates] = useState<Set<string>>(() => new Set());
   const isOptionMode = data.reservationTypeMode === 'option2' || data.reservationTypeMode === 'option3' || data.reservationTypeMode === 'option4';
   const showChildren = useMemo(() => {
     if (minAgeLimit != null && minAgeLimit >= 8) return false;
@@ -170,6 +171,27 @@ function ProductVariantBookingCardInner({
     if (ageGroups.length === 0) return true;
     return ageGroups.some((g) => (g.pricingType === 'free' || g.pricingType === 'adult' || g.pricingType === 'child') && g.minAge <= 3);
   }, [ageGroups, minAgeLimit]);
+
+  useEffect(() => {
+    const from = new Date();
+    const to = new Date();
+    to.setUTCFullYear(to.getUTCFullYear() + 1);
+    const fromStr = from.toISOString().slice(0, 10);
+    const toStr = to.toISOString().slice(0, 10);
+    let cancelled = false;
+    void fetch(`/api/tours/${encodeURIComponent(tourId)}/closed-dates?from=${fromStr}&to=${toStr}`)
+      .then((r) => (r.ok ? r.json() : Promise.resolve({ dates: [] as string[] })))
+      .then((data: { dates?: string[] }) => {
+        if (cancelled) return;
+        setClosedBookingDates(new Set(data.dates ?? []));
+      })
+      .catch(() => {
+        if (!cancelled) setClosedBookingDates(new Set());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tourId]);
 
   useEffect(() => {
     if (!data.hasAirportSelect && tourType !== 'TRANSFER') return;
@@ -406,6 +428,8 @@ function ProductVariantBookingCardInner({
     flightDeparture,
   ]);
 
+  const selectedDateClosed = closedBookingDates.has(selectedDate);
+
   const [promoPreview, setPromoPreview] = useState<{
     discount: number;
     final: number;
@@ -414,7 +438,7 @@ function ProductVariantBookingCardInner({
 
   useEffect(() => {
     let cancelled = false;
-    if (isAskForPrice || !selectedDate || total <= 0) {
+    if (isAskForPrice || selectedDateClosed || !selectedDate || total <= 0) {
       setPromoPreview(null);
       return;
     }
@@ -428,12 +452,16 @@ function ProductVariantBookingCardInner({
     return () => {
       cancelled = true;
     };
-  }, [isAskForPrice, tourId, selectedDate, total]);
+  }, [isAskForPrice, selectedDateClosed, tourId, selectedDate, total]);
 
   const payTotal = promoPreview && promoPreview.discount > 0 ? promoPreview.final : total;
 
   const handleAddToCart = () => {
     if (isAskForPrice) return;
+    if (selectedDateClosed) {
+      alert(t.dateClosed ?? 'Bu tarih için rezervasyon kabul edilmemektedir.');
+      return;
+    }
     if (!activeVariant) {
       alert(t.alertNoVariant ?? 'No matching variant for this selection.');
       return;
@@ -521,6 +549,11 @@ function ProductVariantBookingCardInner({
           onChange={(e) => setSelectedDate(e.target.value)}
           style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
         />
+        {!isAskForPrice && selectedDateClosed ? (
+          <p className="transfer-no-flights-notice booking-date-closed-notice" role="alert">
+            {t.dateClosed ?? 'This date is closed for booking.'}
+          </p>
+        ) : null}
       </div>
 
       {startTimes.length > 0 ? (
@@ -1059,7 +1092,7 @@ function ProductVariantBookingCardInner({
         <Button
           style={{ width: '100%' }}
           onClick={isAskForPrice ? () => setAskModalOpen(true) : handleAddToCart}
-          disabled={!activeVariant}
+          disabled={!activeVariant || (!isAskForPrice && selectedDateClosed)}
         >
           {isAskForPrice ? askForPriceStrings.button : t.addToCart}
         </Button>

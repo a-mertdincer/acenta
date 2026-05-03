@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { submitPriceInquiry } from '@/app/actions/priceInquiry';
 
@@ -22,16 +22,25 @@ export type AskForPriceStrings = {
 
 const DIAL_DEFAULTS = ['+90', '+1', '+44', '+49', '+33', '+86', '+81', '+82'];
 
+export type AskForPricePrefill = {
+  preferredDate?: string;
+  people?: number;
+  message?: string;
+  hotelOrCruise?: string;
+};
+
 export function AskForPriceModal({
   tourId,
   strings,
   isOpen,
   onClose,
+  initialPrefill,
 }: {
   tourId: string;
   strings: AskForPriceStrings;
   isOpen: boolean;
   onClose: () => void;
+  initialPrefill?: AskForPricePrefill | null;
 }) {
   const a = strings;
   const [name, setName] = useState('');
@@ -47,6 +56,7 @@ export function AskForPriceModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const prevIsOpen = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -65,6 +75,17 @@ export function AskForPriceModal({
       window.removeEventListener('keydown', onEsc);
     };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    const justOpened = isOpen && !prevIsOpen.current;
+    prevIsOpen.current = isOpen;
+    if (!justOpened || !initialPrefill) return;
+    const p = initialPrefill;
+    if (p.preferredDate) setPreferredDate(p.preferredDate);
+    if (p.people != null && p.people >= 1) setPeople(Math.min(20, Math.max(1, p.people)));
+    setMessage(p.message ?? '');
+    setHotelOrCruise(p.hotelOrCruise ?? '');
+  }, [isOpen, initialPrefill]);
 
   if (!isOpen || !mounted) return null;
 

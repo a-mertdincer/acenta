@@ -19,7 +19,7 @@ import type { TourWithVariantsResult } from '@/app/actions/variants';
 import { getLastTierPax, resolveTierPrice } from '@/lib/pricingTiers';
 import { useExchangeRate } from '@/app/hooks/useExchangeRate';
 import { formatPriceByLang } from '@/lib/currency';
-import { AskForPriceBookingBlock, type AskForPriceStrings } from './AskForPriceModal';
+import { AskForPriceModal, type AskForPricePrefill, type AskForPriceStrings } from './AskForPriceModal';
 import { buildTourWhatsAppHref } from '@/lib/buildWhatsAppTourUrl';
 import { TourBookingTrustExtras, type TourCancellationLabels, type WhyBookDict } from './TourBookingTrustExtras';
 import { Ban, Baby, PartyPopper, User as UserIcon, type LucideIcon } from 'lucide-react';
@@ -100,66 +100,7 @@ type ProductVariantBookingCardProps = {
   startTimes?: string[];
 };
 
-function AskPriceOnlyCard({
-  tourId,
-  lang,
-  title,
-  whyBook,
-  tourCancellationLabels,
-  cancellationNote,
-  variantUi,
-  askForPriceStrings,
-}: Pick<
-  ProductVariantBookingCardProps,
-  | 'tourId'
-  | 'lang'
-  | 'title'
-  | 'whyBook'
-  | 'tourCancellationLabels'
-  | 'cancellationNote'
-  | 'variantUi'
-  | 'askForPriceStrings'
->) {
-  const t = variantUi;
-  const askPriceWhatsappHref = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return buildTourWhatsAppHref({
-      tourTitle: title,
-      dateYmd: d.toISOString().split('T')[0],
-      people: 2,
-    });
-  }, [title]);
-  return (
-    <div className="card tour-detail-booking-card tour-detail-booking-card--ask">
-      <AskForPriceBookingBlock tourId={tourId} strings={askForPriceStrings} />
-      <TourBookingTrustExtras
-        lang={lang}
-        whatsappHref={askPriceWhatsappHref}
-        whatsappLabel={t.askWhatsApp ?? 'Ask on WhatsApp'}
-        whyBook={whyBook}
-        cancellationNote={cancellationNote}
-        policyLabels={tourCancellationLabels}
-      />
-    </div>
-  );
-}
-
 export function ProductVariantBookingCard(props: ProductVariantBookingCardProps) {
-  if (props.isAskForPrice) {
-    return (
-      <AskPriceOnlyCard
-        tourId={props.tourId}
-        lang={props.lang}
-        title={props.title}
-        whyBook={props.whyBook}
-        tourCancellationLabels={props.tourCancellationLabels}
-        cancellationNote={props.cancellationNote}
-        variantUi={props.variantUi}
-        askForPriceStrings={props.askForPriceStrings}
-      />
-    );
-  }
   return <ProductVariantBookingCardInner {...props} />;
 }
 
@@ -178,6 +119,8 @@ function ProductVariantBookingCardInner({
   whyBook,
   tourCancellationLabels,
   cancellationNote,
+  askForPriceStrings,
+  isAskForPrice = false,
 }: ProductVariantBookingCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -214,6 +157,8 @@ function ProductVariantBookingCardInner({
     [optionQuantities]
   );
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [askModalOpen, setAskModalOpen] = useState(false);
+  const handleCloseAskModal = useCallback(() => setAskModalOpen(false), []);
   const isOptionMode = data.reservationTypeMode === 'option2' || data.reservationTypeMode === 'option3' || data.reservationTypeMode === 'option4';
   const showChildren = useMemo(() => {
     if (minAgeLimit != null && minAgeLimit >= 8) return false;
@@ -405,8 +350,61 @@ function ProductVariantBookingCardInner({
       });
   }, [selectedOptions, options, adults, children, infants, optionQuantities]);
 
+  const selectedOptionLabels = useMemo(
+    () =>
+      selectedOptions
+        .map((id) => options.find((o) => o.id === id)?.title)
+        .filter((x): x is string => Boolean(x)),
+    [selectedOptions, options]
+  );
+
   const variantTitle = activeVariant ? variantTitleFor(lang, activeVariant, title) : title;
   const formatShown = (eur: number) => formatPriceByLang(eur, lang, eurTryRate);
+
+  const askPrefill = useMemo<AskForPricePrefill>(() => {
+    const lines: string[] = [
+      `Tour: ${title}`,
+      `Date: ${selectedDate}`,
+      `Guests: ${adults} adults, ${children} children, ${infants} infants`,
+      `Variant: ${variantTitle}`,
+    ];
+    if (selectedOptionLabels.length > 0) {
+      lines.push(`Options: ${selectedOptionLabels.join(', ')}`);
+    }
+    if (data.hasAirportSelect || tourType === 'TRANSFER') {
+      lines.push(`Direction: ${selectedDirection}`);
+      if ((selectedDirection === 'arrival' || selectedDirection === 'roundtrip') && flightArrival) {
+        lines.push(`Arrival flight: ${flightArrival}`);
+      }
+      if ((selectedDirection === 'departure' || selectedDirection === 'roundtrip') && flightDeparture) {
+        lines.push(`Departure flight: ${flightDeparture}`);
+      }
+    }
+    const hotelTrim = transferHotelName.trim();
+    if ((data.hasAirportSelect || tourType === 'TRANSFER') && hotelTrim) {
+      lines.push(`Hotel: ${hotelTrim}`);
+    }
+    return {
+      preferredDate: selectedDate,
+      people: adults + children + infants,
+      hotelOrCruise: transferHotelName,
+      message: lines.join('\n'),
+    };
+  }, [
+    title,
+    selectedDate,
+    adults,
+    children,
+    infants,
+    variantTitle,
+    selectedOptionLabels,
+    data.hasAirportSelect,
+    tourType,
+    transferHotelName,
+    selectedDirection,
+    flightArrival,
+    flightDeparture,
+  ]);
 
   const [promoPreview, setPromoPreview] = useState<{
     discount: number;
@@ -416,7 +414,7 @@ function ProductVariantBookingCardInner({
 
   useEffect(() => {
     let cancelled = false;
-    if (!selectedDate || total <= 0) {
+    if (isAskForPrice || !selectedDate || total <= 0) {
       setPromoPreview(null);
       return;
     }
@@ -430,11 +428,12 @@ function ProductVariantBookingCardInner({
     return () => {
       cancelled = true;
     };
-  }, [tourId, selectedDate, total]);
+  }, [isAskForPrice, tourId, selectedDate, total]);
 
   const payTotal = promoPreview && promoPreview.discount > 0 ? promoPreview.final : total;
 
   const handleAddToCart = () => {
+    if (isAskForPrice) return;
     if (!activeVariant) {
       alert(t.alertNoVariant ?? 'No matching variant for this selection.');
       return;
@@ -599,6 +598,7 @@ function ProductVariantBookingCardInner({
               perVehicle: t.perVehicle,
               recommended: t.recommended ?? 'Recommended',
             }}
+            askPriceLabel={isAskForPrice ? askForPriceStrings.title : null}
           />
         </>
       ) : (
@@ -619,7 +619,9 @@ function ProductVariantBookingCardInner({
                 >
                   {variant.isRecommended && <span className="recommended-badge">★ {t.recommended ?? 'Recommended'}</span>}
                   <strong className="reservation-card-title">{variantTitleFor(lang, variant, variant.titleEn)}</strong>
-                  <span className="reservation-card-price">{formatShown(variant.adultPrice).primary}</span>
+                  <span className={`reservation-card-price${isAskForPrice ? ' variant-price-ask' : ''}`}>
+                    {isAskForPrice ? askForPriceStrings.title : formatShown(variant.adultPrice).primary}
+                  </span>
                   <span className="reservation-card-subtitle">
                     {variant.pricingType === 'per_vehicle' ? (t.perVehicle ?? 'per vehicle') : (t.perPerson ?? 'per person')}
                   </span>
@@ -683,7 +685,15 @@ function ProductVariantBookingCardInner({
                       </button>
                     </span>
                   )}
-                  <strong className="addon-price">+{formatShown(displayPrice).primary} <span className="addon-multiplier">({qtyLabel})</span></strong>
+                  <strong className="addon-price">
+                    {isAskForPrice ? (
+                      <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                    ) : (
+                      <>
+                        +{formatShown(displayPrice).primary} <span className="addon-multiplier">({qtyLabel})</span>
+                      </>
+                    )}
+                  </strong>
                 </label>
               );
             })}
@@ -829,7 +839,9 @@ function ProductVariantBookingCardInner({
         <div className="age-group">
           <span className="age-group-label">{t.children}</span>
           {activeVariant?.childPrice != null && (
-            <span className="age-group-price">€{activeVariant.childPrice}/child</span>
+            <span className="age-group-price">
+              {isAskForPrice ? <span className="variant-price-ask">{askForPriceStrings.title}</span> : `€${activeVariant.childPrice}/child`}
+            </span>
           )}
           <div className="stepper-control">
             <button
@@ -925,20 +937,52 @@ function ProductVariantBookingCardInner({
                     <span>
                       {`${adults + children + infants} ${t.guestsWord ?? 'guests'}`}
                     </span>
-                    <span>{formatShown(baseTotal).primary}</span>
+                    <span>
+                      {isAskForPrice ? (
+                        <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                      ) : (
+                        formatShown(baseTotal).primary
+                      )}
+                    </span>
                   </div>
                 ) : (
                   <>
                     {adults > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span>{adults} Adult{adults > 1 ? 's' : ''} × {formatShown(activeVariant.adultPrice).primary}</span>
-                      <span>{formatShown(activeVariant.adultPrice * adults).primary}</span>
+                      <span>
+                        {adults} Adult{adults > 1 ? 's' : ''} ×{' '}
+                        {isAskForPrice ? (
+                          <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                        ) : (
+                          formatShown(activeVariant.adultPrice).primary
+                        )}
+                      </span>
+                      <span>
+                        {isAskForPrice ? (
+                          <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                        ) : (
+                          formatShown(activeVariant.adultPrice * adults).primary
+                        )}
+                      </span>
                       </div>
                     )}
                     {children > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span>{children} Child × {formatShown(activeVariant.childPrice ?? activeVariant.adultPrice).primary}</span>
-                      <span>{formatShown((activeVariant.childPrice ?? activeVariant.adultPrice) * children).primary}</span>
+                      <span>
+                        {children} Child ×{' '}
+                        {isAskForPrice ? (
+                          <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                        ) : (
+                          formatShown(activeVariant.childPrice ?? activeVariant.adultPrice).primary
+                        )}
+                      </span>
+                      <span>
+                        {isAskForPrice ? (
+                          <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                        ) : (
+                          formatShown((activeVariant.childPrice ?? activeVariant.adultPrice) * children).primary
+                        )}
+                      </span>
                       </div>
                     )}
                     {infants > 0 && (
@@ -961,7 +1005,13 @@ function ProductVariantBookingCardInner({
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span>{adults + children + infants} pax (vehicle)</span>
-                  <span>{formatShown(baseTotal).primary}</span>
+                  <span>
+                    {isAskForPrice ? (
+                      <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                    ) : (
+                      formatShown(baseTotal).primary
+                    )}
+                  </span>
                 </div>
                 {data.hasAirportSelect && selectedDirection === 'roundtrip' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
@@ -974,7 +1024,13 @@ function ProductVariantBookingCardInner({
             {selectedOptionRows.map((row) => (
               <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--color-text-muted)', paddingLeft: '8px' }}>
                 <span>{row.label}</span>
-                <span>{formatShown(row.total).primary}</span>
+                <span>
+                  {isAskForPrice ? (
+                    <span className="variant-price-ask">{askForPriceStrings.title}</span>
+                  ) : (
+                    formatShown(row.total).primary
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -982,7 +1038,9 @@ function ProductVariantBookingCardInner({
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, marginBottom: 'var(--space-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-sm)' }}>
           <span>{t.total}</span>
           <span style={{ color: 'var(--color-primary)', textAlign: 'right' }}>
-            {promoPreview && promoPreview.discount > 0 ? (
+            {isAskForPrice ? (
+              <span className="variant-price-ask">{askForPriceStrings.title}</span>
+            ) : promoPreview && promoPreview.discount > 0 ? (
               <>
                 <span className="tour-price-strike">{formatShown(total).primary}</span>{' '}
                 {formatShown(payTotal).primary}
@@ -998,8 +1056,12 @@ function ProductVariantBookingCardInner({
             )}
           </span>
         </div>
-        <Button style={{ width: '100%' }} onClick={handleAddToCart} disabled={!activeVariant}>
-          {t.addToCart}
+        <Button
+          style={{ width: '100%' }}
+          onClick={isAskForPrice ? () => setAskModalOpen(true) : handleAddToCart}
+          disabled={!activeVariant}
+        >
+          {isAskForPrice ? askForPriceStrings.button : t.addToCart}
         </Button>
       </div>
 
@@ -1011,6 +1073,16 @@ function ProductVariantBookingCardInner({
         cancellationNote={cancellationNote}
         policyLabels={tourCancellationLabels}
       />
+
+      {isAskForPrice ? (
+        <AskForPriceModal
+          tourId={tourId}
+          strings={askForPriceStrings}
+          isOpen={askModalOpen}
+          onClose={handleCloseAskModal}
+          initialPrefill={askPrefill}
+        />
+      ) : null}
 
       {cartToastOpen && (
         <div

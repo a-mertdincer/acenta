@@ -283,6 +283,11 @@ button, input, select, textarea {
   color: var(--color-text-warning, #8a5a00);
 }
 
+.variant-price-ask {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;

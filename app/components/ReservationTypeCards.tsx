@@ -11,6 +11,7 @@ export function ReservationTypeCards({
   lang,
   labels,
   showTypeMeta = true,
+  askPriceLabel,
 }: {
   variants: TourVariantDisplay[];
   value: string;
@@ -18,6 +19,8 @@ export function ReservationTypeCards({
   lang: string;
   labels: { regular: string; private: string; group: string; onlyYou: string; perPerson: string; perVehicle: string; recommended: string };
   showTypeMeta?: boolean;
+  /** When set, replaces computed EUR prices (ask-for-price tours). */
+  askPriceLabel?: string | null;
 }) {
   const cards = variants.filter((v) => Boolean(v.reservationType));
 
@@ -55,7 +58,9 @@ export function ReservationTypeCards({
           {variant.isRecommended && <span className="recommended-badge">★ {labels.recommended}</span>}
           <strong className="reservation-card-title">{title(variant)}</strong>
           {subtitleFor(variant.reservationType) && <span className="reservation-card-subtitle">{subtitleFor(variant.reservationType)}</span>}
-          <span className="reservation-card-price">{priceLabel(variant)}</span>
+          <span className={`reservation-card-price${askPriceLabel ? ' variant-price-ask' : ''}`}>
+            {askPriceLabel ?? priceLabel(variant)}
+          </span>
           {showTypeMeta && variant.maxGroupSize != null && (
             <span className="reservation-card-meta">Max {variant.maxGroupSize} {labels.perPerson.replace(/\/.*/, '')}</span>
           )}

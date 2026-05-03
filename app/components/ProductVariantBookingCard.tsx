@@ -36,6 +36,9 @@ type FlightOption = {
   estimatedTime: string;
 };
 
+/** Sentetik DB varyantı yok; sepete gerçek variantId gönderilmez (FK). */
+const TRANSFER_FALLBACK_VARIANT_ID = '__transfer_fallback__';
+
 function normalizeNullable(value: string | null | undefined): string | null {
   if (value == null) return null;
   const trimmed = value.trim();
@@ -231,10 +234,51 @@ function ProductVariantBookingCardInner({
     if (!showInfants && infants !== 0) setInfants(0);
   }, [showChildren, showInfants, children, infants]);
 
+  const fallbackTransferVariant = useMemo((): TourVariantDisplay | null => {
+    if (data.variants.length > 0 || tourType !== 'TRANSFER') return null;
+    const tiersNav = data.transferAirportTiers?.NAV ?? [];
+    const tiersAsr = data.transferAirportTiers?.ASR ?? [];
+    const allTiers = [...tiersNav, ...tiersAsr];
+    const allTierPrices = allTiers.map((t) => t.price).filter((p) => Number.isFinite(p));
+    const maxPaxFromTiers = allTiers.length > 0 ? Math.max(...allTiers.map((t) => t.maxPax)) : 0;
+    return {
+      id: TRANSFER_FALLBACK_VARIANT_ID,
+      tourId: data.id,
+      tourType: null,
+      reservationType: 'private',
+      airport: null,
+      titleEn: 'Transfer',
+      titleTr: 'Transfer',
+      titleZh: 'Transfer',
+      descEn: '',
+      descTr: '',
+      descZh: '',
+      includes: [],
+      excludes: [],
+      duration: null,
+      languages: null,
+      vehicleType: null,
+      maxGroupSize: maxPaxFromTiers > 0 ? maxPaxFromTiers : 8,
+      routeStops: null,
+      adultPrice: allTierPrices.length > 0 ? Math.min(...allTierPrices) : 1,
+      childPrice: null,
+      pricingType: 'per_vehicle',
+      privatePriceTiers: null,
+      sortOrder: 0,
+      isActive: true,
+      isRecommended: true,
+    };
+  }, [data.variants.length, data.id, tourType, data.transferAirportTiers]);
+
+  const variantsSource = useMemo(() => {
+    if (data.variants.length > 0) return data.variants;
+    return fallbackTransferVariant ? [fallbackTransferVariant] : [];
+  }, [data.variants, fallbackTransferVariant]);
+
   const matchingVariants = useMemo(() => {
     const selectedTourType = normalizeNullable(selection.tourType);
     const selectedAirport = isOptionMode ? null : normalizeNullable(selection.airport);
-    return data.variants
+    return variantsSource
       .filter((v) => v.isActive)
       .filter((v) => {
         const variantTourType = normalizeNullable(v.tourType);
@@ -244,9 +288,12 @@ function ProductVariantBookingCardInner({
         return tourTypeMatch && airportMatch;
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [data.variants, selection.tourType, selection.airport, isOptionMode]);
+  }, [variantsSource, selection.tourType, selection.airport, isOptionMode]);
   const variantsWithReservationType = useMemo(
-    () => matchingVariants.filter((v) => Boolean(v.reservationType)),
+    () =>
+      matchingVariants.filter(
+        (v) => Boolean(v.reservationType) && v.id !== TRANSFER_FALLBACK_VARIANT_ID
+      ),
     [matchingVariants]
   );
   const useReservationTypeCards = data.hasReservationType && variantsWithReservationType.length > 0;
@@ -575,7 +622,7 @@ function ProductVariantBookingCardInner({
         }),
       listTotalPrice: total,
       totalPrice: payTotal,
-      variantId: activeVariant.id,
+      ...(activeVariant.id !== TRANSFER_FALLBACK_VARIANT_ID ? { variantId: activeVariant.id } : {}),
       startTime: selectedStartTime || null,
       ...((data.hasAirportSelect || tourType === 'TRANSFER') && {
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
@@ -607,7 +654,7 @@ function ProductVariantBookingCardInner({
     setCartToastOpen(true);
   };
 
-  if (data.variants.length === 0) return null;
+  if (variantsSource.length === 0) return null;
 
   return (
     <div className="card tour-detail-booking-card" style={{ padding: 'var(--space-xl)' }}>

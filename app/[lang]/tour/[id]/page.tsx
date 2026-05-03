@@ -477,17 +477,31 @@ export default function TourDetailPage(props: { params: Promise<{ lang: string; 
     };
 
     const availableVariants = tourWithVariants?.variants ?? [];
-    const useVariantBooking = availableVariants.length > 0;
-    const fromPrice = useVariantBooking
-        ? Math.min(
-            ...availableVariants.map((variant) => {
-              if ((variant.privatePriceTiers?.length ?? 0) > 0) {
-                return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
-              }
-              return variant.adultPrice;
-            })
-          )
-        : null;
+    const useVariantBooking =
+      availableVariants.length > 0 || tour.type === 'TRANSFER';
+    const fromPrice = (() => {
+      if (!useVariantBooking) return null;
+      if (availableVariants.length > 0) {
+        return Math.min(
+          ...availableVariants.map((variant) => {
+            if ((variant.privatePriceTiers?.length ?? 0) > 0) {
+              return getTierFromPrice(variant.privatePriceTiers ?? null) ?? variant.adultPrice;
+            }
+            return variant.adultPrice;
+          })
+        );
+      }
+      if (tour.type === 'TRANSFER') {
+        const tiers = tourWithVariants?.transferAirportTiers;
+        const nav = tiers?.NAV ?? [];
+        const asr = tiers?.ASR ?? [];
+        const prices = [...nav, ...asr].map((t) => t.price).filter((p) => Number.isFinite(p));
+        if (prices.length > 0) return Math.min(...prices);
+        const bp = Number((tour as { basePrice?: number }).basePrice);
+        return Number.isFinite(bp) && bp > 0 ? bp : null;
+      }
+      return null;
+    })();
     const galleryMain = getTourImagePath(tour.type);
     const galleryFallback = getTourImageFallback(tour.type);
     const dynamicImages = Array.isArray(tour.images) ? tour.images.filter((url: unknown): url is string => typeof url === 'string' && url.trim() !== '') : [];

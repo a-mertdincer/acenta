@@ -304,6 +304,7 @@
     "validationDepartureFlight": "Please enter departure flight info.",
     "validationHotel": "Please enter hotel name / address.",
     "transferPickFlight": "Select flight",
+    "transferNoFlightsAvailable": "이 공항에 설정된 항공편이 없습니다. 문의해 주세요.",
     "transferManualFlight": "Enter flight code manually",
     "transferHotelPlaceholder": "Hotel name or address",
     "guestsWord": "guests",

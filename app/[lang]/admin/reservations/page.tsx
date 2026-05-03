@@ -113,6 +113,9 @@ interface ResRow {
   displayNotes: string;
   optionsRaw: string | null;
   transferAirport: string | null;
+  transferFlightArrival: string | null;
+  transferFlightDeparture: string | null;
+  transferHotelName: string | null;
   couponCode: string | null;
   originalPrice: number | null;
   discountAmount: number | null;
@@ -271,6 +274,9 @@ export default function AdminReservationsPage() {
             displayNotes: formatNotesForDisplay(r.notes),
             optionsRaw: r.options ?? null,
             transferAirport: (r as { transferAirport?: string | null }).transferAirport ?? null,
+            transferFlightArrival: (r as { transferFlightArrival?: string | null }).transferFlightArrival ?? null,
+            transferFlightDeparture: (r as { transferFlightDeparture?: string | null }).transferFlightDeparture ?? null,
+            transferHotelName: (r as { transferHotelName?: string | null }).transferHotelName ?? null,
             couponCode: (r as { couponCode?: string | null }).couponCode ?? null,
             originalPrice: (r as { originalPrice?: number | null }).originalPrice ?? null,
             discountAmount: (r as { discountAmount?: number | null }).discountAmount ?? null,
@@ -463,6 +469,10 @@ export default function AdminReservationsPage() {
               couponCode: (next as { couponCode?: string | null }).couponCode ?? null,
               originalPrice: (next as { originalPrice?: number | null }).originalPrice ?? null,
               discountAmount: (next as { discountAmount?: number | null }).discountAmount ?? null,
+              transferAirport: (next as { transferAirport?: string | null }).transferAirport ?? null,
+              transferFlightArrival: (next as { transferFlightArrival?: string | null }).transferFlightArrival ?? null,
+              transferFlightDeparture: (next as { transferFlightDeparture?: string | null }).transferFlightDeparture ?? null,
+              transferHotelName: (next as { transferHotelName?: string | null }).transferHotelName ?? null,
             }
           : p
       )
@@ -998,10 +1008,37 @@ export default function AdminReservationsPage() {
                                 </p>
                               </div>
                             )}
-                            {res.transferAirport && (
+                            {(res.transferAirport ||
+                              res.transferFlightArrival ||
+                              res.transferFlightDeparture ||
+                              res.transferHotelName) && (
                               <div className="admin-expand-section">
                                 <h4>Transfer</h4>
-                                <p>{res.transferAirport === 'ASR' ? 'Kayseri (ASR)' : res.transferAirport === 'NAV' ? 'Nevşehir (NAV)' : res.transferAirport}</p>
+                                {res.transferAirport ? (
+                                  <p>
+                                    <strong>Havalimanı:</strong>{' '}
+                                    {res.transferAirport === 'ASR'
+                                      ? 'Kayseri (ASR)'
+                                      : res.transferAirport === 'NAV'
+                                        ? 'Nevşehir (NAV)'
+                                        : res.transferAirport}
+                                  </p>
+                                ) : null}
+                                {res.transferFlightArrival ? (
+                                  <p>
+                                    <strong>Geliş uçuşu:</strong> {res.transferFlightArrival}
+                                  </p>
+                                ) : null}
+                                {res.transferFlightDeparture ? (
+                                  <p>
+                                    <strong>Gidiş uçuşu:</strong> {res.transferFlightDeparture}
+                                  </p>
+                                ) : null}
+                                {res.transferHotelName ? (
+                                  <p>
+                                    <strong>Otel:</strong> {res.transferHotelName}
+                                  </p>
+                                ) : null}
                               </div>
                             )}
                             <div className="admin-expand-section" style={{ gridColumn: optionsList.length ? '1 / -1' : undefined }}>

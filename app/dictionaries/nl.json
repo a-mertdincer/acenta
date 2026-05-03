@@ -304,6 +304,7 @@
     "validationDepartureFlight": "Please enter departure flight info.",
     "validationHotel": "Please enter hotel name / address.",
     "transferPickFlight": "Select flight",
+    "transferNoFlightsAvailable": "Geen vluchten geconfigureerd voor deze luchthaven. Neem contact met ons op.",
     "transferManualFlight": "Enter flight code manually",
     "transferHotelPlaceholder": "Hotel name or address",
     "guestsWord": "guests",

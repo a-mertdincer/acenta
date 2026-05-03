@@ -304,6 +304,7 @@
     "validationDepartureFlight": "Please enter departure flight info.",
     "validationHotel": "Please enter hotel name / address.",
     "transferPickFlight": "Select flight",
+    "transferNoFlightsAvailable": "この空港に設定されているフライトはありません。お問い合わせください。",
     "transferManualFlight": "Enter flight code manually",
     "transferHotelPlaceholder": "Hotel name or address",
     "guestsWord": "guests",

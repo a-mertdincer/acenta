@@ -229,6 +229,8 @@ function ProductVariantBookingCardInner({
   useEffect(() => {
     if (!data.hasAirportSelect && tourType !== 'TRANSFER') return;
     const airport = selection.airport ?? 'NAV';
+    setFlightArrival('');
+    setFlightDeparture('');
     getFlights({ airport, direction: 'arrival' }).then((list) =>
       setFlightsArrival(list.map((f) => ({ id: f.id, code: f.code, airline: f.airline })))
     );
@@ -450,8 +452,8 @@ function ProductVariantBookingCardInner({
     if (isTransferLike) {
       const arrivalRequired = selectedDirection === 'arrival' || selectedDirection === 'roundtrip';
       const departureRequired = selectedDirection === 'departure' || selectedDirection === 'roundtrip';
-      const arrivalValue = flightArrival === '__manual__' ? '' : flightArrival.trim();
-      const departureValue = flightDeparture === '__manual__' ? '' : flightDeparture.trim();
+      const arrivalValue = flightArrival.trim();
+      const departureValue = flightDeparture.trim();
       if (arrivalRequired && !arrivalValue) {
         alert(t.validationArrivalFlight ?? 'Please enter arrival flight info.');
         return;
@@ -491,13 +493,9 @@ function ProductVariantBookingCardInner({
         transferAirport: (activeVariant.airport as VariantSelection['airport'] | null) ?? selection.airport ?? undefined,
         transferDirection: selectedDirection,
         transferFlightArrival:
-          (selectedDirection === 'arrival' || selectedDirection === 'roundtrip') && flightArrival && flightArrival !== '__manual__'
-            ? flightArrival
-            : null,
+          (selectedDirection === 'arrival' || selectedDirection === 'roundtrip') && flightArrival ? flightArrival : null,
         transferFlightDeparture:
-          (selectedDirection === 'departure' || selectedDirection === 'roundtrip') && flightDeparture && flightDeparture !== '__manual__'
-            ? flightDeparture
-            : null,
+          (selectedDirection === 'departure' || selectedDirection === 'roundtrip') && flightDeparture ? flightDeparture : null,
         transferHotelName: transferHotelName.trim() || null,
       }),
       childCount: children,
@@ -747,9 +745,10 @@ function ProductVariantBookingCardInner({
               <label className="form-label">{t.flightArrival} *</label>
               {flightsArrival.length > 0 ? (
                 <select
+                  className="transfer-flight-select"
                   value={flightArrival}
                   onChange={(e) => setFlightArrival(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                  required
                 >
                   <option value="">
                     {t.transferPickFlight ?? 'Select flight'}
@@ -757,19 +756,11 @@ function ProductVariantBookingCardInner({
                   {flightsArrival.map((f) => (
                     <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
                   ))}
-                  <option value="__manual__">
-                    {t.transferManualFlight ?? 'Enter flight code manually'}
-                  </option>
                 </select>
-              ) : null}
-              {(flightsArrival.length === 0 || flightArrival === '__manual__') && (
-                <input
-                  type="text"
-                  value={flightArrival === '__manual__' ? '' : flightArrival}
-                  onChange={(e) => setFlightArrival(e.target.value)}
-                  placeholder={t.transferFlightPlaceholderArrival ?? 'e.g. TK 2000'}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsArrival.length > 0 ? 8 : 0 }}
-                />
+              ) : (
+                <div className="transfer-no-flights-notice" role="alert">
+                  {t.transferNoFlightsAvailable ?? 'No flights configured for this airport. Please contact us.'}
+                </div>
               )}
             </div>
           )}
@@ -778,9 +769,10 @@ function ProductVariantBookingCardInner({
               <label className="form-label">{t.flightDeparture} *</label>
               {flightsDeparture.length > 0 ? (
                 <select
+                  className="transfer-flight-select"
                   value={flightDeparture}
                   onChange={(e) => setFlightDeparture(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                  required
                 >
                   <option value="">
                     {t.transferPickFlight ?? 'Select flight'}
@@ -788,19 +780,11 @@ function ProductVariantBookingCardInner({
                   {flightsDeparture.map((f) => (
                     <option key={f.id} value={f.code}>{f.code} — {f.airline}</option>
                   ))}
-                  <option value="__manual__">
-                    {t.transferManualFlight ?? 'Enter flight code manually'}
-                  </option>
                 </select>
-              ) : null}
-              {(flightsDeparture.length === 0 || flightDeparture === '__manual__') && (
-                <input
-                  type="text"
-                  value={flightDeparture === '__manual__' ? '' : flightDeparture}
-                  onChange={(e) => setFlightDeparture(e.target.value)}
-                  placeholder={t.transferFlightPlaceholderDeparture ?? 'e.g. TK 2001'}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', marginTop: flightsDeparture.length > 0 ? 8 : 0 }}
-                />
+              ) : (
+                <div className="transfer-no-flights-notice" role="alert">
+                  {t.transferNoFlightsAvailable ?? 'No flights configured for this airport. Please contact us.'}
+                </div>
               )}
             </div>
           )}

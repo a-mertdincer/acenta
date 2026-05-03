@@ -292,6 +292,45 @@ button, input, select, textarea {
   margin-top: var(--space-sm);
 }
 
+.flight-mode-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.flight-mode-toggle-btn {
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-card);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  color: var(--color-text-main);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .flight-mode-toggle-btn:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+.flight-mode-toggle-btn--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 480px) {
+  .flight-mode-toggle-btn {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}
+
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;
